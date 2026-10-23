@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dastyor
+      POSTGRES_USER: dastyor
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?задайте DB_PASSWORD в .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on: [db]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://dastyor:${DB_PASSWORD}@db:5432/dastyor
+      DEBUG: "0"
+    ports:
+      - "80:8000"
+
+volumes:
+  pgdata:
