@@ -1,3 +1,4 @@
+import secrets
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -251,6 +252,8 @@ class Shop(models.Model):
     phone = models.CharField("Телефон", max_length=50, blank=True)
     telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True,
                                          help_text="Заполнится сам, когда магазин подключит бота")
+    bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
+                                editable=False)
     active = models.BooleanField("Работаем", default=True)
 
     class Meta:
@@ -260,6 +263,11 @@ class Shop(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.district})"
+
+    def save(self, *args, **kwargs):
+        if not self.bot_code:
+            self.bot_code = secrets.token_hex(4)
+        super().save(*args, **kwargs)
 
     def shipped_total(self):
         return _sum(ShipmentItem.objects.filter(shipment__shop=self), F("qty") * F("price"))
@@ -355,6 +363,66 @@ class Return(models.Model):
         if self.price is None:
             self.price = self.product.price
         super().save(*args, **kwargs)
+
+
+class Order(models.Model):
+    """Заказ магазина из Telegram-бота."""
+
+    class Status(models.TextChoices):
+        NEW = "new", "Новый"
+        CONFIRMED = "confirmed", "Подтверждён"
+        REJECTED = "rejected", "Отклонён"
+        SHIPPED = "shipped", "Отгружен"
+
+    shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="orders",
+                             verbose_name="Магазин")
+    created_at = models.DateTimeField("Создан", default=timezone.now)
+    status = models.CharField("Статус", max_length=10, choices=Status.choices, default=Status.NEW)
+    note = models.CharField("Комментарий", max_length=300, blank=True)
+    shipment = models.OneToOneField(Shipment, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="order", verbose_name="Отгрузка")
+
+    class Meta:
+        verbose_name = "Заказ из бота"
+        verbose_name_plural = "Заказы из бота"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Заказ №{self.pk}, {self.shop}"
+
+    def total(self):
+        return sum((i.qty * i.price for i in self.items.all()), ZERO)
+
+    @transaction.atomic
+    def to_shipment(self):
+        """Оформляет подтверждённый заказ как отгрузку (без оплаты, её вносят потом)."""
+        if self.shipment_id:
+            return self.shipment
+        if self.status not in (self.Status.NEW, self.Status.CONFIRMED):
+            raise ValidationError(f"Заказ №{self.pk} отклонён, отгрузить нельзя.")
+        shipment = Shipment.objects.create(shop=self.shop, note=f"По заказу №{self.pk} из бота")
+        for item in self.items.all():
+            ShipmentItem.objects.create(shipment=shipment, product=item.product,
+                                        qty=item.qty, price=item.price)
+        self.shipment = shipment
+        self.status = self.Status.SHIPPED
+        self.save(update_fields=["shipment", "status"])
+        return shipment
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items",
+                                verbose_name="Продукт")
+    qty = models.PositiveIntegerField("Количество, шт")
+    price = models.DecimalField("Цена", **MONEY)
+
+    class Meta:
+        verbose_name = "Строка заказа"
+        verbose_name_plural = "Строки заказа"
+
+    def __str__(self):
+        return f"{self.product}: {self.qty}"
 
 
 class Payment(models.Model):

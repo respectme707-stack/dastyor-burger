@@ -20,5 +20,16 @@ services:
     ports:
       - "80:8000"
 
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on: [web]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://dastyor:${DB_PASSWORD}@db:5432/dastyor
+      DEBUG: "0"
+    command: python manage.py run_bot
+    profiles: [bot]
+
 volumes:
   pgdata:
