@@ -117,3 +117,62 @@ class FormatTests(TestCase):
         self.assertEqual(money(D("1234567.6")), "1 234 568")
         self.assertEqual(qty(D("11.500")), "11,5")
         self.assertEqual(qty(D("3000.000")), "3 000")
+
+
+class BotLogicTests(TestCase):
+    def setUp(self):
+        self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар")
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000)
+        self.burger = m.Product.objects.create(name="Бургер", price=18000)
+
+    def test_shop_gets_code_and_links(self):
+        from . import botlogic
+
+        self.assertEqual(len(self.shop.bot_code), 8)
+        self.assertIsNone(botlogic.link_shop("wrong", 111))
+        self.assertEqual(botlogic.link_shop(self.shop.bot_code, 111), self.shop)
+        self.assertEqual(botlogic.shop_for(111), self.shop)
+        # Тот же аккаунт переподключили к другому магазину.
+        other = m.Shop.objects.create(name="Барака", district="Юнусабад")
+        botlogic.link_shop(other.bot_code, 111)
+        self.assertEqual(botlogic.shop_for(111), other)
+
+    def test_order_flow(self):
+        from . import botlogic
+
+        cart = {self.hotdog.pk: 30, self.burger.pk: 40}
+        self.assertIn("Итого: 1 080 000 сум", botlogic.cart_text(cart))
+        order = botlogic.create_order(self.shop, cart)
+        self.assertEqual(order.total(), D("1080000"))
+        self.assertIn("Статус: Новый", botlogic.order_text(order))
+
+        self.assertEqual(botlogic.set_status(order.pk, m.Order.Status.CONFIRMED), order)
+        self.assertIsNone(botlogic.set_status(order.pk, m.Order.Status.REJECTED))
+
+        shipment = order.to_shipment()
+        self.assertEqual(shipment.total(), D("1080000"))
+        self.assertEqual(order.to_shipment(), shipment)
+        order.refresh_from_db()
+        self.assertEqual(order.status, m.Order.Status.SHIPPED)
+        self.assertEqual(botlogic.debt_text(self.shop), "Ваш долг: 1 080 000 сум.")
+
+    def test_rejected_order_cannot_ship(self):
+        from . import botlogic
+
+        order = botlogic.create_order(self.shop, {self.hotdog.pk: 5})
+        botlogic.set_status(order.pk, m.Order.Status.REJECTED)
+        order.refresh_from_db()
+        with self.assertRaises(ValidationError):
+            order.to_shipment()
+
+    def test_owner_ids_and_summary(self):
+        import os
+        from unittest import mock
+
+        from . import botlogic
+
+        with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "5, 7"}):
+            self.assertTrue(botlogic.is_owner(7))
+            self.assertFalse(botlogic.is_owner(8))
+        botlogic.create_order(self.shop, {self.hotdog.pk: 5})
+        self.assertIn("Новых заказов: 1", botlogic.summary_text())

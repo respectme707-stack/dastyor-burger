@@ -1,4 +1,7 @@
-from django.contrib import admin
+import os
+
+from django.contrib import admin, messages
+from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.utils.html import format_html
 
@@ -119,9 +122,24 @@ class ProductionAdmin(admin.ModelAdmin):
 
 @admin.register(m.Shop)
 class ShopAdmin(admin.ModelAdmin):
-    list_display = ["name", "district", "phone", "debt_display", "active"]
+    list_display = ["name", "district", "phone", "debt_display", "bot_connected", "active"]
     list_filter = ["district", "active"]
     search_fields = ["name", "district", "phone", "contact"]
+    readonly_fields = ["bot_link"]
+
+    @admin.display(description="Бот", boolean=True)
+    def bot_connected(self, obj):
+        return bool(obj.telegram_id)
+
+    @admin.display(description="Ссылка для подключения бота")
+    def bot_link(self, obj):
+        if not obj.bot_code:
+            return "Появится после сохранения"
+        username = os.environ.get("TELEGRAM_BOT_USERNAME")
+        if not username:
+            return f"Код: {obj.bot_code} (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)"
+        url = f"https://t.me/{username}?start={obj.bot_code}"
+        return format_html('<a href="{0}">{0}</a><br>Отправьте эту ссылку магазину.', url)
 
     @admin.display(description="Долг нам")
     def debt_display(self, obj):
@@ -176,3 +194,35 @@ class ExpenseAdmin(admin.ModelAdmin):
     list_display = ["date", "category", "amount", "note"]
     list_filter = ["category", "date"]
     date_hierarchy = "date"
+
+
+class OrderItemInline(admin.TabularInline):
+    model = m.OrderItem
+    extra = 0
+
+
+@admin.register(m.Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ["__str__", "created_at", "shop", "status", "total_display", "shipment"]
+    list_filter = ["status", "shop__district", "shop"]
+    date_hierarchy = "created_at"
+    readonly_fields = ["shipment"]
+    inlines = [OrderItemInline]
+    actions = ["make_shipments"]
+
+    @admin.display(description="Сумма")
+    def total_display(self, obj):
+        return money(obj.total())
+
+    @admin.action(description="Оформить отгрузку по выбранным заказам")
+    def make_shipments(self, request, queryset):
+        done = 0
+        for order in queryset:
+            try:
+                if not order.shipment_id:
+                    order.to_shipment()
+                    done += 1
+            except ValidationError as e:
+                self.message_user(request, e.messages[0], messages.WARNING)
+        if done:
+            self.message_user(request, f"Создано отгрузок: {done}. Оплату внесите в самой отгрузке.")
