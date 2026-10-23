@@ -51,7 +51,24 @@ python manage.py runserver
 
 Откройте http://127.0.0.1:8000 и войдите под созданным пользователем. Откроется дашборд, данные вносятся по ссылке «Внести данные».
 
-## Запуск на сервере (Docker)
+## Запуск на сервере
+
+На чистом сервере Ubuntu (например, бесплатный Oracle Cloud):
+
+```bash
+git clone https://github.com/respectme707-stack/dastyor-burger.git
+bash dastyor-burger/install.sh
+```
+
+Скрипт поставит Docker, откроет порт 80, спросит токен бота и ваш Telegram ID, сам придумает пароли, запустит сайт и бота и попросит создать логин владельца. В Oracle Cloud порт 80 нужно ещё открыть в панели: Networking → Virtual Cloud Networks → ваша сеть → Security Lists → Default → Add Ingress Rule (Source CIDR `0.0.0.0/0`, порт `80`).
+
+Обновить до новой версии:
+
+```bash
+cd dastyor-burger && git pull && sudo docker compose --profile bot up -d --build
+```
+
+### Вручную (Docker)
 
 ```bash
 cp .env.example .env            # впишите свои SECRET_KEY и DB_PASSWORD
