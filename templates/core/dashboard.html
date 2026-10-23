@@ -1,0 +1,175 @@
+{% load fmt static %}<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Дашборд · Dastyor Burger</title>
+<style>
+  :root { --bg:#f4f4f2; --card:#fff; --ink:#1c1b1a; --muted:#5f5b55; --line:#eceae6; --accent:#b4410c; --good:#1e6b3a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { background:var(--ink); color:#fff; padding:16px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; }
+  header h1 { margin:0; font-size:20px; }
+  header a { color:#fdba8c; }
+  main { max-width:1100px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .periods { display:flex; gap:8px; flex-wrap:wrap; }
+  .periods a { padding:10px 16px; border-radius:22px; background:#fff; border:1px solid #d6d2cb; color:var(--ink); text-decoration:none; font-size:14px; }
+  .periods a.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; }
+  .card { background:var(--card); border-radius:12px; padding:14px; }
+  .tile .label { font-size:13px; color:var(--muted); }
+  .tile .value { font-size:22px; font-weight:700; margin:2px 0; }
+  .tile .sub { font-size:12px; color:var(--muted); }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px; }
+  h2 { font-size:16px; margin:0 0 10px; }
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-top:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; border-top:none; }
+  td.num, th.num { text-align:right; }
+  .bad { color:var(--accent); font-weight:600; }
+  .alert { background:#fff4ec; color:#8a300a; border-radius:12px; padding:12px 14px; }
+  .chart { position:relative; height:220px; }
+  .empty { color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dastyor Burger</h1>
+  <a href="{% url 'admin:index' %}">Внести данные →</a>
+</header>
+<main>
+  <nav class="periods" aria-label="Период">
+    {% for key, label in periods %}<a href="?period={{ key }}" class="{% if key == period %}on{% endif %}">{{ label }}</a>{% endfor %}
+  </nav>
+
+  {% if low_materials %}
+  <div class="alert" role="status">Заканчивается:
+    {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.get_unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+
+  <section class="tiles">
+    <div class="card tile"><div class="label">Выручка</div><div class="value">{{ revenue|money }}</div><div class="sub">{{ sold_qty|money }} шт отгружено</div></div>
+    <div class="card tile"><div class="label">Прибыль</div><div class="value {% if profit < 0 %}bad{% endif %}">{{ profit|money }}</div><div class="sub">маржа {{ margin }}%</div></div>
+    <div class="card tile"><div class="label">Возвраты</div><div class="value">{{ returned|money }}</div><div class="sub">{{ returned_qty|money }} шт, {{ return_pct }}% от отгрузок</div></div>
+    <div class="card tile"><div class="label">Нам должны</div><div class="value bad">{{ receivable|money }}</div><div class="sub">{{ debtor_count }} магазинов</div></div>
+    <div class="card tile"><div class="label">Мы должны</div><div class="value">{{ payable|money }}</div><div class="sub">поставщикам</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Как считается прибыль</h2>
+    <table>
+      <tr><td>Выручка от отгрузок</td><td class="num">{{ revenue|money }}</td></tr>
+      <tr><td>− Возвраты</td><td class="num">{{ returned|money }}</td></tr>
+      <tr><td>− Себестоимость (сырьё)</td><td class="num">{{ cogs|money }}</td></tr>
+      <tr><td>− Расходы цеха</td><td class="num">{{ expenses|money }}</td></tr>
+      <tr><td><b>= Прибыль</b></td><td class="num"><b>{{ profit|money }}</b></td></tr>
+    </table>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Продажи по дням, сум</h2>
+      {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="Продажи по дням"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Продажи по районам, сум</h2>
+      {% if chart_districts %}<div class="chart"><canvas id="byDistrict" role="img" aria-label="Продажи по районам"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Магазины</h2>
+    {% if shops %}
+    <div class="scroll"><table>
+      <thead><tr><th>Магазин</th><th>Район</th><th class="num">Продажи</th><th class="num">Шт</th><th class="num">Возвраты</th><th class="num">Долг</th></tr></thead>
+      <tbody>
+      {% for s in shops %}
+      <tr>
+        <td><a href="{% url 'admin:core_shop_change' s.shop.pk %}">{{ s.shop.name }}</a></td>
+        <td>{{ s.shop.district }}</td>
+        <td class="num">{{ s.sales|money }}</td>
+        <td class="num">{{ s.qty|money }}</td>
+        <td class="num {% if s.return_pct >= 10 %}bad{% endif %}">{{ s.returns }} ({{ s.return_pct }}%)</td>
+        <td class="num {% if s.debt > 0 %}bad{% endif %}">{{ s.debt|money }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Пока нет данных.</p>{% endif %}
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Продукты</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">На складе</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th></tr></thead>
+        <tbody>
+        {% for p in products %}
+        <tr>
+          <td>{{ p.product.name }}</td>
+          <td class="num">{{ p.qty|money }}</td>
+          <td class="num">{{ p.returns }} ({{ p.return_pct }}%)</td>
+          <td class="num">{{ p.stock|money }}</td>
+          <td class="num">{{ p.unit_cost|money }}</td>
+          <td class="num">{{ p.unit_profit|money }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="6" class="empty">Нет продуктов.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </section>
+    <section class="card">
+      <h2>Остатки сырья</h2>
+      <div class="scroll"><table>
+        <thead><tr><th>Сырьё</th><th class="num">Остаток</th><th class="num">Мин.</th></tr></thead>
+        <tbody>
+        {% for x in materials %}
+        <tr>
+          <td>{{ x.material.name }}</td>
+          <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.get_unit_display }}</td>
+          <td class="num">{{ x.material.min_stock|qty }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="3" class="empty">Нет сырья.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+
+  {% if suppliers %}
+  <section class="card">
+    <h2>Долги поставщикам</h2>
+    <table>
+      {% for s, d in suppliers %}<tr><td>{{ s.name }}</td><td class="num">{{ d|money }}</td></tr>{% endfor %}
+    </table>
+  </section>
+  {% endif %}
+</main>
+
+{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}{{ chart_districts|json_script:"districts" }}{{ chart_district_sales|json_script:"districtSales" }}
+<script src="{% static 'core/chart.umd.min.js' %}"></script>
+<script>
+  const data = (id) => JSON.parse(document.getElementById(id).textContent);
+  const fmt = (v) => Math.round(v).toLocaleString("ru-RU");
+  const opts = {
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => fmt(c.parsed.y ?? c.parsed.x) + " сум" } } },
+    scales: { y: { ticks: { callback: fmt } } },
+  };
+  if (window.Chart && document.getElementById("byDay")) {
+    new Chart(document.getElementById("byDay"), {
+      type: "bar",
+      data: { labels: data("days"), datasets: [{ data: data("sales"), backgroundColor: "#b4410c", borderRadius: 4 }] },
+      options: opts,
+    });
+  }
+  if (window.Chart && document.getElementById("byDistrict")) {
+    new Chart(document.getElementById("byDistrict"), {
+      type: "bar",
+      data: { labels: data("districts"), datasets: [{ data: data("districtSales"), backgroundColor: "#1c1b1a", borderRadius: 4 }] },
+      options: { ...opts, indexAxis: "y", scales: { x: { ticks: { callback: fmt } } } },
+    });
+  }
+</script>
+</body>
+</html>
