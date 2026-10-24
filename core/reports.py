@@ -88,6 +88,26 @@ def build(period):
         for r in items.values("product").annotate(s=_money(F("qty") * F("price")), q=Sum("qty"))
     }
     product_returns = {r["product"]: r["q"] for r in returns.values("product").annotate(q=Sum("qty"))}
+    # Машины: что в кузове сейчас и что продали за период.
+    vehicles, in_vans = [], defaultdict(int)
+    vehicle_sales = {
+        r["shipment__vehicle"]: r["s"]
+        for r in items.exclude(shipment__vehicle=None).values("shipment__vehicle").annotate(
+            s=_money(F("qty") * F("price")))
+    }
+    shipments = _since(m.Shipment.objects.exclude(vehicle=None), "date", start)
+    vehicle_cash = {r["vehicle"]: r["s"] for r in shipments.values("vehicle").annotate(s=Sum("paid"))}
+    for vehicle in m.Vehicle.objects.filter(active=True):
+        stock = vehicle.stock()
+        for product, n in stock.items():
+            in_vans[product.pk] += n
+        vehicles.append({
+            "vehicle": vehicle,
+            "stock": ", ".join(f"{p.name} {n}" for p, n in sorted(stock.items(), key=lambda kv: kv[0].name)),
+            "sales": vehicle_sales.get(vehicle.pk, m.ZERO),
+            "cash": vehicle_cash.get(vehicle.pk) or m.ZERO,
+        })
+
     products = []
     for product in m.Product.objects.filter(active=True):
         sales, qty = product_sales.get(product.pk, (m.ZERO, 0))
@@ -100,6 +120,7 @@ def build(period):
             "returns": ret,
             "return_pct": round(ret / qty * 100) if qty else 0,
             "stock": product.stock(),
+            "in_vans": in_vans.get(product.pk, 0),
             "unit_cost": cost,
             "unit_profit": product.price - cost,
         })
@@ -133,6 +154,7 @@ def build(period):
         "chart_district_sales": [float(v) for _, v in sorted(districts.items(), key=lambda kv: -kv[1])],
         "shops": shops,
         "products": products,
+        "vehicles": vehicles,
         "materials": materials,
         "low_materials": [x for x in materials if x["low"]],
     }

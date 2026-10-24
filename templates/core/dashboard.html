@@ -100,11 +100,30 @@
     {% else %}<p class="empty">Пока нет данных.</p>{% endif %}
   </section>
 
+  {% if vehicles %}
+  <section class="card">
+    <h2>Машины</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Машина</th><th>Сейчас в машине</th><th class="num">Продано</th><th class="num">Собрано денег</th></tr></thead>
+      <tbody>
+      {% for v in vehicles %}
+      <tr>
+        <td>{{ v.vehicle.name }}</td>
+        <td>{{ v.stock|default:"пусто" }}</td>
+        <td class="num">{{ v.sales|money }}</td>
+        <td class="num">{{ v.cash|money }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% endif %}
+
   <div class="grid2">
     <section class="card">
       <h2>Продукты</h2>
       <div class="scroll"><table>
-        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">На складе</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th></tr></thead>
+        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">В цеху</th><th class="num">В машинах</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
@@ -112,10 +131,11 @@
           <td class="num">{{ p.qty|money }}</td>
           <td class="num">{{ p.returns }} ({{ p.return_pct }}%)</td>
           <td class="num">{{ p.stock|money }}</td>
+          <td class="num">{{ p.in_vans|money }}</td>
           <td class="num">{{ p.unit_cost|money }}</td>
           <td class="num">{{ p.unit_profit|money }}</td>
         </tr>
-        {% empty %}<tr><td colspan="6" class="empty">Нет продуктов.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="7" class="empty">Нет продуктов.</td></tr>{% endfor %}
         </tbody>
       </table></div>
     </section>

@@ -12,17 +12,18 @@ from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand, CommandError
 
 from core import botlogic as logic
+from core import bot_staff
 from core.models import Order
 
 router = Router()
 
-ORDER, DEBT, HISTORY, SUMMARY = "Сделать заказ", "Мой долг", "Мои заказы", "Сводка"
+ORDER, DEBT, HISTORY = "Сделать заказ", "Мой долг", "Мои заказы"
+SUMMARY = bot_staff.SUMMARY
 
 shop_menu = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text=ORDER)], [KeyboardButton(text=DEBT), KeyboardButton(text=HISTORY)]],
     resize_keyboard=True,
 )
-owner_menu = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text=SUMMARY)]], resize_keyboard=True)
 
 cart_buttons = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text="Добавить ещё", callback_data="add")],
@@ -41,6 +42,8 @@ def _call(fn):
 
 shop_for = _call(logic.shop_for)
 link_shop = _call(logic.link_shop)
+link_worker = _call(logic.link_worker)
+worker_for = _call(logic.worker_for)
 products = _call(logic.products)
 get_product = _call(logic.get_product)
 cart_text = _call(logic.cart_text)
@@ -67,8 +70,17 @@ async def product_keyboard():
 async def start(message: Message, command: CommandObject, state: FSMContext):
     await state.clear()
     uid = message.from_user.id
-    if command.args:
-        shop = await link_shop(command.args.strip(), uid)
+    code = (command.args or "").strip()
+    if code.startswith("w"):
+        worker = await link_worker(code, uid)
+        if worker:
+            await message.answer(f"Готово, {worker.name}! Теперь вы можете вносить отгрузки, возвраты, "
+                                 "загрузку машины и приход сырья.", reply_markup=bot_staff.staff_menu(False))
+        else:
+            await message.answer("Код не подошёл. Попросите у владельца новую ссылку.")
+        return
+    if code:
+        shop = await link_shop(code, uid)
         if shop:
             await message.answer(f"Готово! Этот аккаунт подключён к магазину «{shop.name}». "
                                  "Теперь можно заказывать.", reply_markup=shop_menu)
@@ -77,7 +89,13 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
         return
     if logic.is_owner(uid):
         await message.answer("Здравствуйте! Сюда будут приходить новые заказы. "
-                             "Кнопка «Сводка» покажет заказы, остатки и долги.", reply_markup=owner_menu)
+                             "Кнопка «Сводка» покажет заказы, остатки и долги.",
+                             reply_markup=bot_staff.staff_menu(True))
+        return
+    worker = await worker_for(uid)
+    if worker:
+        await message.answer(f"Здравствуйте, {worker.name}! Выберите, что внести.",
+                             reply_markup=bot_staff.staff_menu(False))
         return
     shop = await shop_for(uid)
     if shop:
@@ -210,4 +228,5 @@ class Command(BaseCommand):
         bot = Bot(token)
         dp = Dispatcher()
         dp.include_router(router)
+        dp.include_router(bot_staff.router)
         await dp.start_polling(bot)

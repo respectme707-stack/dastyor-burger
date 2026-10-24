@@ -178,3 +178,100 @@ class BotLogicTests(TestCase):
             self.assertEqual(botlogic.owner_ids(), {409928788})
         botlogic.create_order(self.shop, {self.hotdog.pk: 5})
         self.assertIn("Новых заказов: 1", botlogic.summary_text())
+
+
+class StaffBotTests(TestCase):
+    def setUp(self):
+        from . import botlogic
+
+        self.logic = botlogic
+        supplier = m.Supplier.objects.create(name="Оптовик")
+        bun = m.RawMaterial.objects.create(name="Булочка")
+        purchase = m.Purchase.objects.create(supplier=supplier)
+        m.PurchaseItem.objects.create(purchase=purchase, material=bun, qty=500, price=1500)
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000)
+        m.RecipeItem.objects.create(product=self.hotdog, material=bun, qty=1)
+        m.Production.objects.create(product=self.hotdog, qty=100)
+        self.van = m.Vehicle.objects.create(name="Damas 1")
+        self.worker = m.Worker.objects.create(name="Азиз", vehicle=self.van)
+        self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар")
+
+    def test_numbers(self):
+        p = self.logic.parse_number
+        self.assertEqual(p("1 500,5"), D("1500.5"))
+        self.assertIsNone(p("abc"))
+        self.assertIsNone(p("0"))
+        self.assertEqual(p("0", allow_zero=True), 0)
+        self.assertIsNone(p("-3"))
+        self.assertIsNone(p("nan"))
+        self.assertEqual(self.logic.parse_count("40"), 40)
+        self.assertIsNone(self.logic.parse_count("2,5"))
+
+    def test_worker_link(self):
+        self.assertTrue(self.worker.bot_code.startswith("w"))
+        self.assertIsNone(self.logic.link_worker(self.shop.bot_code, 5))
+        self.assertEqual(self.logic.link_worker(self.worker.bot_code, 5), self.worker)
+        self.assertTrue(self.logic.is_staff(5))
+        self.assertFalse(self.logic.is_staff(6))
+
+    def test_create_shop_with_location(self):
+        shop = self.logic.create_shop({"name": "Барака", "firm": "OOO Baraka", "district": "Юнусабад",
+                                       "address": "ул. Амира Темура 1", "phone": "+998901234567",
+                                       "lat": 41.3456789, "lon": 69.2845})
+        self.assertEqual(shop.latitude, D("41.345679"))
+        self.assertIn("maps.google.com/?q=41.345679,69.284500", self.logic.shop_card(shop))
+        self.assertEqual(self.logic.districts(), ["Чиланзар", "Юнусабад"])
+
+    def test_purchase(self):
+        mayo = self.logic.get_or_create_material("Майонез", "kg")
+        supplier = self.logic.get_or_create_supplier("Новый склад")
+        lines = [[mayo.pk, "10", "35000"]]
+        text, total = self.logic.purchase_lines_text(lines)
+        self.assertEqual(total, D("350000"))
+        purchase = self.logic.create_purchase(supplier.pk, lines, D("100000"))
+        self.assertEqual(mayo.stock(), 10)
+        self.assertEqual(supplier.debt(), D("250000"))
+        self.assertIn("в долг 250\xa0000", self.logic.purchase_text(purchase))
+
+    def test_van_flow(self):
+        logic = self.logic
+        with self.assertRaisesMessage(ValidationError, "в цеху 100"):
+            logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 150})
+        logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 60})
+        self.assertEqual(self.hotdog.stock(), 40)
+        self.assertEqual(self.van.stock(), {self.hotdog: 60})
+
+        with self.assertRaisesMessage(ValidationError, "в машине 60"):
+            logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 61}, 0)
+        order = logic.create_order(self.shop, {self.hotdog.pk: 20})
+        self.assertEqual(logic.open_order(self.shop), order)
+        shipment = logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 20}, D("100000"),
+                                             self.worker, order.pk)
+        order.refresh_from_db()
+        self.assertEqual(order.status, m.Order.Status.SHIPPED)
+        self.assertIsNone(logic.open_order(self.shop))
+        self.assertEqual(self.shop.debt(), D("140000"))
+        self.assertIn("в долг 140\xa0000", logic.shipment_text(shipment))
+        # Отгрузка с машины не трогает остаток цеха.
+        self.assertEqual(self.hotdog.stock(), 40)
+        self.assertEqual(self.van.stock(), {self.hotdog: 40})
+        self.assertIn("Собрано денег сегодня: 100\xa0000", logic.van_text(self.van))
+
+        logic.create_return(self.shop, self.hotdog.pk, 2, m.Return.Reason.DEFECT)
+        self.assertEqual(self.shop.debt(), D("116000"))
+
+        logic.unload_all(self.van, self.worker)
+        self.assertEqual(self.van.stock(), {})
+        self.assertEqual(self.hotdog.stock(), 80)
+        self.assertIsNone(logic.unload_all(self.van, self.worker))
+
+    def test_dashboard_shows_vehicles(self):
+        from . import reports
+
+        self.logic.create_van_load(self.van, None, {self.hotdog.pk: 30})
+        self.logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 10}, D("50000"))
+        data = reports.build("all")
+        self.assertEqual(data["vehicles"][0]["cash"], D("50000"))
+        self.assertEqual(data["vehicles"][0]["stock"], "Хот-дог 20")
+        self.assertEqual(data["products"][0]["in_vans"], 20)
+        self.assertEqual(data["products"][0]["stock"], 70)
