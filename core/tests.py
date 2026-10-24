@@ -178,3 +178,189 @@ class BotLogicTests(TestCase):
             self.assertEqual(botlogic.owner_ids(), {409928788})
         botlogic.create_order(self.shop, {self.hotdog.pk: 5})
         self.assertIn("Новых заказов: 1", botlogic.summary_text())
+
+
+class StaffBotTests(TestCase):
+    def setUp(self):
+        from . import botlogic
+
+        self.logic = botlogic
+        supplier = m.Supplier.objects.create(name="Оптовик")
+        bun = m.RawMaterial.objects.create(name="Булочка")
+        purchase = m.Purchase.objects.create(supplier=supplier)
+        m.PurchaseItem.objects.create(purchase=purchase, material=bun, qty=500, price=1500)
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000)
+        m.RecipeItem.objects.create(product=self.hotdog, material=bun, qty=1)
+        m.Production.objects.create(product=self.hotdog, qty=100)
+        self.van = m.Vehicle.objects.create(name="Damas 1")
+        self.worker = m.Worker.objects.create(name="Азиз", vehicle=self.van)
+        self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар")
+
+    def test_numbers(self):
+        p = self.logic.parse_number
+        self.assertEqual(p("1 500,5"), D("1500.5"))
+        self.assertIsNone(p("abc"))
+        self.assertIsNone(p("0"))
+        self.assertEqual(p("0", allow_zero=True), 0)
+        self.assertIsNone(p("-3"))
+        self.assertIsNone(p("nan"))
+        self.assertEqual(self.logic.parse_count("40"), 40)
+        self.assertIsNone(self.logic.parse_count("2,5"))
+
+    def test_worker_link(self):
+        self.assertTrue(self.worker.bot_code.startswith("w"))
+        self.assertIsNone(self.logic.link_worker(self.shop.bot_code, 5))
+        self.assertEqual(self.logic.link_worker(self.worker.bot_code, 5), self.worker)
+        self.assertTrue(self.logic.is_staff(5))
+        self.assertFalse(self.logic.is_staff(6))
+
+    def test_create_shop_with_location(self):
+        shop = self.logic.create_shop({"name": "Барака", "firm": "OOO Baraka", "district": "Юнусабад",
+                                       "address": "ул. Амира Темура 1", "phone": "+998901234567",
+                                       "lat": 41.3456789, "lon": 69.2845})
+        self.assertEqual(shop.latitude, D("41.345679"))
+        self.assertIn("maps.google.com/?q=41.345679,69.284500", self.logic.shop_card(shop))
+        self.assertEqual(self.logic.districts(), ["Чиланзар", "Юнусабад"])
+
+    def test_purchase(self):
+        mayo = self.logic.get_or_create_material("Майонез", "kg")
+        supplier = self.logic.get_or_create_supplier("Новый склад")
+        lines = [[mayo.pk, "10", "35000"]]
+        text, total = self.logic.purchase_lines_text(lines)
+        self.assertEqual(total, D("350000"))
+        purchase = self.logic.create_purchase(supplier.pk, lines, D("100000"))
+        self.assertEqual(mayo.stock(), 10)
+        self.assertEqual(supplier.debt(), D("250000"))
+        self.assertIn("в долг 250\xa0000", self.logic.purchase_text(purchase))
+
+    def test_van_flow(self):
+        logic = self.logic
+        with self.assertRaisesMessage(ValidationError, "в цеху 100"):
+            logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 150})
+        logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 60})
+        self.assertEqual(self.hotdog.stock(), 40)
+        self.assertEqual(self.van.stock(), {self.hotdog: 60})
+
+        with self.assertRaisesMessage(ValidationError, "в машине 60"):
+            logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 61}, 0)
+        order = logic.create_order(self.shop, {self.hotdog.pk: 20})
+        self.assertEqual(logic.open_order(self.shop), order)
+        shipment = logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 20}, D("100000"),
+                                             self.worker, order.pk)
+        order.refresh_from_db()
+        self.assertEqual(order.status, m.Order.Status.SHIPPED)
+        self.assertIsNone(logic.open_order(self.shop))
+        self.assertEqual(self.shop.debt(), D("140000"))
+        self.assertIn("в долг 140\xa0000", logic.shipment_text(shipment))
+        # Отгрузка с машины не трогает остаток цеха.
+        self.assertEqual(self.hotdog.stock(), 40)
+        self.assertEqual(self.van.stock(), {self.hotdog: 40})
+        self.assertIn("Собрано денег сегодня: 100\xa0000", logic.van_text(self.van))
+
+        logic.create_return(self.shop, self.hotdog.pk, 2, m.Return.Reason.DEFECT)
+        self.assertEqual(self.shop.debt(), D("116000"))
+
+        logic.unload_all(self.van, self.worker)
+        self.assertEqual(self.van.stock(), {})
+        self.assertEqual(self.hotdog.stock(), 80)
+        self.assertIsNone(logic.unload_all(self.van, self.worker))
+
+    def test_dashboard_shows_vehicles(self):
+        from . import reports
+
+        self.logic.create_van_load(self.van, None, {self.hotdog.pk: 30})
+        self.logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 10}, D("50000"))
+        data = reports.build("all")
+        self.assertEqual(data["vehicles"][0]["cash"], D("50000"))
+        self.assertEqual(data["vehicles"][0]["stock"], "Хот-дог 20")
+        self.assertEqual(data["products"][0]["in_vans"], 20)
+        self.assertEqual(data["products"][0]["stock"], 70)
+
+
+class ShelfLifeTests(TestCase):
+    def setUp(self):
+        from datetime import date
+
+        from . import botlogic
+
+        self.logic = botlogic
+        self.day0 = date(2026, 10, 19)
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000, shelf_life_days=5)
+        self.burger = m.Product.objects.create(name="Бургер", price=18000, shelf_life_days=6)
+        self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар", phone="+998901112233")
+        self.other = m.Shop.objects.create(name="Барака", district="Юнусабад")
+        shipment = m.Shipment.objects.create(shop=self.shop, date=self.day0)
+        m.ShipmentItem.objects.create(shipment=shipment, product=self.hotdog, qty=10)
+        m.ShipmentItem.objects.create(shipment=shipment, product=self.burger, qty=10)
+        self.shipment = shipment
+
+    def due(self, day):
+        from datetime import timedelta
+
+        return [(s.name, expired) for s, _, expired in self.logic.due_reminders(self.day0 + timedelta(days=day))]
+
+    def test_freshness_uses_shortest_shelf_life(self):
+        info = self.shop.freshness(self.day0)
+        self.assertEqual(info["expires"].day, 24)
+        self.assertEqual(info["days_left"], 5)
+
+    def test_reminders_on_days_3_to_5_then_expired(self):
+        self.assertEqual(self.due(2), [])
+        self.assertEqual(self.due(3), [("Нур", False)])
+        self.assertEqual(self.due(5), [("Нур", False)])
+        self.assertEqual(self.due(6), [("Нур", True)])
+        text = self.logic.reminder_text(self.shop, self.shop.freshness(self.day0.replace(day=25)))
+        self.assertIn("истёк 24.10", text)
+        self.assertIn("+998901112233", text)
+
+    def test_reminded_once_a_day(self):
+        from datetime import timedelta
+
+        day = self.day0 + timedelta(days=3)
+        self.logic.mark_reminded(self.shop, day)
+        self.assertEqual(self.due(3), [])
+        self.assertEqual(self.due(4), [("Нур", False)])
+
+    def test_new_order_stops_reminders(self):
+        self.logic.create_order(self.shop, {self.hotdog.pk: 5})
+        self.assertEqual(self.due(4), [])
+
+    def test_snooze_and_archive(self):
+        self.logic.snooze_shop(self.shop.pk)
+        self.assertEqual(self.due(6), [])
+        # Новая поставка снова включает напоминания.
+        new = m.Shipment.objects.create(shop=self.shop, date=self.day0.replace(day=25))
+        m.ShipmentItem.objects.create(shipment=new, product=self.hotdog, qty=1)
+        self.assertEqual(self.due(10), [("Нур", False)])
+
+        self.logic.archive_shop(self.shop.pk)
+        self.assertEqual(self.due(12), [])
+        self.logic.create_order(self.shop, {self.hotdog.pk: 5})
+        self.shop.refresh_from_db()
+        self.assertFalse(self.shop.archived)
+
+    def test_recipients_by_district(self):
+        import os
+        from unittest import mock
+
+        m.Worker.objects.create(name="Азиз", telegram_id=7, districts="чиланзар, Сергели")
+        m.Worker.objects.create(name="Бобур", telegram_id=8, districts="Юнусабад")
+        m.Worker.objects.create(name="Без бота", districts="Чиланзар")
+        with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "1"}):
+            self.assertEqual(self.logic.reminder_recipients(self.shop), {1, 7})
+
+    def test_dashboard_freshness_and_ratings(self):
+        from unittest import mock
+
+        from . import reports
+
+        m.Return.objects.create(shop=self.shop, product=self.hotdog, qty=2, date=self.day0)
+        with mock.patch("django.utils.timezone.localdate", return_value=self.day0.replace(day=24)):
+            data = reports.build("all")
+        row = data["freshness"][0]
+        self.assertEqual((row["shop"], row["days_left"], row["level"], row["visits"]), (self.shop, 0, "bad", 1))
+        self.assertEqual(data["expiring"][0]["shop"], self.shop)
+        self.assertEqual(data["top_shops"][0]["shop"], self.shop)
+        self.assertEqual(data["top_products"][0]["product"], self.burger)
+        self.assertEqual(data["returners"][0]["qty"], 2)
+        self.assertEqual(data["chart_visits"], [1])

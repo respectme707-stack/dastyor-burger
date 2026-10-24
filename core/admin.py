@@ -77,7 +77,8 @@ class RecipeItemInline(admin.TabularInline):
 
 @admin.register(m.Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ["name", "price", "unit_cost_display", "profit_display", "stock", "active"]
+    list_display = ["name", "price", "shelf_life_days", "unit_cost_display", "profit_display", "stock", "active"]
+    list_editable = ["shelf_life_days"]
     list_filter = ["active"]
     search_fields = ["name"]
     inlines = [RecipeItemInline]
@@ -120,12 +121,24 @@ class ProductionAdmin(admin.ModelAdmin):
         return money(obj.total_cost())
 
 
+def bot_link(obj, whom):
+    if not obj.bot_code:
+        return "Появится после сохранения"
+    username = os.environ.get("TELEGRAM_BOT_USERNAME")
+    if not username:
+        return f"Код: {obj.bot_code} (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)"
+    url = f"https://t.me/{username}?start={obj.bot_code}"
+    return format_html('<a href="{0}">{0}</a><br>Отправьте эту ссылку {1}.', url, whom)
+
+
 @admin.register(m.Shop)
 class ShopAdmin(admin.ModelAdmin):
-    list_display = ["name", "district", "phone", "debt_display", "bot_connected", "active"]
-    list_filter = ["district", "active"]
-    search_fields = ["name", "district", "phone", "contact"]
-    readonly_fields = ["bot_link"]
+    list_display = ["name", "firm", "district", "phone", "debt_display", "bot_connected", "active", "archived"]
+    list_filter = ["district", "active", "archived"]
+    search_fields = ["name", "firm", "district", "address", "phone", "contact"]
+    fields = ["name", "firm", "district", "address", "latitude", "longitude", "map_link", "contact", "phone",
+              "active", "archived", "telegram_id", "bot_link"]
+    readonly_fields = ["bot_link", "map_link"]
 
     @admin.display(description="Бот", boolean=True)
     def bot_connected(self, obj):
@@ -133,13 +146,12 @@ class ShopAdmin(admin.ModelAdmin):
 
     @admin.display(description="Ссылка для подключения бота")
     def bot_link(self, obj):
-        if not obj.bot_code:
-            return "Появится после сохранения"
-        username = os.environ.get("TELEGRAM_BOT_USERNAME")
-        if not username:
-            return f"Код: {obj.bot_code} (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)"
-        url = f"https://t.me/{username}?start={obj.bot_code}"
-        return format_html('<a href="{0}">{0}</a><br>Отправьте эту ссылку магазину.', url)
+        return bot_link(obj, "магазину")
+
+    @admin.display(description="На карте")
+    def map_link(self, obj):
+        url = obj.map_url()
+        return format_html('<a href="{}" target="_blank">Открыть карту</a>', url) if url else "—"
 
     @admin.display(description="Долг нам")
     def debt_display(self, obj):
@@ -154,8 +166,8 @@ class ShipmentItemInline(admin.TabularInline):
 
 @admin.register(m.Shipment)
 class ShipmentAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "date", "shop", "total_display", "paid", "debt_display"]
-    list_filter = ["shop__district", "shop", "date"]
+    list_display = ["__str__", "date", "shop", "vehicle", "total_display", "paid", "debt_display"]
+    list_filter = ["vehicle", "shop__district", "shop", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
     inlines = [ShipmentItemInline]
@@ -226,3 +238,41 @@ class OrderAdmin(admin.ModelAdmin):
                 self.message_user(request, e.messages[0], messages.WARNING)
         if done:
             self.message_user(request, f"Создано отгрузок: {done}. Оплату внесите в самой отгрузке.")
+
+
+@admin.register(m.Vehicle)
+class VehicleAdmin(admin.ModelAdmin):
+    list_display = ["name", "stock_display", "active"]
+
+    @admin.display(description="Сейчас в машине")
+    def stock_display(self, obj):
+        stock = obj.stock()
+        return ", ".join(f"{p.name} {n}" for p, n in stock.items()) or "пусто"
+
+
+@admin.register(m.Worker)
+class WorkerAdmin(admin.ModelAdmin):
+    list_display = ["name", "phone", "vehicle", "districts", "bot_connected", "active"]
+    fields = ["name", "phone", "vehicle", "districts", "active", "telegram_id", "bot_link"]
+    readonly_fields = ["bot_link"]
+
+    @admin.display(description="Бот", boolean=True)
+    def bot_connected(self, obj):
+        return bool(obj.telegram_id)
+
+    @admin.display(description="Ссылка для подключения бота")
+    def bot_link(self, obj):
+        return bot_link(obj, "сотруднику")
+
+
+class VanLoadItemInline(admin.TabularInline):
+    model = m.VanLoadItem
+    extra = 2
+
+
+@admin.register(m.VanLoad)
+class VanLoadAdmin(admin.ModelAdmin):
+    list_display = ["__str__", "date", "vehicle", "kind", "worker"]
+    list_filter = ["vehicle", "kind", "date"]
+    date_hierarchy = "date"
+    inlines = [VanLoadItemInline]

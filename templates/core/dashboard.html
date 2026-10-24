@@ -28,6 +28,9 @@
   th { color:var(--muted); font-weight:500; border-top:none; }
   td.num, th.num { text-align:right; }
   .bad { color:var(--accent); font-weight:600; }
+  tr.bad td { background:#fde8de; }
+  tr.warn td { background:#fff6e0; }
+  .tag { font-size:12px; color:var(--muted); }
   .alert { background:#fff4ec; color:#8a300a; border-radius:12px; padding:12px 14px; }
   .chart { position:relative; height:220px; }
   .empty { color:var(--muted); font-size:14px; }
@@ -46,6 +49,12 @@
   {% if low_materials %}
   <div class="alert" role="status">Заканчивается:
     {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.get_unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if expiring %}
+  <div class="alert" role="status">⚠️ Срок товара кончается или прошёл:
+    {% for x in expiring %}{{ x.shop.name }} (до {{ x.expires|date:"d.m" }}){% if not forloop.last %}, {% endif %}{% endfor %}
   </div>
   {% endif %}
 
@@ -80,6 +89,61 @@
   </div>
 
   <section class="card">
+    <h2>Последняя поставка и срок годности</h2>
+    {% if freshness %}
+    <div class="scroll"><table>
+      <thead><tr><th>Магазин</th><th>Район</th><th>Привезли</th><th class="num">Дней назад</th><th>Годен до</th><th class="num">Визитов за период</th></tr></thead>
+      <tbody>
+      {% for x in freshness %}
+      <tr class="{% if not x.shop.archived %}{{ x.level }}{% endif %}">
+        <td><a href="{% url 'admin:core_shop_change' x.shop.pk %}">{{ x.shop.name }}</a>{% if x.shop.archived %} <span class="tag">архив</span>{% endif %}</td>
+        <td>{{ x.shop.district }}</td>
+        <td>{{ x.date|date:"d.m.Y" }}</td>
+        <td class="num">{{ x.days_ago }}</td>
+        <td>{{ x.expires|date:"d.m" }}{% if x.days_left < 0 %} · просрочено{% elif x.days_left == 0 %} · сегодня{% endif %}</td>
+        <td class="num">{{ x.visits }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Ещё никому не возили товар.</p>{% endif %}
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Посещения магазинов по дням</h2>
+      {% if chart_days %}<div class="chart"><canvas id="visits" role="img" aria-label="Сколько магазинов получили товар в каждый день"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>Рейтинг</h2>
+      {% if top_shops %}
+      <table>
+        <thead><tr><th>Лучшие магазины</th><th class="num">Продажи</th></tr></thead>
+        {% for s in top_shops %}<tr><td>{{ forloop.counter }}. {{ s.shop.name }}</td><td class="num">{{ s.sales|money }}</td></tr>{% endfor %}
+      </table>
+      <table>
+        <thead><tr><th>Лучшие продукты</th><th class="num">Продано, шт</th></tr></thead>
+        {% for p in top_products %}<tr><td>{{ forloop.counter }}. {{ p.product.name }}</td><td class="num">{{ p.qty|money }}</td></tr>{% endfor %}
+      </table>
+      {% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Кто больше возвращает</h2>
+    {% if returners %}
+    <div class="scroll"><table>
+      <thead><tr><th>Магазин</th><th class="num">Вернули, шт</th><th class="num">На сумму</th><th class="num">Наш убыток (себест.)</th></tr></thead>
+      <tbody>
+      {% for r in returners %}
+      <tr><td>{{ r.shop.name }}</td><td class="num">{{ r.qty|money }}</td><td class="num">{{ r.amount|money }}</td><td class="num bad">{{ r.loss|money }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Возвратов за этот период нет.</p>{% endif %}
+  </section>
+
+  <section class="card">
     <h2>Магазины</h2>
     {% if shops %}
     <div class="scroll"><table>
@@ -100,11 +164,30 @@
     {% else %}<p class="empty">Пока нет данных.</p>{% endif %}
   </section>
 
+  {% if vehicles %}
+  <section class="card">
+    <h2>Машины</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Машина</th><th>Сейчас в машине</th><th class="num">Продано</th><th class="num">Собрано денег</th></tr></thead>
+      <tbody>
+      {% for v in vehicles %}
+      <tr>
+        <td>{{ v.vehicle.name }}</td>
+        <td>{{ v.stock|default:"пусто" }}</td>
+        <td class="num">{{ v.sales|money }}</td>
+        <td class="num">{{ v.cash|money }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  {% endif %}
+
   <div class="grid2">
     <section class="card">
       <h2>Продукты</h2>
       <div class="scroll"><table>
-        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">На складе</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th></tr></thead>
+        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">В цеху</th><th class="num">В машинах</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th><th class="num">Убыток от возвр.</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
@@ -112,10 +195,12 @@
           <td class="num">{{ p.qty|money }}</td>
           <td class="num">{{ p.returns }} ({{ p.return_pct }}%)</td>
           <td class="num">{{ p.stock|money }}</td>
+          <td class="num">{{ p.in_vans|money }}</td>
           <td class="num">{{ p.unit_cost|money }}</td>
           <td class="num">{{ p.unit_profit|money }}</td>
+          <td class="num">{{ p.loss|money }}</td>
         </tr>
-        {% empty %}<tr><td colspan="6" class="empty">Нет продуктов.</td></tr>{% endfor %}
+        {% empty %}<tr><td colspan="8" class="empty">Нет продуктов.</td></tr>{% endfor %}
         </tbody>
       </table></div>
     </section>
@@ -146,7 +231,7 @@
   {% endif %}
 </main>
 
-{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}{{ chart_districts|json_script:"districts" }}{{ chart_district_sales|json_script:"districtSales" }}
+{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}{{ chart_districts|json_script:"districts" }}{{ chart_district_sales|json_script:"districtSales" }}{{ chart_visits|json_script:"visitsData" }}
 <script src="{% static 'core/chart.umd.min.js' %}"></script>
 <script>
   const data = (id) => JSON.parse(document.getElementById(id).textContent);
@@ -161,6 +246,14 @@
       type: "bar",
       data: { labels: data("days"), datasets: [{ data: data("sales"), backgroundColor: "#b4410c", borderRadius: 4 }] },
       options: opts,
+    });
+  }
+  if (window.Chart && document.getElementById("visits")) {
+    new Chart(document.getElementById("visits"), {
+      type: "bar",
+      data: { labels: data("days"), datasets: [{ data: data("visitsData"), backgroundColor: "#1e6b3a", borderRadius: 4 }] },
+      options: { ...opts, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.parsed.y + " магазинов" } } },
+                 scales: { y: { ticks: { precision: 0 } } } },
     });
   }
   if (window.Chart && document.getElementById("byDistrict")) {

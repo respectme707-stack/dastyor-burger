@@ -2,7 +2,7 @@
 from collections import defaultdict
 from datetime import timedelta
 
-from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
 
 from . import models as m
@@ -88,6 +88,64 @@ def build(period):
         for r in items.values("product").annotate(s=_money(F("qty") * F("price")), q=Sum("qty"))
     }
     product_returns = {r["product"]: r["q"] for r in returns.values("product").annotate(q=Sum("qty"))}
+    # Посещения: сколько магазинов получили товар в каждый день.
+    visits_by_day = defaultdict(int)
+    for row in _since(m.Shipment.objects.all(), "date", start).values("date").annotate(
+            n=Count("shop", distinct=True)):
+        visits_by_day[row["date"]] = row["n"]
+    visit_count = {r["shop"]: r["n"] for r in _since(m.Shipment.objects.all(), "date", start)
+                   .values("shop").annotate(n=Count("id"))}
+
+    # Свежесть товара: когда последний раз возили и до какого числа годен.
+    freshness = []
+    today = timezone.localdate()
+    for shop in m.Shop.objects.filter(active=True):
+        info = shop.freshness(today)
+        if not info:
+            continue
+        info.update(shop=shop, visits=visit_count.get(shop.pk, 0),
+                    level="bad" if info["days_left"] <= 1 else "warn" if info["days_left"] <= 2 else "")
+        freshness.append(info)
+    freshness.sort(key=lambda x: (x["shop"].archived, x["days_left"]))
+
+    # Убытки от возвратов: себестоимость того, что вернули.
+    costs = {}
+    losses = defaultdict(lambda: [0, m.ZERO, m.ZERO])  # shop -> [шт, сумма, убыток]
+    product_loss = defaultdict(lambda: m.ZERO)
+    for row in returns.values("shop", "product").annotate(q=Sum("qty"), s=_money(F("qty") * F("price"))):
+        if row["product"] not in costs:
+            costs[row["product"]] = m.Product.objects.get(pk=row["product"]).unit_cost()
+        loss = row["q"] * costs[row["product"]]
+        entry = losses[row["shop"]]
+        entry[0] += row["q"]
+        entry[1] += row["s"]
+        entry[2] += loss
+        product_loss[row["product"]] += loss
+    shop_names = m.Shop.objects.in_bulk(list(losses))
+    returners = sorted(
+        ({"shop": shop_names[k], "qty": v[0], "amount": v[1], "loss": v[2]} for k, v in losses.items()),
+        key=lambda x: -x["loss"])[:10]
+
+    # Машины: что в кузове сейчас и что продали за период.
+    vehicles, in_vans = [], defaultdict(int)
+    vehicle_sales = {
+        r["shipment__vehicle"]: r["s"]
+        for r in items.exclude(shipment__vehicle=None).values("shipment__vehicle").annotate(
+            s=_money(F("qty") * F("price")))
+    }
+    shipments = _since(m.Shipment.objects.exclude(vehicle=None), "date", start)
+    vehicle_cash = {r["vehicle"]: r["s"] for r in shipments.values("vehicle").annotate(s=Sum("paid"))}
+    for vehicle in m.Vehicle.objects.filter(active=True):
+        stock = vehicle.stock()
+        for product, n in stock.items():
+            in_vans[product.pk] += n
+        vehicles.append({
+            "vehicle": vehicle,
+            "stock": ", ".join(f"{p.name} {n}" for p, n in sorted(stock.items(), key=lambda kv: kv[0].name)),
+            "sales": vehicle_sales.get(vehicle.pk, m.ZERO),
+            "cash": vehicle_cash.get(vehicle.pk) or m.ZERO,
+        })
+
     products = []
     for product in m.Product.objects.filter(active=True):
         sales, qty = product_sales.get(product.pk, (m.ZERO, 0))
@@ -100,6 +158,8 @@ def build(period):
             "returns": ret,
             "return_pct": round(ret / qty * 100) if qty else 0,
             "stock": product.stock(),
+            "in_vans": in_vans.get(product.pk, 0),
+            "loss": product_loss.get(product.pk, m.ZERO),
             "unit_cost": cost,
             "unit_profit": product.price - cost,
         })
@@ -133,6 +193,13 @@ def build(period):
         "chart_district_sales": [float(v) for _, v in sorted(districts.items(), key=lambda kv: -kv[1])],
         "shops": shops,
         "products": products,
+        "vehicles": vehicles,
+        "freshness": freshness,
+        "expiring": [x for x in freshness if x["level"] == "bad" and not x["shop"].archived],
+        "chart_visits": [visits_by_day.get(d, 0) for d in days],
+        "top_shops": shops[:5],
+        "top_products": sorted((p for p in products if p["sales"]), key=lambda p: -p["sales"])[:5],
+        "returners": returners,
         "materials": materials,
         "low_materials": [x for x in materials if x["low"]],
     }
