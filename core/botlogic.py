@@ -1,5 +1,6 @@
 """Логика Telegram-бота без самого Telegram: всё здесь синхронно и покрыто тестами."""
 import os
+import re
 
 from django.db import transaction
 from django.utils import timezone
@@ -10,8 +11,8 @@ from .templatetags.fmt import money, qty
 
 def owner_ids():
     """Telegram ID владельца и тех, кто подтверждает заказы. Через запятую в OWNER_TELEGRAM_IDS."""
-    raw = os.environ.get("OWNER_TELEGRAM_IDS", "")
-    return {int(x) for x in raw.replace(" ", "").split(",") if x}
+    # Берём только числа: значение могли вставить как «YourID:409928788».
+    return {int(x) for x in re.findall(r"\d+", os.environ.get("OWNER_TELEGRAM_IDS", ""))}
 
 
 def is_owner(telegram_id):

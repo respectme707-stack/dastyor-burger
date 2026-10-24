@@ -174,5 +174,7 @@ class BotLogicTests(TestCase):
         with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "5, 7"}):
             self.assertTrue(botlogic.is_owner(7))
             self.assertFalse(botlogic.is_owner(8))
+        with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "YourID:409928788"}):
+            self.assertEqual(botlogic.owner_ids(), {409928788})
         botlogic.create_order(self.shop, {self.hotdog.pk: 5})
         self.assertIn("Новых заказов: 1", botlogic.summary_text())
