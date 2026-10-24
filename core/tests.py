@@ -275,3 +275,92 @@ class StaffBotTests(TestCase):
         self.assertEqual(data["vehicles"][0]["stock"], "Хот-дог 20")
         self.assertEqual(data["products"][0]["in_vans"], 20)
         self.assertEqual(data["products"][0]["stock"], 70)
+
+
+class ShelfLifeTests(TestCase):
+    def setUp(self):
+        from datetime import date
+
+        from . import botlogic
+
+        self.logic = botlogic
+        self.day0 = date(2026, 10, 19)
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000, shelf_life_days=5)
+        self.burger = m.Product.objects.create(name="Бургер", price=18000, shelf_life_days=6)
+        self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар", phone="+998901112233")
+        self.other = m.Shop.objects.create(name="Барака", district="Юнусабад")
+        shipment = m.Shipment.objects.create(shop=self.shop, date=self.day0)
+        m.ShipmentItem.objects.create(shipment=shipment, product=self.hotdog, qty=10)
+        m.ShipmentItem.objects.create(shipment=shipment, product=self.burger, qty=10)
+        self.shipment = shipment
+
+    def due(self, day):
+        from datetime import timedelta
+
+        return [(s.name, expired) for s, _, expired in self.logic.due_reminders(self.day0 + timedelta(days=day))]
+
+    def test_freshness_uses_shortest_shelf_life(self):
+        info = self.shop.freshness(self.day0)
+        self.assertEqual(info["expires"].day, 24)
+        self.assertEqual(info["days_left"], 5)
+
+    def test_reminders_on_days_3_to_5_then_expired(self):
+        self.assertEqual(self.due(2), [])
+        self.assertEqual(self.due(3), [("Нур", False)])
+        self.assertEqual(self.due(5), [("Нур", False)])
+        self.assertEqual(self.due(6), [("Нур", True)])
+        text = self.logic.reminder_text(self.shop, self.shop.freshness(self.day0.replace(day=25)))
+        self.assertIn("истёк 24.10", text)
+        self.assertIn("+998901112233", text)
+
+    def test_reminded_once_a_day(self):
+        from datetime import timedelta
+
+        day = self.day0 + timedelta(days=3)
+        self.logic.mark_reminded(self.shop, day)
+        self.assertEqual(self.due(3), [])
+        self.assertEqual(self.due(4), [("Нур", False)])
+
+    def test_new_order_stops_reminders(self):
+        self.logic.create_order(self.shop, {self.hotdog.pk: 5})
+        self.assertEqual(self.due(4), [])
+
+    def test_snooze_and_archive(self):
+        self.logic.snooze_shop(self.shop.pk)
+        self.assertEqual(self.due(6), [])
+        # Новая поставка снова включает напоминания.
+        new = m.Shipment.objects.create(shop=self.shop, date=self.day0.replace(day=25))
+        m.ShipmentItem.objects.create(shipment=new, product=self.hotdog, qty=1)
+        self.assertEqual(self.due(10), [("Нур", False)])
+
+        self.logic.archive_shop(self.shop.pk)
+        self.assertEqual(self.due(12), [])
+        self.logic.create_order(self.shop, {self.hotdog.pk: 5})
+        self.shop.refresh_from_db()
+        self.assertFalse(self.shop.archived)
+
+    def test_recipients_by_district(self):
+        import os
+        from unittest import mock
+
+        m.Worker.objects.create(name="Азиз", telegram_id=7, districts="чиланзар, Сергели")
+        m.Worker.objects.create(name="Бобур", telegram_id=8, districts="Юнусабад")
+        m.Worker.objects.create(name="Без бота", districts="Чиланзар")
+        with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "1"}):
+            self.assertEqual(self.logic.reminder_recipients(self.shop), {1, 7})
+
+    def test_dashboard_freshness_and_ratings(self):
+        from unittest import mock
+
+        from . import reports
+
+        m.Return.objects.create(shop=self.shop, product=self.hotdog, qty=2, date=self.day0)
+        with mock.patch("django.utils.timezone.localdate", return_value=self.day0.replace(day=24)):
+            data = reports.build("all")
+        row = data["freshness"][0]
+        self.assertEqual((row["shop"], row["days_left"], row["level"], row["visits"]), (self.shop, 0, "bad", 1))
+        self.assertEqual(data["expiring"][0]["shop"], self.shop)
+        self.assertEqual(data["top_shops"][0]["shop"], self.shop)
+        self.assertEqual(data["top_products"][0]["product"], self.burger)
+        self.assertEqual(data["returners"][0]["qty"], 2)
+        self.assertEqual(data["chart_visits"], [1])

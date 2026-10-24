@@ -1,5 +1,6 @@
 import secrets
 from collections import defaultdict
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -138,6 +139,9 @@ class MaterialWriteOff(models.Model):
 class Product(models.Model):
     name = models.CharField("Название", max_length=200, unique=True)
     price = models.DecimalField("Цена для магазинов", **MONEY)
+    shelf_life_days = models.PositiveSmallIntegerField(
+        "Срок годности, дней", default=5,
+        help_text="Летом можно уменьшить. По нему бот напоминает о магазинах без заказа")
     active = models.BooleanField("Продаётся", default=True)
 
     class Meta:
@@ -267,6 +271,10 @@ class Shop(models.Model):
     bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
                                 editable=False)
     active = models.BooleanField("Работаем", default=True)
+    archived = models.BooleanField("В архиве", default=False,
+                                   help_text="Бот не напоминает. Снимется сам, когда магазин закажет или получит товар")
+    snoozed_shipment = models.IntegerField(null=True, blank=True, editable=False)
+    reminded_on = models.DateField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "Магазин"
@@ -280,6 +288,25 @@ class Shop(models.Model):
         if not self.bot_code:
             self.bot_code = secrets.token_hex(4)
         super().save(*args, **kwargs)
+
+    def last_shipment(self):
+        return self.shipments.order_by("-date", "-id").first()
+
+    def freshness(self, today=None):
+        """Когда последний раз привезли товар и до какого числа он годен. None, если не возили."""
+        shipment = self.last_shipment()
+        if not shipment:
+            return None
+        today = today or timezone.localdate()
+        lives = [i.product.shelf_life_days for i in shipment.items.select_related("product")]
+        expires = shipment.date + timedelta(days=min(lives) if lives else 5)
+        return {
+            "shipment": shipment,
+            "date": shipment.date,
+            "days_ago": (today - shipment.date).days,
+            "expires": expires,
+            "days_left": (expires - today).days,
+        }
 
     def map_url(self):
         if self.latitude is None or self.longitude is None:
@@ -326,6 +353,13 @@ class Shipment(models.Model):
 
     def debt(self):
         return self.total() - self.paid
+
+    def save(self, *args, **kwargs):
+        adding = self._state.adding
+        super().save(*args, **kwargs)
+        if adding:
+            # Магазин снова получает товар: достаём из архива.
+            Shop.objects.filter(pk=self.shop_id, archived=True).update(archived=False)
 
 
 class ShipmentItem(models.Model):
@@ -414,6 +448,12 @@ class Order(models.Model):
 
     def total(self):
         return sum((i.qty * i.price for i in self.items.all()), ZERO)
+
+    def save(self, *args, **kwargs):
+        adding = self._state.adding
+        super().save(*args, **kwargs)
+        if adding:
+            Shop.objects.filter(pk=self.shop_id, archived=True).update(archived=False)
 
     @transaction.atomic
     def to_shipment(self):
@@ -534,6 +574,8 @@ class Worker(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
                                 related_name="workers", verbose_name="Обычно ездит на",
                                 help_text="Бот будет сразу выбирать эту машину")
+    districts = models.CharField("Районы", max_length=300, blank=True,
+                                 help_text="Через запятую. Сюда бот шлёт напоминания о магазинах этих районов")
     telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True,
                                          help_text="Заполнится сам, когда сотрудник откроет ссылку")
     bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
@@ -547,6 +589,9 @@ class Worker(models.Model):
 
     def __str__(self):
         return self.name
+
+    def district_list(self):
+        return [d.strip().lower() for d in self.districts.split(",") if d.strip()]
 
     def save(self, *args, **kwargs):
         if not self.bot_code:

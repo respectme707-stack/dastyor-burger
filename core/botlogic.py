@@ -376,3 +376,72 @@ def shipment_text(shipment):
 
 def create_return(shop, product_id, n, reason):
     return m.Return.objects.create(shop=shop, product_id=product_id, qty=n, reason=reason)
+
+
+# ---------- Срок годности: напоминания о магазинах без заказа ----------
+
+REMIND_DAYS_BEFORE = 2  # начинаем напоминать за 2 дня до конца срока (при сроке 5 дней — на 3-й день)
+
+
+def _has_new_order(shop, since):
+    return shop.orders.filter(status__in=[m.Order.Status.NEW, m.Order.Status.CONFIRMED],
+                              created_at__date__gte=since).exists()
+
+
+def reminder_text(shop, info):
+    head = f"Магазин «{shop.name}» ({shop.district})"
+    delivered = f"товар привезли {info['date']:%d.%m}"
+    left = info["days_left"]
+    if left > 0:
+        text = f"⏰ {head}: {delivered}, годен до {info['expires']:%d.%m}, осталось {left} дн. Заказа пока нет."
+    elif left == 0:
+        text = f"⏰ {head}: {delivered}, сегодня последний день срока. Заказа пока нет."
+    else:
+        text = (f"⚠️ {head}: срок товара от {info['date']:%d.%m} истёк {info['expires']:%d.%m} "
+                f"({-left} дн. назад). Проверьте, чтобы просрочку не продали покупателям. Заказа нет.")
+    if shop.phone:
+        text += f"\nТелефон: {shop.phone}"
+    return text
+
+
+def due_reminders(today=None):
+    """Магазины, о которых сегодня надо напомнить: [(магазин, текст, срок_истёк)]."""
+    today = today or timezone.localdate()
+    result = []
+    for shop in m.Shop.objects.filter(active=True, archived=False).exclude(reminded_on=today):
+        info = shop.freshness(today)
+        if not info or info["days_left"] > REMIND_DAYS_BEFORE:
+            continue
+        if shop.snoozed_shipment == info["shipment"].pk or _has_new_order(shop, info["date"]):
+            continue
+        result.append((shop, reminder_text(shop, info), info["days_left"] < 0))
+    return result
+
+
+def reminder_recipients(shop):
+    ids = set(owner_ids())
+    district = shop.district.strip().lower()
+    for worker in m.Worker.objects.filter(active=True).exclude(telegram_id=None):
+        if district in worker.district_list():
+            ids.add(worker.telegram_id)
+    return ids
+
+
+def mark_reminded(shop, today=None):
+    m.Shop.objects.filter(pk=shop.pk).update(reminded_on=today or timezone.localdate())
+
+
+def archive_shop(shop_id):
+    shop = m.Shop.objects.filter(pk=shop_id).first()
+    if shop:
+        m.Shop.objects.filter(pk=shop_id).update(archived=True)
+    return shop
+
+
+def snooze_shop(shop_id):
+    """Больше не напоминать о последней поставке этого магазина."""
+    shop = m.Shop.objects.filter(pk=shop_id).first()
+    last = shop and shop.last_shipment()
+    if last:
+        m.Shop.objects.filter(pk=shop_id).update(snoozed_shipment=last.pk)
+    return shop

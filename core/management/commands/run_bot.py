@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from datetime import timedelta
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command as CommandFilter, CommandObject, CommandStart
@@ -10,6 +11,7 @@ from aiogram.types import (CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
                            KeyboardButton, Message, ReplyKeyboardMarkup)
 from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from core import botlogic as logic
 from core import bot_staff
@@ -229,4 +231,24 @@ class Command(BaseCommand):
         dp = Dispatcher()
         dp.include_router(router)
         dp.include_router(bot_staff.router)
-        await dp.start_polling(bot)
+        reminders = asyncio.create_task(reminder_loop(bot))
+        try:
+            await dp.start_polling(bot)
+        finally:
+            reminders.cancel()
+
+
+async def reminder_loop(bot):
+    """Каждый день в REMINDER_HOUR (по умолчанию 9:00) напоминает о магазинах без заказа."""
+    hour = int(os.environ.get("REMINDER_HOUR", "9"))
+    while True:
+        now = timezone.localtime()
+        run_at = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if now >= run_at:
+            # Уже позже: отправляем сразу (повторно в тот же день магазин не попадёт).
+            try:
+                await bot_staff.send_reminders(bot)
+            except Exception:
+                logging.exception("Ошибка при отправке напоминаний")
+            run_at += timedelta(days=1)
+        await asyncio.sleep((run_at - timezone.localtime()).total_seconds())

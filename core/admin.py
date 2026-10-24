@@ -77,7 +77,8 @@ class RecipeItemInline(admin.TabularInline):
 
 @admin.register(m.Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ["name", "price", "unit_cost_display", "profit_display", "stock", "active"]
+    list_display = ["name", "price", "shelf_life_days", "unit_cost_display", "profit_display", "stock", "active"]
+    list_editable = ["shelf_life_days"]
     list_filter = ["active"]
     search_fields = ["name"]
     inlines = [RecipeItemInline]
@@ -132,11 +133,11 @@ def bot_link(obj, whom):
 
 @admin.register(m.Shop)
 class ShopAdmin(admin.ModelAdmin):
-    list_display = ["name", "firm", "district", "phone", "debt_display", "bot_connected", "active"]
-    list_filter = ["district", "active"]
+    list_display = ["name", "firm", "district", "phone", "debt_display", "bot_connected", "active", "archived"]
+    list_filter = ["district", "active", "archived"]
     search_fields = ["name", "firm", "district", "address", "phone", "contact"]
     fields = ["name", "firm", "district", "address", "latitude", "longitude", "map_link", "contact", "phone",
-              "active", "telegram_id", "bot_link"]
+              "active", "archived", "telegram_id", "bot_link"]
     readonly_fields = ["bot_link", "map_link"]
 
     @admin.display(description="Бот", boolean=True)
@@ -251,8 +252,8 @@ class VehicleAdmin(admin.ModelAdmin):
 
 @admin.register(m.Worker)
 class WorkerAdmin(admin.ModelAdmin):
-    list_display = ["name", "phone", "vehicle", "bot_connected", "active"]
-    fields = ["name", "phone", "vehicle", "active", "telegram_id", "bot_link"]
+    list_display = ["name", "phone", "vehicle", "districts", "bot_connected", "active"]
+    fields = ["name", "phone", "vehicle", "districts", "active", "telegram_id", "bot_link"]
     readonly_fields = ["bot_link"]
 
     @admin.display(description="Бот", boolean=True)

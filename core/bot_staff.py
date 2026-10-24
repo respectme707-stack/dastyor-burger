@@ -688,3 +688,39 @@ async def worker_name(message: Message, state: FSMContext):
         f"Сотрудник «{worker.name}» добавлен. Отправьте ему эту ссылку, пусть откроет её в Telegram:\n"
         f"{logic.invite_link(worker.bot_code)}\n\n"
         "На сайте в разделе «Сотрудники» можно указать, на какой машине он обычно ездит.")
+
+
+# ---------- Напоминания о сроке годности ----------
+
+def reminder_buttons(shop, expired):
+    if not expired:
+        return None
+    return kb([[("Пропустить", f"snz:{shop.pk}"), ("В архив", f"arch:{shop.pk}")]], cancel=False)
+
+
+async def send_reminders(bot: Bot):
+    for shop, text, expired in await db(logic.due_reminders):
+        for uid in await db(logic.reminder_recipients, shop):
+            try:
+                await bot.send_message(uid, text, reply_markup=reminder_buttons(shop, expired))
+            except Exception:
+                logging.exception("Не удалось отправить напоминание %s", uid)
+        await db(logic.mark_reminded, shop)
+
+
+@router.callback_query(F.data.regexp(r"^(snz|arch):\d+$"))
+async def reminder_action(callback: CallbackQuery):
+    me = await who(callback.from_user.id)
+    await callback.answer()
+    if not me:
+        return
+    action, shop_id = callback.data.split(":")
+    name = me[1].name if me[1] else "владелец"
+    if action == "arch":
+        shop = await db(logic.archive_shop, int(shop_id))
+        note = f"📦 В архиве ({name}). Напоминаний не будет, пока магазин не закажет или не получит товар."
+    else:
+        shop = await db(logic.snooze_shop, int(shop_id))
+        note = f"Пропущено ({name}). До следующей поставки напоминаний не будет."
+    if shop:
+        await callback.message.edit_text(f"{callback.message.text}\n\n{note}")
