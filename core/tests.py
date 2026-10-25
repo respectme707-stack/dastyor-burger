@@ -116,7 +116,8 @@ class DashboardTests(TestCase):
         m.VanLoadItem.objects.create(load=load, product=m.Product.objects.first(), qty=5)
         m.Expense.objects.create(category=m.Expense.Category.FUEL, amount=1000, worker=agent)
         pages = ["/money/", "/shops/", "/products/", "/staff/", "/stock/", "/entry/", "/settings/",
-                 "/admin/core/shipment/add/"]
+                 "/admin/core/shipment/add/", "/admin/core/materialbatch/add/", "/admin/core/rawmaterial/add/",
+                 "/admin/core/materialcategory/add/"]
         pages += [f"/shops/{s.pk}/" for s in m.Shop.objects.all()]
         pages += [f"/products/{p.pk}/" for p in m.Product.objects.all()]
         pages += [f"/staff/{w.pk}/" for w in m.Worker.objects.all()]
@@ -490,3 +491,49 @@ class ShelfLifeTests(TestCase):
         self.assertEqual(data["top_products"][0]["product"], self.burger)
         self.assertEqual(data["returners"][0]["qty"], 2)
         self.assertEqual(data["chart_visits"], [1])
+
+
+class HomemadeTests(TestCase):
+    """Своя булочка: печём из муки, потом идёт в рецепт хот-дога."""
+
+    def setUp(self):
+        kg = m.Unit.objects.get_or_create(name="кг")[0]
+        supplier = m.Supplier.objects.create(name="Мука-опт")
+        self.flour = m.RawMaterial.objects.create(name="Мука", unit=kg)
+        self.sausage = m.RawMaterial.objects.create(name="Сосиска", unit=kg)
+        purchase = m.Purchase.objects.create(supplier=supplier)
+        m.PurchaseItem.objects.create(purchase=purchase, material=self.flour, qty=10, price=8000)
+        m.PurchaseItem.objects.create(purchase=purchase, material=self.sausage, qty=5, price=60000)
+        self.bun = m.RawMaterial.objects.create(name="Булочка 90 г", homemade=True)
+        m.MaterialRecipeItem.objects.create(material=self.bun, ingredient=self.flour, qty=D("0.060"))
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000)
+        m.RecipeItem.objects.create(product=self.hotdog, material=self.bun, qty=1)
+        m.RecipeItem.objects.create(product=self.hotdog, material=self.sausage, qty=D("0.050"))
+
+    def test_cost_before_baking_uses_bun_recipe(self):
+        # булочка 0,06 × 8000 = 480, сосиска 0,05 × 60 000 = 3000
+        self.assertEqual(self.bun.avg_price(), D("480"))
+        self.assertEqual(self.hotdog.unit_cost(), D("3480"))
+
+    def test_baking_and_production_chain(self):
+        batch = m.MaterialBatch(material=self.bun, qty=100)
+        batch.full_clean()
+        batch.save()
+        self.assertEqual(batch.unit_cost, D("480"))
+        self.assertEqual(self.flour.stock(), 4)
+        self.assertEqual(self.bun.stock(), 100)
+
+        p = m.Production(product=self.hotdog, qty=40)
+        p.full_clean()
+        p.save()
+        self.assertEqual(self.bun.stock(), 60)
+        self.assertEqual(p.unit_cost, D("3480"))
+
+    def test_baking_blocked_without_flour(self):
+        with self.assertRaisesMessage(ValidationError, "Мука"):
+            m.MaterialBatch(material=self.bun, qty=1000).full_clean()
+
+    def test_min_stock_optional(self):
+        x = m.RawMaterial(name="Соль", min_stock=None)
+        x.save()
+        self.assertEqual(x.min_stock, 0)

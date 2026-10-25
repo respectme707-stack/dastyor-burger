@@ -8,7 +8,8 @@
 <h2 class="section-title">Цех</h2>
 <div class="actions">
   <a class="action" href="{% url 'admin:core_purchase_add' %}"><span class="ic">📥</span><span><b>Приход сырья</b><small>Купили у поставщика</small></span></a>
-  <a class="action" href="{% url 'admin:core_production_add' %}"><span class="ic">🍔</span><span><b>Производство</b><small>Сколько сделали за день</small></span></a>
+  <a class="action" href="{% url 'admin:core_materialbatch_add' %}"><span class="ic">🥖</span><span><b>Испекли булочки</b><small>Свои полуфабрикаты: списывает муку и т.д.</small></span></a>
+  <a class="action" href="{% url 'admin:core_production_add' %}"><span class="ic">🍔</span><span><b>Производство</b><small>Сколько хот-догов, бургеров сделали</small></span></a>
   <a class="action" href="{% url 'admin:core_vanload_add' %}"><span class="ic">🚚</span><span><b>Передать агенту</b><small>Товар из цеха агенту</small></span></a>
   <a class="action" href="{% url 'admin:core_materialwriteoff_add' %}"><span class="ic">🗑️</span><span><b>Списать сырьё</b><small>Испортилось, пропало</small></span></a>
 </div>

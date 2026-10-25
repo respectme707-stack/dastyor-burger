@@ -5,6 +5,7 @@
   <div><h1>Склад</h1><div class="sub">Что есть сейчас: сырьё, готовые товары в цеху и у агентов.</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <a class="btn primary" href="{% url 'admin:core_purchase_add' %}">+ Приход сырья</a>
+    <a class="btn" href="{% url 'admin:core_materialbatch_add' %}">Испекли булочки</a>
     <a class="btn" href="{% url 'admin:core_materialwriteoff_add' %}">Списать сырьё</a>
   </div>
 </div>
@@ -20,7 +21,7 @@
     <tbody>
     {% for x in materials %}
     <tr class="{% if x.low %}warn{% endif %}">
-      <td>{{ x.material.name }}</td>
+      <td>{{ x.material.name }}{% if x.material.homemade %} <span class="tag green">делаем сами</span>{% endif %}</td>
       <td class="muted">{{ x.material.category|default:"" }}</td>
       <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.unit }}</td>
       <td class="num">{{ x.material.min_stock|qty }}</td>
