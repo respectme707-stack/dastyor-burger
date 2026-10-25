@@ -1,8 +1,10 @@
 """Цифры для дашборда за выбранный период."""
 from collections import defaultdict
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.urls import reverse
 from django.utils import timezone
 
 from . import models as m
@@ -532,3 +534,59 @@ def recent(limit=15):
         lambda o: f"{o.material.name}: {o.qty:g}", lambda o: None, "materialwriteoff")
     rows.sort(key=lambda r: (r["date"], r["id"]), reverse=True)
     return rows[:limit]
+
+
+def _match(query, *texts):
+    q = query.casefold()
+    return any(q in (t or "").casefold() for t in texts)
+
+
+def search(query):
+    """Общий поиск по справочникам. Фильтр в Python: SQLite не умеет без регистра по-русски."""
+    query = query.strip()
+    if not query:
+        return []
+    groups = [
+        ("Магазины", [(s.name, " · ".join(x for x in (s.district, s.address, s.phone) if x),
+                       reverse("shop_detail", args=[s.pk]))
+                      for s in m.Shop.objects.all() if _match(query, s.name, s.firm, s.address, s.district,
+                                                               s.phone, s.contact)]),
+        ("Товары", [(p.name, f"{p.price:,.0f} сум".replace(",", " "), reverse("product_detail", args=[p.pk]))
+                    for p in m.Product.objects.all() if _match(query, p.name)]),
+        ("Сырьё", [(r.name, r.pack_label(), reverse("admin:core_rawmaterial_change", args=[r.pk]))
+                   for r in m.RawMaterial.objects.select_related("unit") if _match(query, r.name)]),
+        ("Сотрудники", [(w.name, " · ".join(x for x in (w.get_role_display(), w.phone) if x),
+                         reverse("staff_detail", args=[w.pk]))
+                        for w in m.Worker.objects.all() if _match(query, w.name, w.phone)]),
+        ("Поставщики", [(s.name, s.phone, reverse("admin:core_supplier_change", args=[s.pk]))
+                        for s in m.Supplier.objects.all() if _match(query, s.name, s.phone)]),
+    ]
+    return [(title, rows) for title, rows in groups if rows]
+
+
+def recipes():
+    """Все рецепты: товары и свои полуфабрикаты, с себестоимостью по текущим ценам."""
+    products = []
+    for p in m.Product.objects.prefetch_related("recipe__material__unit"):
+        rows = [{"material": r.material, "qty": r.qty, "cost": r.qty * r.material.avg_price()} for r in p.recipe.all()]
+        products.append({"obj": p, "lines": rows, "cost": sum((x["cost"] for x in rows), m.ZERO)})
+    homemade = []
+    for mat in m.RawMaterial.objects.filter(homemade=True).prefetch_related("ingredients__ingredient__unit"):
+        rows = [{"material": r.ingredient, "qty": r.qty, "cost": r.qty * r.ingredient.avg_price()}
+                for r in mat.ingredients.all()]
+        homemade.append({"obj": mat, "lines": rows, "cost": sum((x["cost"] for x in rows), m.ZERO)})
+    return {"products": products, "homemade": homemade}
+
+
+def purchases(limit=15):
+    """Последние купленные позиции: что, сколько упаковок, по какой цене."""
+    rows = []
+    items = (m.PurchaseItem.objects.select_related("purchase__supplier", "material__unit")
+             .order_by("-purchase__date", "-purchase_id", "id")[:limit])
+    for it in items:
+        old = it.before_packs()
+        size = 1 if old else it.material.pack_size or 1
+        rows.append({"item": it, "purchase": it.purchase, "material": it.material, "old": old,
+                     "packs": (it.qty / size).quantize(Decimal("0.001")), "pack_price": it.price * size,
+                     "sum": it.qty * it.price})
+    return rows

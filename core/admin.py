@@ -1,13 +1,29 @@
 import os
+from decimal import Decimal
 
 from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.options import FORMFIELD_FOR_DBFIELD_DEFAULTS
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import intcomma
+from django.db import models
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from . import models as m
+
+
+class PlainNumberInput(forms.NumberInput):
+    """Числа в формах без лишних нулей: 0.00 → 0, 1.500 → 1.5."""
+
+    def format_value(self, value):
+        text = super().format_value(value)
+        if text and "." in text and "e" not in text.lower():
+            text = text.rstrip("0").rstrip(".")
+        return text
+
+
+FORMFIELD_FOR_DBFIELD_DEFAULTS[models.DecimalField] = {"widget": PlainNumberInput}
 
 
 def money(value):
@@ -96,17 +112,44 @@ class PurchaseItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        material = self.instance.material if self.instance.pk else None
-        if material and material.pack_size:
-            self.initial["qty"] = (self.instance.qty / material.pack_size).normalize()
-            self.initial["price"] = (self.instance.price * material.pack_size).quantize(m.CENT)
+        self.legacy = False
+        if not self.instance.pk:
+            return
+        item = self.instance
+        qty, price = item.qty, item.price
+        size = item.material.pack_size
+        if item.before_packs():
+            # Записано до упаковок: «1» значило 1 упаковку, а попало как 1 гр. Покажем как упаковки,
+            # при сохранении пересчитается в граммы.
+            self.legacy = True
+        elif size:
+            qty, price = qty / size, price * size
+        self.initial["qty"] = _plain(qty, "0.001")
+        self.initial["price"] = _plain(price, "0.01")
+
+    def has_changed(self):
+        return self.legacy or super().has_changed()
 
     def clean(self):
         data = super().clean()
         material = data.get("material")
-        if material and data.get("qty") is not None and data.get("price") is not None:
-            data["qty"], data["price"] = material.from_packs(data["qty"], data["price"])
+        qty, price = data.get("qty"), data.get("price")
+        if material is None or qty is None or price is None:
+            return data
+        data["qty"], data["price"] = material.from_packs(qty, price)
+        if self.instance.pk and not self.legacy and material == self.instance.material:
+            # Поле не трогали — оставляем точное значение (на экране оно округлено).
+            if qty == self.initial["qty"]:
+                data["qty"] = self.instance.qty
+            if price == self.initial["price"]:
+                data["price"] = self.instance.price
         return data
+
+
+def _plain(value, step):
+    """Без лишних нулей: 18000000.00 → 18000000, 0.333333 → 0.333."""
+    value = Decimal(value).quantize(Decimal(step))
+    return value.quantize(Decimal(1)) if value == value.to_integral() else value.normalize()
 
 
 class PurchaseItemInline(admin.TabularInline):

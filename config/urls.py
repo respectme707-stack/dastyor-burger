@@ -20,5 +20,7 @@ urlpatterns = [
     path("staff/<int:pk>/", views.staff_detail, name="staff_detail"),
     path("stock/", views.stock, name="stock"),
     path("entry/", views.entry, name="entry"),
+    path("entry/recipes/", views.recipes, name="recipes"),
+    path("search/", views.search, name="search"),
     path("settings/", views.settings_page, name="settings"),
 ]
