@@ -1,0 +1,2 @@
+{% extends "admin/change_form.html" %}
+{% block admin_change_form_document_ready %}{{ block.super }}{{ product_prices|json_script:"product-prices" }}{% endblock %}

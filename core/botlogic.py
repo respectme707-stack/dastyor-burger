@@ -578,8 +578,8 @@ def shipment_text(shipment):
     return "\n".join(lines)
 
 
-def create_return(shop, product_id, n, reason):
-    return m.Return.objects.create(shop=shop, product_id=product_id, qty=n, reason=reason)
+def create_return(shop, product_id, n, reason, worker=None):
+    return m.Return.objects.create(shop=shop, product_id=product_id, qty=n, reason=reason, worker=worker)
 
 
 def create_payment(shop, amount, worker=None, method=m.Payment.Method.CASH):

@@ -5,11 +5,23 @@
   <div><h1>Сотрудники</h1><div class="sub">Кто сколько продал, собрал денег, сделал и потратил. Нажмите на имя для подробностей.</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_worker_add' %}">+ Сотрудник</a></div>
 </div>
+<form class="filters" method="get">
+  <input type="hidden" name="period" value="{{ period }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Поиск по имени или телефону" aria-label="Поиск">
+  <select name="role" aria-label="Роль" onchange="this.form.submit()">
+    <option value="">Все роли</option>
+    {% for value, label in roles %}<option value="{{ value }}" {% if value == role %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <label><input type="checkbox" name="inactive" value="1" {% if inactive %}checked{% endif %} onchange="this.form.submit()"> показать уволенных</label>
+  <button class="btn" type="submit">Найти</button>
+  {% if q or role or inactive %}<a href="?period={{ period }}">сбросить</a>{% endif %}
+</form>
+
 <section class="box">
-  <h2>Сводка по сотрудникам</h2>
+  <h2>Сводка по сотрудникам <a href="{% url 'admin:core_workday_changelist' %}">табель →</a></h2>
   {% if rows %}
   <div class="scroll"><table>
-    <thead><tr><th>Сотрудник</th><th>Роль</th><th class="num">Продал, сум</th><th class="num">Шт</th><th class="num">Магазинов</th><th class="num">Собрал денег</th><th class="num">Расходы</th><th class="num">Сделал, шт</th><th class="num">Получил товара</th><th class="num">Передал агентам</th><th class="num">Сейчас на руках</th></tr></thead>
+    <thead><tr><th>Сотрудник</th><th>Роль</th><th class="num">Продал, сум</th><th class="num">Шт</th><th class="num">Магазинов</th><th class="num">Собрал денег</th><th class="num">Расходы</th><th class="num">Возвраты принял</th><th class="num">Убыток от возвр.</th><th class="num">Сделал, шт</th><th class="num">Получил товара</th><th class="num">Передал агентам</th><th class="num">Сейчас на руках</th><th class="num">Дней работал</th><th class="num">Не вышел</th></tr></thead>
     <tbody>
     {% for r in rows %}
     <tr>
@@ -20,14 +32,19 @@
       <td class="num">{{ r.shops }}</td>
       <td class="num">{{ r.cash|money }}</td>
       <td class="num">{{ r.expenses|money }}</td>
+      <td class="num">{{ r.returns|money }}</td>
+      <td class="num {% if r.loss %}bad{% endif %}">{{ r.loss|money }}</td>
       <td class="num">{{ r.produced|money }}</td>
       <td class="num">{{ r.received|money }}</td>
       <td class="num">{{ r.given|money }}</td>
       <td class="num">{{ r.on_hand|money }}</td>
+      <td class="num">{{ r.days }}</td>
+      <td class="num {% if r.absent %}bad{% endif %}">{{ r.absent }}</td>
     </tr>
     {% endfor %}
     </tbody>
   </table></div>
-  {% else %}<p class="empty">Сотрудников ещё нет. <a href="{% url 'admin:core_worker_add' %}">Добавить</a></p>{% endif %}
+  {% elif q or role %}<p class="empty">Никого не нашли.</p>{% else %}<p class="empty">Сотрудников ещё нет. <a href="{% url 'admin:core_worker_add' %}">Добавить</a></p>{% endif %}
 </section>
+{% include "core/_staff_ratings.html" with ratings=ratings %}
 {% endblock %}

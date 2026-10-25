@@ -315,7 +315,7 @@ def money(period):
     }
 
 
-def staff(period):
+def staff(period, query="", role="", show_inactive=False):
     """Сводка по каждому сотруднику за период."""
     start = period_start(period)
     items = _since(m.ShipmentItem.objects.exclude(shipment__worker=None), "shipment__date", start)
@@ -337,8 +337,39 @@ def staff(period):
     received = {r["load__worker"]: r["q"] for r in loads.values("load__worker").annotate(q=Sum("qty"))}
     given = {r["load__given_by"]: r["q"] for r in loads.exclude(load__given_by=None)
              .values("load__given_by").annotate(q=Sum("qty"))}
+    # Возвраты, которые принял сотрудник, и наш убыток по себестоимости.
+    costs, returns = {}, defaultdict(lambda: [0, m.ZERO])
+    for r in _since(m.Return.objects.exclude(worker=None), "date", start).values("worker", "product").annotate(
+            q=Sum("qty")):
+        if r["product"] not in costs:
+            costs[r["product"]] = m.Product.objects.get(pk=r["product"]).unit_cost()
+        returns[r["worker"]][0] += r["q"]
+        returns[r["worker"]][1] += r["q"] * costs[r["product"]]
+    # Дни работы: отметки в табеле плюс дни, когда сотрудник что-то делал.
+    days = defaultdict(set)
+    for model, field in [(m.Shipment, "worker"), (m.Production, "worker"), (m.MaterialBatch, "worker"),
+                         (m.VanLoad, "worker"), (m.VanLoad, "given_by"), (m.Return, "worker")]:
+        for r in _since(model.objects.exclude(**{field: None}), "date", start).values(field, "date").distinct():
+            days[r[field]].add(r["date"])
+    absent = defaultdict(int)
+    for d in _since(m.WorkDay.objects.all(), "date", start).values("worker", "date", "status"):
+        if d["status"] == m.WorkDay.Status.WORKED:
+            days[d["worker"]].add(d["date"])
+        else:
+            days[d["worker"]].discard(d["date"])
+            if d["status"] == m.WorkDay.Status.ABSENT:
+                absent[d["worker"]] += 1
+    workers = m.Worker.objects.all().order_by("-active", "role", "name")
+    if role:
+        workers = workers.filter(role=role)
+    if not show_inactive:
+        workers = workers.filter(active=True)
+    if query:
+        # В Python, а не в базе: SQLite не умеет без учёта регистра для кириллицы.
+        q = query.casefold()
+        workers = [w for w in workers if q in w.name.casefold() or q in w.phone]
     rows = []
-    for w in m.Worker.objects.all().order_by("-active", "role", "name"):
+    for w in workers:
         s, q = sales.get(w.pk, (m.ZERO, 0))
         rows.append({
             "worker": w,
@@ -351,8 +382,25 @@ def staff(period):
             "received": received.get(w.pk, 0),
             "given": given.get(w.pk, 0),
             "on_hand": sum(w.stock().values()) if w.is_seller() else 0,
+            "returns": returns[w.pk][0] if w.pk in returns else 0,
+            "loss": returns[w.pk][1] if w.pk in returns else m.ZERO,
+            "days": len(days.get(w.pk, ())),
+            "absent": absent.get(w.pk, 0),
         })
-    return {"rows": rows}
+    return {"rows": rows, "ratings": _ratings(rows)}
+
+
+def _ratings(rows):
+    """Топ-5 сотрудников по разным показателям для карточки рейтинга."""
+    def top(key, only=None):
+        picked = [r for r in rows if r[key] and (only is None or only(r))]
+        return sorted(picked, key=lambda r: -r[key])[:5]
+    return {
+        "sales": top("sales"),
+        "loss": top("loss"),
+        "shops": top("shops"),
+        "days": top("days"),
+    }
 
 
 def staff_detail(worker, period):
@@ -380,6 +428,8 @@ def staff_detail(worker, period):
         "productions": productions[:50],
         "loads": loads[:30],
         "shop_list": worker.shops.all(),
+        "returns": _since(worker.returns.select_related("shop", "product"), "date", start)[:50],
+        "workdays": _since(worker.workdays.all(), "date", start)[:62],
         "chart_days": days,
         "chart_sales": values,
     }

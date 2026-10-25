@@ -62,6 +62,7 @@
     {% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
   </section>
 </div>
+{% include "core/_staff_ratings.html" with ratings=staff_ratings %}
 {{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}{{ chart_visits|json_script:"visitsData" }}
 {% endblock %}
 {% block scripts %}<script>

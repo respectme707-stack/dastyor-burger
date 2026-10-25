@@ -71,6 +71,22 @@
     </table></div>
     {% else %}<p class="empty">Расходов нет.</p>{% endif %}
   </section>
+  {% if returns %}
+  <section class="box">
+    <h2>Принял возвраты</h2>
+    <div class="scroll"><table>
+      {% for r in returns %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.shop.name }}</td><td>{{ r.product.name }} × {{ r.qty }}</td><td>{{ r.get_reason_display }}</td></tr>{% endfor %}
+    </table></div>
+  </section>
+  {% endif %}
+  <section class="box">
+    <h2>Табель <a href="{% url 'admin:core_workday_add' %}?worker={{ worker.pk }}">+ отметить день</a></h2>
+    {% if workdays %}
+    <div class="scroll"><table>
+      {% for d in workdays %}<tr><td>{{ d.date|date:"d.m.Y" }}</td><td><span class="tag {% if d.status == 'worked' %}green{% elif d.status == 'absent' %}red{% endif %}">{{ d.get_status_display }}</span></td><td class="muted">{{ d.note }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Отметок нет. Дни, когда он что-то вносил, считаются рабочими сами.</p>{% endif %}
+  </section>
   {% if shop_list %}
   <section class="box">
     <h2>Его магазины</h2>

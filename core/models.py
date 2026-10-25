@@ -58,6 +58,10 @@ class MaterialCategory(models.Model):
 
 class Unit(models.Model):
     name = models.CharField("Единица", max_length=20, unique=True, help_text="Например: шт, кг, гр, л, пачка")
+    big_name = models.CharField("Крупная единица", max_length=20, blank=True,
+                                help_text="Для закупки. Например, для «гр» это «кг», для «мл» это «л»")
+    big_ratio = models.DecimalField("Сколько в ней", max_digits=12, decimal_places=3, null=True, blank=True,
+                                    help_text="Для «гр» → «кг» это 1000")
 
     class Meta:
         verbose_name = "Единица измерения"
@@ -69,7 +73,9 @@ class Unit(models.Model):
 
 
 def default_unit():
-    return Unit.objects.get_or_create(name="шт")[0].pk
+    # Только pk: функция вызывается и из старых миграций, где у Unit ещё нет новых колонок.
+    pk = Unit.objects.filter(name="шт").values_list("pk", flat=True).first()
+    return pk if pk is not None else Unit.objects.create(name="шт").pk
 
 
 class RawMaterial(models.Model):
@@ -80,6 +86,10 @@ class RawMaterial(models.Model):
                              verbose_name="Единица")
     min_stock = models.DecimalField("Мин. остаток", default=0, blank=True, **QTY,
                                     help_text="Необязательно. Если остаток станет меньше, сайт предупредит")
+    pack_name = models.CharField("Упаковка", max_length=30, blank=True,
+                                 help_text="Как покупаете: банка, пачка, ведро, коробка")
+    pack_size = models.DecimalField("Сколько в упаковке", null=True, blank=True, **QTY,
+                                    help_text="В единицах этого сырья. Майонез в гр: банка = 900")
     homemade = models.BooleanField("Делаем сами", default=False,
                                    help_text="Например, булочки: не покупаем, а печём в цеху по своему рецепту")
 
@@ -242,7 +252,8 @@ class PurchaseItem(models.Model):
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="purchase_items",
                                  verbose_name="Сырьё")
     qty = models.DecimalField("Количество", **QTY)
-    price = models.DecimalField("Цена за единицу", **MONEY)
+    price = models.DecimalField("Цена", max_digits=20, decimal_places=6,
+                                help_text="За то, как считаете: за 1 гр, за 1 кг или за 1 упаковку")
 
     class Meta:
         verbose_name = "Строка закупки"
@@ -541,6 +552,8 @@ class Return(models.Model):
     price = models.DecimalField("Цена возврата", blank=True, **MONEY,
                                 help_text="На эту сумму уменьшится долг. Пусто = цена продукта")
     reason = models.CharField("Причина", max_length=10, choices=Reason.choices, default=Reason.EXPIRED)
+    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="returns", verbose_name="Кто принял")
 
     class Meta:
         verbose_name = "Возврат"
@@ -802,3 +815,27 @@ class VanLoadItem(models.Model):
 
     def __str__(self):
         return f"{self.product}: {self.qty}"
+
+
+class WorkDay(models.Model):
+    """Табель: вышел сотрудник на работу или нет."""
+
+    class Status(models.TextChoices):
+        WORKED = "worked", "Работал"
+        OFF = "off", "Выходной"
+        SICK = "sick", "Болел"
+        ABSENT = "absent", "Не вышел"
+
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="workdays", verbose_name="Сотрудник")
+    date = models.DateField("Дата", default=timezone.localdate)
+    status = models.CharField("Статус", max_length=10, choices=Status.choices, default=Status.WORKED)
+    note = models.CharField("Заметка", max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = "День в табеле"
+        verbose_name_plural = "Табель"
+        ordering = ["-date", "worker__name"]
+        unique_together = [("worker", "date")]
+
+    def __str__(self):
+        return f"{self.worker} {self.date:%d.%m}: {self.get_status_display()}"
