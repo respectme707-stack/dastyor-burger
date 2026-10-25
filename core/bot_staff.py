@@ -348,9 +348,10 @@ async def income_material_name(message: Message, state: FSMContext):
 
 
 async def _ask_qty(message, state, material):
-    await state.update_data(material=material.pk, unit=str(material.unit))
+    unit = material.pack_word() if material.pack_size else str(material.unit)
+    await state.update_data(material=material.pk, unit=unit)
     await state.set_state(Income.qty)
-    await message.answer(f"{material.name}: сколько {material.unit}? Напишите число.")
+    await message.answer(f"{material.name} ({material.pack_label()}): сколько {unit}? Напишите число.")
 
 
 async def _new_material(message, state, unit_name):

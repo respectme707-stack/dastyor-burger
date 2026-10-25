@@ -550,25 +550,15 @@ class FeedbackTests(TestCase):
         self.mayo = m.RawMaterial.objects.create(name="Майонез", unit=self.gram)
         self.supplier = m.Supplier.objects.create(name="Бозор")
 
-    def _purchase(self, in_big):
+    def test_purchase_without_pack_is_in_material_units(self):
         data = {
             "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "20000", "note": "",
             "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
             "items-MAX_NUM_FORMS": "1000",
-            "items-0-material": self.mayo.pk, "items-0-qty": "2", "items-0-price": "36000",
+            "items-0-material": self.mayo.pk, "items-0-qty": "2000", "items-0-price": "36",
         }
-        if in_big:
-            data["items-0-how"] = "big"
-        return self.client.post("/admin/core/purchase/add/", data)
-
-    def test_purchase_in_kg_for_gram_material(self):
-        response = self._purchase(in_big=True)
-        self.assertEqual(response.status_code, 302, response.content.decode()[:3000])
-        item = m.PurchaseItem.objects.get()
-        self.assertEqual(item.qty, 2000)
-        self.assertEqual(item.price, D("36"))
+        self.assertEqual(self.client.post("/admin/core/purchase/add/", data).status_code, 302)
         self.assertEqual(self.mayo.stock(), 2000)
-        # 72 000 куплено − 20 000 оплачено
         self.assertEqual(self.supplier.debt(), D("52000"))
 
     def test_staff_filters_and_ratings(self):
@@ -594,7 +584,7 @@ class FeedbackTests(TestCase):
             "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "note": "",
             "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
             "items-MAX_NUM_FORMS": "1000",
-            "items-0-material": self.mayo.pk, "items-0-how": "pack", "items-0-qty": "2", "items-0-price": "16800",
+            "items-0-material": self.mayo.pk, "items-0-qty": "2", "items-0-price": "16800",
         }
         response = self.client.post("/admin/core/purchase/add/", data)
         self.assertEqual(response.status_code, 302)
@@ -602,3 +592,14 @@ class FeedbackTests(TestCase):
         self.assertEqual(round(self.supplier.debt()), 33600)
         # 11,25 г майонеза на хот-дог: 16 800 / 900 × 11,25 = 210 сум
         self.assertEqual(round(self.mayo.avg_price() * D("11.25")), 210)
+
+        # Открыли закупку снова: видно упаковками, как вводили
+        purchase = m.Purchase.objects.get()
+        page = self.client.get(f"/admin/core/purchase/{purchase.pk}/change/").content.decode()
+        self.assertIn('name="items-0-qty" value="2"', page)
+        self.assertIn('name="items-0-price" value="16800.00"', page)
+        # Бот тоже считает упаковками
+        from . import botlogic
+        botlogic.create_purchase(self.supplier.pk, [[self.mayo.pk, "1", "16800"]], 0)
+        self.assertEqual(self.mayo.stock(), 2700)
+        self.assertEqual(self.mayo.pack_label(), "банка по 900 гр")

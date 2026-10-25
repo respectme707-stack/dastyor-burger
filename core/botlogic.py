@@ -428,13 +428,14 @@ def get_or_create_material(name, unit_name, category_id=None):
 
 
 def purchase_lines_text(lines):
-    """lines: [[material_id, "qty", "price"], ...]."""
-    found = m.RawMaterial.objects.in_bulk([x[0] for x in lines])
+    """lines: [[material_id, "qty", "price"], ...]. Если у сырья есть упаковка, qty и price за упаковку."""
+    found = m.RawMaterial.objects.select_related("unit").in_bulk([x[0] for x in lines])
     out, total = [], ZERO
     for material_id, q, p in lines:
         material, q, p = found[material_id], Decimal(q), Decimal(p)
         total += q * p
-        out.append(f"{material.name}: {qty(q)} {material.unit} × {money(p)} = {money(q * p)}")
+        unit = f"{material.pack_word()} ({material.pack_label()})" if material.pack_size else material.unit
+        out.append(f"{material.name}: {qty(q)} {unit} × {money(p)} = {money(q * p)}")
     out.append(f"Итого: {money(total)} сум")
     return "\n".join(out), total
 
@@ -442,9 +443,10 @@ def purchase_lines_text(lines):
 @transaction.atomic
 def create_purchase(supplier_id, lines, paid, note=""):
     purchase = m.Purchase.objects.create(supplier_id=supplier_id, paid=paid, note=note[:300])
+    found = m.RawMaterial.objects.in_bulk([x[0] for x in lines])
     for material_id, q, p in lines:
-        m.PurchaseItem.objects.create(purchase=purchase, material_id=material_id, qty=Decimal(q),
-                                      price=Decimal(p))
+        q, p = found[material_id].from_packs(Decimal(q), Decimal(p))
+        m.PurchaseItem.objects.create(purchase=purchase, material_id=material_id, qty=q, price=p)
     return purchase
 
 

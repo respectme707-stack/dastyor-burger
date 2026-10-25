@@ -35,28 +35,27 @@ document.addEventListener("DOMContentLoaded", function () {
     return total;
   }
 
-  // Закупка: подписи «как считаете» под выбранное сырьё и сколько придёт на склад.
+  // Закупка: в чём вводить количество и цену, и сколько придёт на склад.
   function stockHint(row, qty) {
     const material = row.querySelector('select[name$="-material"]');
-    const how = row.querySelector('select[name$="-how"]');
-    if (!material || !how) return;
+    if (!material) return;
     const u = units[material.value];
-    const opts = how.options;
-    if (u) {
-      opts[0].text = "в " + u.unit;
-      opts[1].text = u.big ? "в " + u.big : "в кг / л";
-      opts[1].disabled = !u.big_ratio;
-      opts[2].text = u.pack_size ? u.pack + " (" + u.pack_size.toLocaleString("ru-RU") + " " + u.unit + ")" : "упаковками";
-      opts[2].disabled = !u.pack_size;
-    }
+    const qtyInput = row.querySelector('input[name$="-qty"]');
+    const priceInput = row.querySelector('input[name$="-price"]');
     let hint = row.querySelector(".dastyor-stock");
     if (!hint) {
       hint = document.createElement("div");
       hint.className = "dastyor-line dastyor-stock";
-      row.querySelector('input[name$="-qty"]').closest("td").appendChild(hint);
+      qtyInput.closest("td").appendChild(hint);
     }
-    const ratio = !u ? 0 : how.value === "big" ? u.big_ratio : how.value === "pack" ? u.pack_size : 1;
-    hint.textContent = u && qty && ratio ? "на склад: " + (qty * ratio).toLocaleString("ru-RU") + " " + u.unit : "";
+    if (!u) { hint.textContent = ""; return; }
+    const size = u.pack_size;
+    const packs = u.pack + " по " + (size || 0).toLocaleString("ru-RU") + " " + u.unit;
+    qtyInput.placeholder = size ? "сколько упаковок" : "сколько " + u.unit;
+    priceInput.placeholder = size ? "цена за 1 упаковку" : "цена за 1 " + u.unit;
+    hint.textContent = size
+      ? packs + (qty ? " → на склад " + (qty * size).toLocaleString("ru-RU") + " " + u.unit : "")
+      : "в " + u.unit;
   }
 
   function update() {
