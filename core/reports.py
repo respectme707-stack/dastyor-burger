@@ -34,6 +34,53 @@ def _since(qs, field, start):
     return qs.filter(**{f"{field}__gte": start}) if start else qs
 
 
+def _between(qs, field, start, end):
+    qs = _since(qs, field, start)
+    return qs.filter(**{f"{field}__lte": end}) if end else qs
+
+
+def totals(start=None, end=None):
+    """Главные цифры за период: деньги и штуки. Для сводки в боте."""
+    items = _between(m.ShipmentItem.objects.all(), "shipment__date", start, end)
+    returns = _between(m.Return.objects.all(), "date", start, end)
+    revenue = items.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO
+    cogs = items.aggregate(s=_money(F("qty") * F("unit_cost")))["s"] or m.ZERO
+    returned = returns.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO
+    expenses = _between(m.Expense.objects.all(), "date", start, end).aggregate(s=Sum("amount"))["s"] or m.ZERO
+    purchased = _between(m.PurchaseItem.objects.all(), "purchase__date", start, end).aggregate(
+        s=_money(F("qty") * F("price")))["s"] or m.ZERO
+    shipments = _between(m.Shipment.objects.all(), "date", start, end)
+    payments = _between(m.Payment.objects.exclude(shop=None), "date", start, end)
+    cash_in = (shipments.aggregate(s=Sum("paid"))["s"] or m.ZERO) + (
+        payments.aggregate(s=Sum("amount"))["s"] or m.ZERO)
+    card_in = (shipments.filter(method=m.Shipment.Method.CARD).aggregate(s=Sum("paid"))["s"] or m.ZERO) + (
+        payments.filter(method=m.Payment.Method.CARD).aggregate(s=Sum("amount"))["s"] or m.ZERO)
+    consignment = sum((s.debt() for s in shipments.filter(method=m.Shipment.Method.CONSIGNMENT)), m.ZERO)
+    products = list(m.Product.objects.filter(active=True))
+    agents = [w for w in m.Worker.objects.filter(active=True) if w.is_seller()]
+    receivable = sum((d for d in (s.debt() for s in m.Shop.objects.all()) if d > 0), m.ZERO)
+    payable = sum((d for d in (s.debt() for s in m.Supplier.objects.all()) if d > 0), m.ZERO)
+    return {
+        "revenue": revenue,
+        "cash_in": cash_in,
+        "card_in": card_in,
+        "consignment": consignment,
+        "purchased": purchased,
+        "expenses": expenses,
+        "returned": returned,
+        "cogs": cogs,
+        # Как на сайте: выручка минус возвраты, себестоимость проданного и прочие расходы.
+        "profit": revenue - returned - cogs - expenses,
+        "receivable": receivable,
+        "payable": payable,
+        "produced_qty": _between(m.Production.objects.all(), "date", start, end).aggregate(s=Sum("qty"))["s"] or 0,
+        "sold_qty": items.aggregate(s=Sum("qty"))["s"] or 0,
+        "returned_qty": returns.aggregate(s=Sum("qty"))["s"] or 0,
+        "workshop_qty": sum(p.stock() for p in products),
+        "agents_qty": sum(sum(w.stock().values()) for w in agents),
+    }
+
+
 def build(period):
     start = period_start(period)
     items = _since(m.ShipmentItem.objects.all(), "shipment__date", start)
@@ -126,25 +173,36 @@ def build(period):
         ({"shop": shop_names[k], "qty": v[0], "amount": v[1], "loss": v[2]} for k, v in losses.items()),
         key=lambda x: -x["loss"])[:10]
 
-    # Машины: что в кузове сейчас и что продали за период.
-    vehicles, in_vans = [], defaultdict(int)
-    vehicle_sales = {
-        r["shipment__vehicle"]: r["s"]
-        for r in items.exclude(shipment__vehicle=None).values("shipment__vehicle").annotate(
+    # Агенты: что на руках сейчас, сколько продали и сколько денег собрали.
+    agents, in_vans = [], defaultdict(int)
+    agent_sales = {
+        r["shipment__worker"]: r["s"]
+        for r in items.exclude(shipment__worker=None).values("shipment__worker").annotate(
             s=_money(F("qty") * F("price")))
     }
-    shipments = _since(m.Shipment.objects.exclude(vehicle=None), "date", start)
-    vehicle_cash = {r["vehicle"]: r["s"] for r in shipments.values("vehicle").annotate(s=Sum("paid"))}
-    for vehicle in m.Vehicle.objects.filter(active=True):
-        stock = vehicle.stock()
+    shipments = _since(m.Shipment.objects.exclude(worker=None), "date", start)
+    agent_cash = defaultdict(lambda: m.ZERO)
+    for r in shipments.values("worker").annotate(s=Sum("paid")):
+        agent_cash[r["worker"]] += r["s"] or m.ZERO
+    for r in _since(m.Payment.objects.exclude(worker=None).exclude(shop=None), "date", start) \
+            .values("worker").annotate(s=Sum("amount")):
+        agent_cash[r["worker"]] += r["s"] or m.ZERO
+    agent_expenses = {r["worker"]: r["s"] for r in _since(m.Expense.objects.exclude(worker=None), "date", start)
+                      .values("worker").annotate(s=Sum("amount"))}
+    for worker in m.Worker.objects.filter(active=True):
+        if not worker.is_seller():
+            continue
+        stock = worker.stock()
         for product, n in stock.items():
             in_vans[product.pk] += n
-        vehicles.append({
-            "vehicle": vehicle,
+        agents.append({
+            "worker": worker,
             "stock": ", ".join(f"{p.name} {n}" for p, n in sorted(stock.items(), key=lambda kv: kv[0].name)),
-            "sales": vehicle_sales.get(vehicle.pk, m.ZERO),
-            "cash": vehicle_cash.get(vehicle.pk) or m.ZERO,
+            "sales": agent_sales.get(worker.pk, m.ZERO),
+            "cash": agent_cash.get(worker.pk, m.ZERO),
+            "expenses": agent_expenses.get(worker.pk) or m.ZERO,
         })
+    agents.sort(key=lambda a: -a["sales"])
 
     products = []
     for product in m.Product.objects.filter(active=True):
@@ -193,7 +251,7 @@ def build(period):
         "chart_district_sales": [float(v) for _, v in sorted(districts.items(), key=lambda kv: -kv[1])],
         "shops": shops,
         "products": products,
-        "vehicles": vehicles,
+        "agents": agents,
         "freshness": freshness,
         "expiring": [x for x in freshness if x["level"] == "bad" and not x["shop"].archived],
         "chart_visits": [visits_by_day.get(d, 0) for d in days],

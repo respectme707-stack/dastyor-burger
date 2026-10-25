@@ -48,7 +48,7 @@
 
   {% if low_materials %}
   <div class="alert" role="status">Заканчивается:
-    {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.get_unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}
+    {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.unit }}){% if not forloop.last %}, {% endif %}{% endfor %}
   </div>
   {% endif %}
 
@@ -164,18 +164,19 @@
     {% else %}<p class="empty">Пока нет данных.</p>{% endif %}
   </section>
 
-  {% if vehicles %}
+  {% if agents %}
   <section class="card">
-    <h2>Машины</h2>
+    <h2>Агенты</h2>
     <div class="scroll"><table>
-      <thead><tr><th>Машина</th><th>Сейчас в машине</th><th class="num">Продано</th><th class="num">Собрано денег</th></tr></thead>
+      <thead><tr><th>Агент</th><th>Сейчас на руках</th><th class="num">Продано</th><th class="num">Собрано денег</th><th class="num">Расходы</th></tr></thead>
       <tbody>
-      {% for v in vehicles %}
+      {% for a in agents %}
       <tr>
-        <td>{{ v.vehicle.name }}</td>
-        <td>{{ v.stock|default:"пусто" }}</td>
-        <td class="num">{{ v.sales|money }}</td>
-        <td class="num">{{ v.cash|money }}</td>
+        <td>{{ a.worker.name }}{% if a.worker.vehicle %} · {{ a.worker.vehicle.name }}{% endif %}</td>
+        <td>{{ a.stock|default:"пусто" }}</td>
+        <td class="num">{{ a.sales|money }}</td>
+        <td class="num">{{ a.cash|money }}</td>
+        <td class="num">{{ a.expenses|money }}</td>
       </tr>
       {% endfor %}
       </tbody>
@@ -187,7 +188,7 @@
     <section class="card">
       <h2>Продукты</h2>
       <div class="scroll"><table>
-        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">В цеху</th><th class="num">В машинах</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th><th class="num">Убыток от возвр.</th></tr></thead>
+        <thead><tr><th>Продукт</th><th class="num">Продано</th><th class="num">Возвр.</th><th class="num">В цеху</th><th class="num">У агентов</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th><th class="num">Убыток от возвр.</th></tr></thead>
         <tbody>
         {% for p in products %}
         <tr>
@@ -212,7 +213,7 @@
         {% for x in materials %}
         <tr>
           <td>{{ x.material.name }}</td>
-          <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.get_unit_display }}</td>
+          <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.unit }}</td>
           <td class="num">{{ x.material.min_stock|qty }}</td>
         </tr>
         {% empty %}<tr><td colspan="3" class="empty">Нет сырья.</td></tr>{% endfor %}
