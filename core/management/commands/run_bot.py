@@ -4,7 +4,7 @@ import os
 from datetime import timedelta
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import Command as CommandFilter, CommandObject, CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
@@ -20,7 +20,6 @@ from core.models import Order
 router = Router()
 
 ORDER, DEBT, HISTORY = "Сделать заказ", "Мой долг", "Мои заказы"
-SUMMARY = bot_staff.SUMMARY
 
 shop_menu = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text=ORDER)], [KeyboardButton(text=DEBT), KeyboardButton(text=HISTORY)]],
@@ -45,7 +44,8 @@ def _call(fn):
 shop_for = _call(logic.shop_for)
 link_shop = _call(logic.link_shop)
 link_worker = _call(logic.link_worker)
-worker_for = _call(logic.worker_for)
+role_of = _call(logic.role_of)
+boss_ids = _call(logic.boss_ids)
 products = _call(logic.products)
 get_product = _call(logic.get_product)
 cart_text = _call(logic.cart_text)
@@ -54,7 +54,6 @@ order_text = _call(logic.order_text)
 set_status = _call(logic.set_status)
 debt_text = _call(logic.debt_text)
 history_text = _call(logic.history_text)
-summary_text = _call(logic.summary_text)
 
 
 def _cart(data):
@@ -75,13 +74,10 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
     code = (command.args or "").strip()
     if code.startswith("w"):
         worker = await link_worker(code, uid)
-        if worker:
-            await message.answer(f"Готово, {worker.name}! Теперь вы можете вносить отгрузки, возвраты, "
-                                 "загрузку машины и приход сырья.", reply_markup=bot_staff.staff_menu(False))
-        else:
-            await message.answer("Код не подошёл. Попросите у владельца новую ссылку.")
-        return
-    if code:
+        if not worker:
+            await message.answer("Код не подошёл. Попросите у начальника новую ссылку.")
+            return
+    elif code:
         shop = await link_shop(code, uid)
         if shop:
             await message.answer(f"Готово! Этот аккаунт подключён к магазину «{shop.name}». "
@@ -89,15 +85,16 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
         else:
             await message.answer("Код не подошёл. Попросите у поставщика новую ссылку.")
         return
-    if logic.is_owner(uid):
-        await message.answer("Здравствуйте! Сюда будут приходить новые заказы. "
-                             "Кнопка «Сводка» покажет заказы, остатки и долги.",
-                             reply_markup=bot_staff.staff_menu(True))
-        return
-    worker = await worker_for(uid)
-    if worker:
-        await message.answer(f"Здравствуйте, {worker.name}! Выберите, что внести.",
-                             reply_markup=bot_staff.staff_menu(False))
+    role, worker = await role_of(uid)
+    if role:
+        name = f", {worker.name}" if worker else ""
+        hint = {
+            "boss": "Вам доступны все кнопки. «Сводка» — деньги и остатки, «Сотрудники» — табель каждого. "
+                    "Каждый вечер пришлю итоги дня.",
+            "seller": "Ваши кнопки: отгрузка в магазин, возврат, оплата долга, ваш остаток и расходы.",
+            "workshop": "Ваши кнопки: приход сырья, производство, передача товара агентам и расходы.",
+        }[role]
+        await message.answer(f"Здравствуйте{name}! {hint}", reply_markup=bot_staff.menu_for(role))
         return
     shop = await shop_for(uid)
     if shop:
@@ -105,13 +102,6 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
     else:
         await message.answer("Этот бот для магазинов-партнёров Dastyor Burger. "
                              "Попросите у поставщика ссылку для подключения.")
-
-
-@router.message(CommandFilter("svodka"))
-@router.message(F.text == SUMMARY)
-async def summary(message: Message):
-    if logic.is_owner(message.from_user.id):
-        await message.answer(await summary_text())
 
 
 @router.message(F.text == ORDER)
@@ -177,7 +167,7 @@ async def order_send(callback: CallbackQuery, state: FSMContext, bot: Bot):
         InlineKeyboardButton(text="Подтвердить", callback_data=f"ok:{order.pk}"),
         InlineKeyboardButton(text="Отклонить", callback_data=f"no:{order.pk}"),
     ]])
-    for owner in logic.owner_ids():
+    for owner in await boss_ids():
         try:
             await bot.send_message(owner, "Новый заказ!\n" + text, reply_markup=buttons)
         except Exception:
@@ -186,7 +176,7 @@ async def order_send(callback: CallbackQuery, state: FSMContext, bot: Bot):
 
 @router.callback_query(F.data.regexp(r"^(ok|no):\d+$"))
 async def order_decide(callback: CallbackQuery, bot: Bot):
-    if not logic.is_owner(callback.from_user.id):
+    if callback.from_user.id not in await boss_ids():
         await callback.answer()
         return
     action, order_id = callback.data.split(":")
@@ -231,11 +221,12 @@ class Command(BaseCommand):
         dp = Dispatcher()
         dp.include_router(router)
         dp.include_router(bot_staff.router)
-        reminders = asyncio.create_task(reminder_loop(bot))
+        tasks = [asyncio.create_task(reminder_loop(bot)), asyncio.create_task(daily_report_loop(bot))]
         try:
             await dp.start_polling(bot)
         finally:
-            reminders.cancel()
+            for task in tasks:
+                task.cancel()
 
 
 async def reminder_loop(bot):
@@ -252,3 +243,18 @@ async def reminder_loop(bot):
                 logging.exception("Ошибка при отправке напоминаний")
             run_at += timedelta(days=1)
         await asyncio.sleep((run_at - timezone.localtime()).total_seconds())
+
+
+async def daily_report_loop(bot):
+    """Каждый вечер в DAILY_REPORT_HOUR (по умолчанию 20:00) присылает начальнику итоги дня."""
+    hour = int(os.environ.get("DAILY_REPORT_HOUR", "20"))
+    while True:
+        now = timezone.localtime()
+        run_at = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if now >= run_at:
+            run_at += timedelta(days=1)
+        await asyncio.sleep((run_at - timezone.localtime()).total_seconds())
+        try:
+            await bot_staff.send_daily_report(bot)
+        except Exception:
+            logging.exception("Ошибка при отправке итогов дня")

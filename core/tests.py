@@ -177,7 +177,7 @@ class BotLogicTests(TestCase):
         with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "YourID:409928788"}):
             self.assertEqual(botlogic.owner_ids(), {409928788})
         botlogic.create_order(self.shop, {self.hotdog.pk: 5})
-        self.assertIn("Новых заказов: 1", botlogic.summary_text())
+        self.assertIn("Заказы из бота: новых 1", botlogic.summary_text())
 
 
 class StaffBotTests(TestCase):
@@ -193,7 +193,8 @@ class StaffBotTests(TestCase):
         m.RecipeItem.objects.create(product=self.hotdog, material=bun, qty=1)
         m.Production.objects.create(product=self.hotdog, qty=100)
         self.van = m.Vehicle.objects.create(name="Damas 1")
-        self.worker = m.Worker.objects.create(name="Азиз", vehicle=self.van)
+        self.worker = m.Worker.objects.create(name="Азиз", vehicle=self.van, role=m.Worker.Role.AGENT)
+        self.cook = m.Worker.objects.create(name="Шерзод", role=m.Worker.Role.COOK)
         self.shop = m.Shop.objects.create(name="Нур", district="Чиланзар")
 
     def test_numbers(self):
@@ -233,46 +234,130 @@ class StaffBotTests(TestCase):
         self.assertEqual(supplier.debt(), D("250000"))
         self.assertIn("в долг 250\xa0000", self.logic.purchase_text(purchase))
 
-    def test_van_flow(self):
+    def test_agent_flow(self):
         logic = self.logic
         with self.assertRaisesMessage(ValidationError, "в цеху 100"):
-            logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 150})
-        logic.create_van_load(self.van, self.worker, {self.hotdog.pk: 60})
+            logic.create_handover(self.worker, self.cook, {self.hotdog.pk: 150})
+        load = logic.create_handover(self.worker, self.cook, {self.hotdog.pk: 60})
+        self.assertEqual((load.given_by, load.vehicle), (self.cook, self.van))
         self.assertEqual(self.hotdog.stock(), 40)
-        self.assertEqual(self.van.stock(), {self.hotdog: 60})
+        self.assertEqual(self.worker.stock(), {self.hotdog: 60})
 
-        with self.assertRaisesMessage(ValidationError, "в машине 60"):
-            logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 61}, 0)
+        with self.assertRaisesMessage(ValidationError, "у вас 60"):
+            logic.create_shipment(self.shop, {self.hotdog.pk: 61}, 0, self.worker)
         order = logic.create_order(self.shop, {self.hotdog.pk: 20})
         self.assertEqual(logic.open_order(self.shop), order)
-        shipment = logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 20}, D("100000"),
-                                             self.worker, order.pk)
+        shipment = logic.create_shipment(self.shop, {self.hotdog.pk: 20}, D("100000"), self.worker, order.pk)
         order.refresh_from_db()
         self.assertEqual(order.status, m.Order.Status.SHIPPED)
         self.assertIsNone(logic.open_order(self.shop))
         self.assertEqual(self.shop.debt(), D("140000"))
         self.assertIn("в долг 140\xa0000", logic.shipment_text(shipment))
-        # Отгрузка с машины не трогает остаток цеха.
+        # Отгрузка агента не трогает остаток цеха.
         self.assertEqual(self.hotdog.stock(), 40)
-        self.assertEqual(self.van.stock(), {self.hotdog: 40})
-        self.assertIn("Собрано денег сегодня: 100\xa0000", logic.van_text(self.van))
+        self.assertEqual(self.worker.stock(), {self.hotdog: 40})
+
+        logic.create_payment(self.shop, D("40000"), self.worker)
+        self.assertEqual(self.shop.debt(), D("100000"))
+        self.assertIn("Получено денег сегодня: 140\xa0000", logic.agent_stock_text(self.worker))
 
         logic.create_return(self.shop, self.hotdog.pk, 2, m.Return.Reason.DEFECT)
-        self.assertEqual(self.shop.debt(), D("116000"))
+        self.assertEqual(self.shop.debt(), D("76000"))
 
-        logic.unload_all(self.van, self.worker)
-        self.assertEqual(self.van.stock(), {})
-        self.assertEqual(self.hotdog.stock(), 80)
-        self.assertIsNone(logic.unload_all(self.van, self.worker))
+        # Начальник отгружает прямо из цеха.
+        logic.create_shipment(self.shop, {self.hotdog.pk: 10}, D("120000"))
+        self.assertEqual(self.hotdog.stock(), 30)
 
-    def test_dashboard_shows_vehicles(self):
+        logic.unload_all(self.worker, self.cook)
+        self.assertEqual(self.worker.stock(), {})
+        self.assertEqual(self.hotdog.stock(), 70)
+        self.assertIsNone(logic.unload_all(self.worker))
+
+    def test_roles(self):
+        import os
+        from unittest import mock
+
+        logic = self.logic
+        m.Worker.objects.filter(pk=self.worker.pk).update(telegram_id=11)
+        m.Worker.objects.filter(pk=self.cook.pk).update(telegram_id=12)
+        boss = m.Worker.objects.create(name="Ойбек", role=m.Worker.Role.BOSS, telegram_id=13)
+        with mock.patch.dict(os.environ, {"OWNER_TELEGRAM_IDS": "1"}):
+            self.assertEqual(logic.role_of(1), ("boss", None))
+            self.assertEqual(logic.role_of(11)[0], "seller")
+            self.assertEqual(logic.role_of(12)[0], "workshop")
+            self.assertEqual(logic.role_of(13), ("boss", boss))
+            self.assertEqual(logic.role_of(99), (None, None))
+            self.assertEqual(logic.boss_ids(), {1, 13})
+        self.assertEqual(logic.sellers(), [self.worker])
+
+    def test_agent_shops(self):
+        logic = self.logic
+        other = m.Shop.objects.create(name="Барака", district="Юнусабад")
+        self.assertEqual(len(logic.shops_for_worker(self.worker)), 2)
+        self.worker.districts = "юнусабад"
+        self.worker.save()
+        self.assertEqual(logic.shops_for_worker(self.worker), [other])
+        self.worker.shops.add(self.shop)
+        self.assertEqual(logic.shops_for_worker(self.worker), [self.shop])
+        self.assertEqual(logic.districts(self.worker), ["Чиланзар"])
+        # Новый магазин агента сразу прикрепляется к нему.
+        shop = logic.create_shop({"name": "Ок", "district": "Чиланзар"}, self.worker)
+        self.assertIn(shop, self.worker.shops.all())
+
+    def test_categories(self):
+        logic = self.logic
+        buns = logic.get_or_create_category("Булочки")
+        flour = logic.get_or_create_material("Мука", "kg", buns.pk)
+        self.assertEqual(flour.category, buns)
+        self.assertEqual(logic.materials(buns.pk), [flour])
+        self.assertEqual([x.name for x in logic.materials()], ["Булочка"])
+
+    def test_production_and_expense(self):
+        logic = self.logic
+        production = logic.create_production(self.hotdog.pk, 50, self.cook)
+        self.assertIn("В цеху теперь: 150", logic.production_text(production))
+        with self.assertRaisesMessage(ValidationError, "Не хватает сырья"):
+            logic.create_production(self.hotdog.pk, 1000, self.cook)
+        logic.create_expense("taxi", D("30000"), "до Чиланзара", self.worker)
+        self.assertEqual(self.worker.expenses.get().amount, D("30000"))
+
+    def test_worker_card_and_summary(self):
+        logic = self.logic
+        logic.create_handover(self.worker, self.cook, {self.hotdog.pk: 30})
+        logic.create_shipment(self.shop, {self.hotdog.pk: 10}, D("50000"), self.worker)
+        logic.create_expense("fuel", D("80000"), "", self.worker)
+        card = logic.worker_card(self.worker)
+        self.assertIn("Получил из цеха: 30 шт", card)
+        self.assertIn("Продал: 10 шт на 120\xa0000", card)
+        self.assertIn("Отдал в долг: 70\xa0000", card)
+        self.assertIn("Сейчас на руках: Хот-дог 20", card)
+        self.assertIn("Расходы: 80\xa0000", card)
+        self.assertIn("Передал агентам: 30 шт", logic.worker_card(self.cook))
+
+        text = logic.summary_text()
+        self.assertIn("Продажи: 120\xa0000", text)
+        self.assertIn("Получено денег: 50\xa0000", text)
+        self.assertIn("Прочие расходы: 80\xa0000", text)
+        self.assertIn("в цеху 70 · у агентов 20", text)
+        self.assertIn("Азиз: продал на 120\xa0000", logic.daily_report_text())
+
+    def test_parse_location(self):
+        p = self.logic.parse_location
+        self.assertEqual(p("https://www.google.com/maps/place/X/@41.311081,69.240562,17z"), (41.311081, 69.240562))
+        self.assertEqual(p("41.31, 69.24"), (41.31, 69.24))
+        self.assertEqual(p("https://yandex.uz/maps/?ll=69.240562%2C41.311081&z=16"), (41.311081, 69.240562))
+        self.assertIsNone(p("1"))
+        self.assertIsNone(p("Пропустить"))
+        self.assertIsNone(self.logic.resolve_location("1"))
+
+    def test_dashboard_shows_agents(self):
         from . import reports
 
-        self.logic.create_van_load(self.van, None, {self.hotdog.pk: 30})
-        self.logic.create_van_shipment(self.van, self.shop, {self.hotdog.pk: 10}, D("50000"))
+        self.logic.create_handover(self.worker, None, {self.hotdog.pk: 30})
+        self.logic.create_shipment(self.shop, {self.hotdog.pk: 10}, D("50000"), self.worker)
         data = reports.build("all")
-        self.assertEqual(data["vehicles"][0]["cash"], D("50000"))
-        self.assertEqual(data["vehicles"][0]["stock"], "Хот-дог 20")
+        self.assertEqual(data["agents"][0]["cash"], D("50000"))
+        self.assertEqual(data["agents"][0]["stock"], "Хот-дог 20")
         self.assertEqual(data["products"][0]["in_vans"], 20)
         self.assertEqual(data["products"][0]["stock"], 70)
 

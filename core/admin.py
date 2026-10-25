@@ -26,9 +26,27 @@ class SupplierAdmin(admin.ModelAdmin):
         return money(obj.debt())
 
 
+class RawMaterialInline(admin.TabularInline):
+    model = m.RawMaterial
+    extra = 3
+    fields = ["name", "unit", "min_stock"]
+
+
+@admin.register(m.MaterialCategory)
+class MaterialCategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "materials_display"]
+    search_fields = ["name"]
+    inlines = [RawMaterialInline]
+
+    @admin.display(description="Сырьё")
+    def materials_display(self, obj):
+        return ", ".join(x.name for x in obj.materials.all()) or "—"
+
+
 @admin.register(m.RawMaterial)
 class RawMaterialAdmin(admin.ModelAdmin):
-    list_display = ["name", "unit", "stock_display", "avg_price_display", "min_stock"]
+    list_display = ["name", "category", "unit", "stock_display", "avg_price_display", "min_stock"]
+    list_filter = ["category"]
     search_fields = ["name"]
 
     @admin.display(description="Остаток")
@@ -110,8 +128,8 @@ class ConsumptionInline(admin.TabularInline):
 
 @admin.register(m.Production)
 class ProductionAdmin(admin.ModelAdmin):
-    list_display = ["product", "date", "qty", "unit_cost", "total_cost_display"]
-    list_filter = ["product", "date"]
+    list_display = ["product", "date", "qty", "worker", "unit_cost", "total_cost_display"]
+    list_filter = ["product", "worker", "date"]
     date_hierarchy = "date"
     readonly_fields = ["unit_cost"]
     inlines = [ConsumptionInline]
@@ -166,8 +184,8 @@ class ShipmentItemInline(admin.TabularInline):
 
 @admin.register(m.Shipment)
 class ShipmentAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "date", "shop", "vehicle", "total_display", "paid", "debt_display"]
-    list_filter = ["vehicle", "shop__district", "shop", "date"]
+    list_display = ["__str__", "date", "shop", "worker", "total_display", "paid", "debt_display"]
+    list_filter = ["worker", "shop__district", "shop", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
     inlines = [ShipmentItemInline]
@@ -195,16 +213,16 @@ class ReturnAdmin(admin.ModelAdmin):
 
 @admin.register(m.Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ["date", "shop", "supplier", "amount", "method"]
-    list_filter = ["method", "date"]
+    list_display = ["date", "shop", "supplier", "amount", "method", "worker"]
+    list_filter = ["method", "worker", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop", "supplier"]
 
 
 @admin.register(m.Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ["date", "category", "amount", "note"]
-    list_filter = ["category", "date"]
+    list_display = ["date", "category", "amount", "worker", "note"]
+    list_filter = ["category", "worker", "date"]
     date_hierarchy = "date"
 
 
@@ -242,19 +260,27 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(m.Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
-    list_display = ["name", "stock_display", "active"]
+    list_display = ["name", "drivers_display", "active"]
 
-    @admin.display(description="Сейчас в машине")
-    def stock_display(self, obj):
-        stock = obj.stock()
-        return ", ".join(f"{p.name} {n}" for p, n in stock.items()) or "пусто"
+    @admin.display(description="Кто ездит")
+    def drivers_display(self, obj):
+        return ", ".join(w.name for w in obj.workers.all()) or "—"
 
 
 @admin.register(m.Worker)
 class WorkerAdmin(admin.ModelAdmin):
-    list_display = ["name", "phone", "vehicle", "districts", "bot_connected", "active"]
-    fields = ["name", "phone", "vehicle", "districts", "active", "telegram_id", "bot_link"]
+    list_display = ["name", "role", "phone", "vehicle", "districts", "stock_display", "bot_connected", "active"]
+    list_filter = ["role", "active"]
+    search_fields = ["name", "phone"]
+    fields = ["name", "role", "phone", "districts", "shops", "vehicle", "active", "telegram_id", "bot_link"]
+    filter_horizontal = ["shops"]
     readonly_fields = ["bot_link"]
+
+    @admin.display(description="На руках")
+    def stock_display(self, obj):
+        if not obj.is_seller():
+            return "—"
+        return ", ".join(f"{p.name} {n}" for p, n in obj.stock().items()) or "пусто"
 
     @admin.display(description="Бот", boolean=True)
     def bot_connected(self, obj):
@@ -272,7 +298,7 @@ class VanLoadItemInline(admin.TabularInline):
 
 @admin.register(m.VanLoad)
 class VanLoadAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "date", "vehicle", "kind", "worker"]
-    list_filter = ["vehicle", "kind", "date"]
+    list_display = ["__str__", "date", "kind", "worker", "given_by"]
+    list_filter = ["kind", "worker", "date"]
     date_hierarchy = "date"
     inlines = [VanLoadItemInline]

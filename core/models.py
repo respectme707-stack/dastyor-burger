@@ -43,6 +43,19 @@ class Supplier(models.Model):
         return purchased - paid_on_purchase - paid_later
 
 
+class MaterialCategory(models.Model):
+    name = models.CharField("Название", max_length=100, unique=True,
+                            help_text="Например: Бургер, Булочки, Упаковка")
+
+    class Meta:
+        verbose_name = "Категория сырья"
+        verbose_name_plural = "Категории сырья"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class RawMaterial(models.Model):
     class Unit(models.TextChoices):
         PIECE = "pc", "шт"
@@ -50,6 +63,8 @@ class RawMaterial(models.Model):
         LITER = "l", "л"
 
     name = models.CharField("Название", max_length=200, unique=True)
+    category = models.ForeignKey(MaterialCategory, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="materials", verbose_name="Категория")
     unit = models.CharField("Единица", max_length=4, choices=Unit.choices, default=Unit.PIECE)
     min_stock = models.DecimalField("Мин. остаток", default=0, **QTY,
                                     help_text="Ниже этого остатка будет предупреждение")
@@ -160,11 +175,11 @@ class Product(models.Model):
         return self.productions.aggregate(s=Sum("qty"))["s"] or 0
 
     def shipped_qty(self):
-        """Отгружено прямо из цеха, без машины."""
-        return self.shipment_items.filter(shipment__vehicle=None).aggregate(s=Sum("qty"))["s"] or 0
+        """Отгружено прямо из цеха (не со склада агента)."""
+        return self.shipment_items.filter(shipment__worker=None).aggregate(s=Sum("qty"))["s"] or 0
 
     def loaded_qty(self):
-        """Уехало из цеха в машины минус сданное обратно."""
+        """Передано агентам минус сданное обратно."""
         loaded = self.van_items.filter(load__kind=VanLoad.Kind.LOAD).aggregate(s=Sum("qty"))["s"] or 0
         back = self.van_items.filter(load__kind=VanLoad.Kind.UNLOAD).aggregate(s=Sum("qty"))["s"] or 0
         return loaded - back
@@ -196,6 +211,8 @@ class Production(models.Model):
                                 verbose_name="Продукт")
     qty = models.PositiveIntegerField("Количество, шт")
     unit_cost = models.DecimalField("Себестоимость 1 шт", default=0, editable=False, **MONEY)
+    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="productions", verbose_name="Кто сделал")
 
     class Meta:
         verbose_name = "Производство"
@@ -331,11 +348,11 @@ class Shipment(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="shipments",
                              verbose_name="Магазин")
     date = models.DateField("Дата", default=timezone.localdate)
-    vehicle = models.ForeignKey("Vehicle", on_delete=models.PROTECT, null=True, blank=True,
-                                related_name="shipments", verbose_name="С машины",
-                                help_text="Пусто = отгрузка прямо из цеха")
-    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="shipments", verbose_name="Сотрудник")
+    worker = models.ForeignKey("Worker", on_delete=models.PROTECT, null=True, blank=True,
+                               related_name="shipments", verbose_name="Агент",
+                               help_text="Товар списывается с остатка этого агента. Пусто = прямо из цеха")
+    vehicle = models.ForeignKey("Vehicle", on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="shipments", verbose_name="Машина")
     paid = models.DecimalField("Оплачено при отгрузке", default=0, **MONEY,
                                help_text="Остаток уходит магазину в долг")
     note = models.CharField("Заметка", max_length=300, blank=True)
@@ -500,6 +517,8 @@ class Payment(models.Model):
                                  related_name="payments", verbose_name="Поставщику")
     amount = models.DecimalField("Сумма", **MONEY)
     method = models.CharField("Способ", max_length=10, choices=Method.choices, default=Method.CASH)
+    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="payments", verbose_name="Кто принял")
     note = models.CharField("Заметка", max_length=300, blank=True)
 
     class Meta:
@@ -521,17 +540,22 @@ class Expense(models.Model):
         SALARY = "salary", "Зарплата"
         RENT = "rent", "Аренда"
         UTILITIES = "utilities", "Свет, газ, вода"
-        FUEL = "fuel", "Бензин, доставка"
+        FUEL = "fuel", "Бензин, солярка"
+        TAXI = "taxi", "Такси"
+        FOOD = "food", "Обед"
+        REPAIR = "repair", "Ремонт"
         OTHER = "other", "Другое"
 
     date = models.DateField("Дата", default=timezone.localdate)
     category = models.CharField("Статья", max_length=10, choices=Category.choices)
     amount = models.DecimalField("Сумма", **MONEY)
     note = models.CharField("Заметка", max_length=300, blank=True)
+    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="expenses", verbose_name="Сотрудник")
 
     class Meta:
-        verbose_name = "Расход цеха"
-        verbose_name_plural = "Расходы цеха"
+        verbose_name = "Прочий расход"
+        verbose_name_plural = "Прочие расходы"
         ordering = ["-date", "-id"]
 
     def __str__(self):
@@ -551,31 +575,28 @@ class Vehicle(models.Model):
     def __str__(self):
         return self.name
 
-    def stock(self):
-        """{product: qty} — что сейчас лежит в машине."""
-        result = defaultdict(int)
-        for row in VanLoadItem.objects.filter(load__vehicle=self).values("product", "load__kind").annotate(
-                q=Sum("qty")):
-            sign = 1 if row["load__kind"] == VanLoad.Kind.LOAD else -1
-            result[row["product"]] += sign * row["q"]
-        for row in ShipmentItem.objects.filter(shipment__vehicle=self).values("product").annotate(q=Sum("qty")):
-            result[row["product"]] -= row["q"]
-        products = Product.objects.in_bulk([k for k, v in result.items() if v])
-        return {products[k]: v for k, v in result.items() if v}
-
-    def cash_on(self, day):
-        """Сколько денег собрано с магазинов за день."""
-        return _sum(self.shipments.filter(date=day), F("paid"))
-
 
 class Worker(models.Model):
+    class Role(models.TextChoices):
+        BOSS = "boss", "Начальник"
+        AGENT = "agent", "Торговый агент"
+        VANSELLER = "van", "Ванселлер"
+        COOK = "cook", "Повар"
+        BAKER = "baker", "Пекарь"
+        WORKSHOP = "workshop", "Сотрудник цеха"
+
+    SELLERS = (Role.AGENT, Role.VANSELLER)
+    WORKSHOP_ROLES = (Role.COOK, Role.BAKER, Role.WORKSHOP)
+
     name = models.CharField("Имя", max_length=200)
+    role = models.CharField("Роль", max_length=10, choices=Role.choices, default=Role.AGENT)
     phone = models.CharField("Телефон", max_length=50, blank=True)
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name="workers", verbose_name="Обычно ездит на",
-                                help_text="Бот будет сразу выбирать эту машину")
     districts = models.CharField("Районы", max_length=300, blank=True,
-                                 help_text="Через запятую. Сюда бот шлёт напоминания о магазинах этих районов")
+                                 help_text="Для агентов. Через запятую. Его магазины и напоминания по ним")
+    shops = models.ManyToManyField("Shop", blank=True, related_name="agents", verbose_name="Магазины",
+                                   help_text="Для агентов. Если пусто, бот покажет все магазины его районов")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="workers", verbose_name="Машина")
     telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True,
                                          help_text="Заполнится сам, когда сотрудник откроет ссылку")
     bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
@@ -593,6 +614,29 @@ class Worker(models.Model):
     def district_list(self):
         return [d.strip().lower() for d in self.districts.split(",") if d.strip()]
 
+    def is_seller(self):
+        return self.role in self.SELLERS
+
+    def is_workshop(self):
+        return self.role in self.WORKSHOP_ROLES
+
+    def stock(self):
+        """{product: qty} — что сейчас на руках у агента."""
+        result = defaultdict(int)
+        for row in VanLoadItem.objects.filter(load__worker=self).values("product", "load__kind").annotate(
+                q=Sum("qty")):
+            sign = 1 if row["load__kind"] == VanLoad.Kind.LOAD else -1
+            result[row["product"]] += sign * row["q"]
+        for row in ShipmentItem.objects.filter(shipment__worker=self).values("product").annotate(q=Sum("qty")):
+            result[row["product"]] -= row["q"]
+        products = Product.objects.in_bulk([k for k, v in result.items() if v])
+        return {products[k]: v for k, v in result.items() if v}
+
+    def cash_on(self, day):
+        """Сколько денег агент получил от магазинов за день: при отгрузке и за старые долги."""
+        return (_sum(self.shipments.filter(date=day), F("paid"))
+                + _sum(self.payments.filter(date=day, shop__isnull=False), F("amount")))
+
     def save(self, *args, **kwargs):
         if not self.bot_code:
             # Буква w отличает код сотрудника от кода магазина (там только 0-9a-f).
@@ -601,26 +645,28 @@ class Worker(models.Model):
 
 
 class VanLoad(models.Model):
-    """Загрузка машины в цеху или сдача остатка обратно в цех."""
+    """Цех передаёт товар агенту или агент сдаёт остаток обратно в цех."""
 
     class Kind(models.TextChoices):
-        LOAD = "load", "Загрузка в машину"
+        LOAD = "load", "Передача агенту"
         UNLOAD = "unload", "Сдача остатка в цех"
 
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.PROTECT, related_name="loads",
-                                verbose_name="Машина")
-    worker = models.ForeignKey(Worker, on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="loads", verbose_name="Сотрудник")
+    worker = models.ForeignKey(Worker, on_delete=models.PROTECT, null=True, related_name="loads",
+                               verbose_name="Агент")
+    given_by = models.ForeignKey(Worker, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="handovers", verbose_name="Кто передал")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="loads", verbose_name="Машина")
     kind = models.CharField("Что", max_length=10, choices=Kind.choices, default=Kind.LOAD)
     date = models.DateField("Дата", default=timezone.localdate)
 
     class Meta:
-        verbose_name = "Загрузка машины"
-        verbose_name_plural = "Загрузки машин"
+        verbose_name = "Передача агенту"
+        verbose_name_plural = "Передачи агентам"
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"{self.get_kind_display()}: {self.vehicle}, {self.date:%d.%m.%Y}"
+        return f"{self.get_kind_display()}: {self.worker}, {self.date:%d.%m.%Y}"
 
 
 class VanLoadItem(models.Model):
@@ -630,7 +676,7 @@ class VanLoadItem(models.Model):
     qty = models.PositiveIntegerField("Количество, шт")
 
     class Meta:
-        verbose_name = "Строка загрузки"
+        verbose_name = "Строка передачи"
         verbose_name_plural = "Продукты"
 
     def __str__(self):

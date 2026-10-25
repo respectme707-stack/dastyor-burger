@@ -1,14 +1,16 @@
 """Логика Telegram-бота без самого Telegram: всё здесь синхронно и покрыто тестами."""
 import os
 import re
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import F, Sum
 from django.utils import timezone
 
 from . import models as m
-from .models import ZERO
+from .models import ZERO, _sum
 from .templatetags.fmt import money, qty
 
 
@@ -106,24 +108,61 @@ def history_text(shop, limit=5):
     return "\n\n".join(order_text(o) for o in orders)
 
 
-def summary_text():
-    """Сводка для владельца: новые заказы, что заканчивается, кто должен."""
+def _period(days=None):
+    """(начало, конец) периода: сегодня или последние N дней."""
+    today = timezone.localdate()
+    return (today if not days else today - timedelta(days=days - 1)), today
+
+
+def summary_text(start=None, end=None, title=None):
+    """Сводка для начальника: сначала деньги, потом штуки."""
+    from . import reports
+
+    today = timezone.localdate()
+    start = start or today.replace(day=1)
+    end = end or today
+    d = reports.totals(start, end)
+    period = f"за {start:%d.%m}" if start == end else f"{start:%d.%m}–{end:%d.%m}"
+    lines = [title or f"Сводка {period}", ""]
+    lines += [
+        f"💰 Продажи: {money(d['revenue'])} сум",
+        f"💵 Получено денег: {money(d['cash_in'])}",
+        f"📦 Приход сырья: {money(d['purchased'])}",
+        f"🧾 Прочие расходы: {money(d['expenses'])}",
+        f"↩️ Возвраты: {money(d['returned'])}",
+        f"📈 Прибыль: {money(d['profit'])}",
+        f"Нам должны: {money(d['receivable'])} · Мы должны: {money(d['payable'])}",
+        "",
+        "Изделия, шт:",
+        f"сделано {d['produced_qty']} · продано {d['sold_qty']} · возврат {d['returned_qty']}",
+        f"в цеху {d['workshop_qty']} · у агентов {d['agents_qty']}",
+    ]
     new = m.Order.objects.filter(status=m.Order.Status.NEW).count()
     confirmed = m.Order.objects.filter(status=m.Order.Status.CONFIRMED).count()
-    lines = [f"Новых заказов: {new}, подтверждено и ждут отгрузки: {confirmed}."]
+    if new or confirmed:
+        lines.append(f"\nЗаказы из бота: новых {new}, ждут отгрузки {confirmed}")
     low = [x for x in m.RawMaterial.objects.all() if x.is_low()]
     if low:
         lines.append("Заканчивается: " + ", ".join(
             f"{x.name} ({qty(x.stock())} {x.get_unit_display()})" for x in low))
-    debtors = sorted(((s, s.debt()) for s in m.Shop.objects.all()), key=lambda p: -p[1])
-    debtors = [(s, d) for s, d in debtors if d > 0]
-    if debtors:
-        lines.append(f"Нам должны всего: {money(sum(d for _, d in debtors))} сум")
-        lines += [f"• {s.name}: {money(d)}" for s, d in debtors[:10]]
     return "\n".join(lines)
 
 
-# ---------- Сотрудники: владелец и работники вносят данные из бота ----------
+def daily_report_text(day=None):
+    day = day or timezone.localdate()
+    text = summary_text(day, day, f"Итоги дня {day:%d.%m.%Y}")
+    agents = [w for w in m.Worker.objects.filter(active=True) if w.is_seller()]
+    rows = []
+    for w in agents:
+        sold = _sum(m.ShipmentItem.objects.filter(shipment__worker=w, shipment__date=day), F("qty") * F("price"))
+        if sold or w.cash_on(day):
+            rows.append(f"• {w.name}: продал на {money(sold)}, получил {money(w.cash_on(day))}")
+    if rows:
+        text += "\n\nАгенты:\n" + "\n".join(rows)
+    return text
+
+
+# ---------- Сотрудники ----------
 
 def worker_for(telegram_id):
     return m.Worker.objects.filter(telegram_id=telegram_id, active=True).select_related("vehicle").first()
@@ -139,12 +178,89 @@ def link_worker(code, telegram_id):
     return worker
 
 
+def role_of(telegram_id):
+    """'boss', 'seller', 'workshop' или None. Вместе с сотрудником (или None для владельца из настроек)."""
+    worker = worker_for(telegram_id)
+    if is_owner(telegram_id) or (worker and worker.role == m.Worker.Role.BOSS):
+        return "boss", worker
+    if worker and worker.is_seller():
+        return "seller", worker
+    if worker:
+        return "workshop", worker
+    return None, None
+
+
 def is_staff(telegram_id):
-    return is_owner(telegram_id) or worker_for(telegram_id) is not None
+    return role_of(telegram_id)[0] is not None
 
 
-def create_worker(name):
-    return m.Worker.objects.create(name=name.strip()[:200])
+def boss_ids():
+    ids = set(owner_ids())
+    ids |= set(m.Worker.objects.filter(active=True, role=m.Worker.Role.BOSS).exclude(telegram_id=None)
+               .values_list("telegram_id", flat=True))
+    return ids
+
+
+def create_worker(name, role):
+    return m.Worker.objects.create(name=name.strip()[:200], role=role)
+
+
+def workers():
+    return list(m.Worker.objects.filter(active=True))
+
+
+def sellers():
+    return [w for w in m.Worker.objects.filter(active=True).select_related("vehicle") if w.is_seller()]
+
+
+def get_worker(worker_id):
+    return m.Worker.objects.filter(pk=worker_id).select_related("vehicle").first()
+
+
+def worker_card(worker, start=None, end=None):
+    """Табель сотрудника за период (по умолчанию с начала месяца)."""
+    today = timezone.localdate()
+    start = start or today.replace(day=1)
+    end = end or today
+    lines = [f"{worker.name} · {worker.get_role_display()}"]
+    if worker.phone:
+        lines.append(f"Телефон: {worker.phone}")
+    if worker.districts:
+        lines.append(f"Районы: {worker.districts}")
+    if worker.vehicle_id:
+        lines.append(f"Машина: {worker.vehicle}")
+    lines.append(f"Бот: {'подключён' if worker.telegram_id else 'не подключён'}")
+    lines.append(f"\nС {start:%d.%m} по {end:%d.%m}:")
+    period = dict(date__gte=start, date__lte=end)
+    ship = m.ShipmentItem.objects.filter(shipment__worker=worker, shipment__date__gte=start,
+                                         shipment__date__lte=end)
+    sold = _sum(ship, F("qty") * F("price"))
+    if worker.is_seller() or sold:
+        shipments = worker.shipments.filter(**period)
+        paid = _sum(shipments, F("paid")) + _sum(worker.payments.filter(**period), F("amount"))
+        returns = m.Return.objects.filter(shop__in=worker.shipments.values("shop"), **period)
+        got = m.VanLoadItem.objects.filter(load__worker=worker, load__kind=m.VanLoad.Kind.LOAD,
+                                           load__date__gte=start, load__date__lte=end)
+        lines += [
+            f"Получил из цеха: {got.aggregate(s=Sum('qty'))['s'] or 0} шт",
+            f"Продал: {ship.aggregate(s=Sum('qty'))['s'] or 0} шт на {money(sold)} сум",
+            f"Отгрузок: {shipments.count()}, магазинов: {shipments.values('shop').distinct().count()}",
+            f"Получил денег: {money(paid)}",
+            f"Отдал в долг: {money(sold - _sum(shipments, F('paid')))}",
+            f"Возвраты в его магазинах: {returns.aggregate(s=Sum('qty'))['s'] or 0} шт "
+            f"на {money(_sum(returns, F('qty') * F('price')))}",
+        ]
+        stock = worker.stock()
+        lines.append("Сейчас на руках: " + (", ".join(f"{p.name} {n}" for p, n in stock.items()) or "ничего"))
+    made = worker.productions.filter(**period).aggregate(s=Sum("qty"))["s"]
+    if made:
+        lines.append(f"Сделал: {made} шт")
+    gave = m.VanLoadItem.objects.filter(load__given_by=worker, load__kind=m.VanLoad.Kind.LOAD,
+                                        load__date__gte=start, load__date__lte=end).aggregate(s=Sum("qty"))["s"]
+    if gave:
+        lines.append(f"Передал агентам: {gave} шт")
+    lines.append(f"Расходы: {money(_sum(worker.expenses.filter(**period), F('amount')))} сум")
+    return "\n".join(lines)
 
 
 def parse_number(text, allow_zero=False):
@@ -166,15 +282,64 @@ def parse_count(text):
     return int(value)
 
 
+COORDS = re.compile(r"(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)")
+
+
+def parse_location(text):
+    """Координаты из ссылки Google/Яндекс карт или из «41.31, 69.24». None, если не нашли."""
+    text = text or ""
+    found = re.search(r"@(-?\d+\.\d+),(-?\d+\.\d+)", text) or COORDS.search(text.replace("%2C", ","))
+    if not found:
+        return None
+    lat, lon = float(found.group(1)), float(found.group(2))
+    if "yandex" in text and "ll=" in text:
+        lat, lon = lon, lat  # у Яндекса сначала долгота
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return None
+    return lat, lon
+
+
+URL = re.compile(r"https?://\S+")
+
+
+def resolve_location(text):
+    """Как parse_location, но короткую ссылку (maps.app.goo.gl, yandex …/-/…) сначала открывает."""
+    found = parse_location(text)
+    link = URL.search(text or "")
+    if found or not link:
+        return found
+    import urllib.request
+    from urllib.parse import unquote
+    try:
+        request = urllib.request.Request(link.group(0), headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(request, timeout=8) as response:
+            final = unquote(unquote(response.geturl()))
+    except Exception:
+        return None
+    return parse_location(final)
+
+
 # Магазины
 
-def districts():
-    return list(m.Shop.objects.filter(active=True).order_by("district")
-                .values_list("district", flat=True).distinct())
+def districts(worker=None):
+    return sorted({s.district for s in shops_for_worker(worker)})
 
 
-def shops_in(district):
-    return list(m.Shop.objects.filter(active=True, district=district))
+def shops_for_worker(worker=None):
+    """Магазины агента: прикреплённые, иначе из его районов, иначе все."""
+    shops = m.Shop.objects.filter(active=True)
+    if worker and worker.is_seller():
+        attached = worker.shops.filter(active=True)
+        if attached.exists():
+            return list(attached)
+        names = worker.district_list()
+        if names:
+            return [s for s in shops if s.district.strip().lower() in names]
+    return list(shops)
+
+
+def shops_in(district, worker=None):
+    return [s for s in shops_for_worker(worker) if s.district == district]
 
 
 def get_shop(shop_id):
@@ -185,12 +350,15 @@ def _coord(value):
     return None if value is None else Decimal(str(value)).quantize(Decimal("0.000001"))
 
 
-def create_shop(data):
-    return m.Shop.objects.create(
+def create_shop(data, worker=None):
+    shop = m.Shop.objects.create(
         name=data["name"][:200], firm=data.get("firm", "")[:200], district=data["district"][:100],
         address=data.get("address", "")[:300], phone=data.get("phone", "")[:50],
         latitude=_coord(data.get("lat")), longitude=_coord(data.get("lon")),
     )
+    if worker and worker.is_seller() and worker.shops.exists():
+        worker.shops.add(shop)
+    return shop
 
 
 def invite_link(code):
@@ -219,16 +387,30 @@ def suppliers():
     return list(m.Supplier.objects.all())
 
 
-def materials():
-    return list(m.RawMaterial.objects.all())
+def categories():
+    return list(m.MaterialCategory.objects.all())
+
+
+def materials(category_id=None):
+    qs = m.RawMaterial.objects.all()
+    return list(qs.filter(category_id=category_id) if category_id else qs.filter(category=None))
 
 
 def get_or_create_supplier(name):
     return m.Supplier.objects.get_or_create(name=name.strip()[:200])[0]
 
 
-def get_or_create_material(name, unit):
-    return m.RawMaterial.objects.get_or_create(name=name.strip()[:200], defaults={"unit": unit})[0]
+def get_or_create_category(name):
+    return m.MaterialCategory.objects.get_or_create(name=name.strip()[:100])[0]
+
+
+def get_or_create_material(name, unit, category_id=None):
+    material, created = m.RawMaterial.objects.get_or_create(
+        name=name.strip()[:200], defaults={"unit": unit, "category_id": category_id})
+    if not created and category_id and not material.category_id:
+        material.category_id = category_id
+        material.save(update_fields=["category"])
+    return material
 
 
 def purchase_lines_text(lines):
@@ -264,19 +446,26 @@ def purchase_text(purchase):
     return "\n".join(lines)
 
 
-# Машины
+# Производство
 
-def vehicles():
-    return list(m.Vehicle.objects.filter(active=True))
+def create_production(product_id, n, worker=None):
+    """ValidationError, если не хватает сырья или нет рецепта."""
+    production = m.Production(product_id=product_id, qty=n, worker=worker)
+    production.full_clean()
+    production.save()
+    return production
 
 
-def get_vehicle(vehicle_id):
-    return m.Vehicle.objects.filter(pk=vehicle_id, active=True).first()
+def production_text(production):
+    lines = [f"Записано: {production.product.name} × {production.qty}",
+             f"Себестоимость 1 шт: {money(production.unit_cost)} сум"]
+    for c in production.consumptions.select_related("material"):
+        lines.append(f"− {c.material.name}: {qty(c.qty)} {c.material.get_unit_display()}")
+    lines.append(f"В цеху теперь: {production.product.stock()} шт")
+    return "\n".join(lines)
 
 
-def create_vehicle(name):
-    return m.Vehicle.objects.get_or_create(name=name.strip()[:100])[0]
-
+# Товар: цех и агенты
 
 def workshop_stock():
     return {p: p.stock() for p in m.Product.objects.filter(active=True)}
@@ -288,42 +477,43 @@ def items_text(cart):
     return "\n".join(f"{found[pid].name} × {n}" for pid, n in cart.items() if pid in found)
 
 
-@transaction.atomic
-def create_van_load(vehicle, worker, cart, kind=m.VanLoad.Kind.LOAD):
-    """Загрузить машину из цеха или сдать остаток в цех. ValidationError, если товара не хватает."""
-    if kind == m.VanLoad.Kind.LOAD:
-        have = {p.pk: n for p, n in workshop_stock().items()}
-        where = "в цеху"
-    else:
-        have = {p.pk: n for p, n in vehicle.stock().items()}
-        where = "в машине"
+def _check(cart, have, where):
     found = m.Product.objects.in_bulk(list(cart))
     short = [f"{found[pid].name}: {where} {have.get(pid, 0)}" for pid, n in cart.items()
              if n > have.get(pid, 0)]
     if short:
         raise ValidationError("Не хватает. " + "; ".join(short))
-    load = m.VanLoad.objects.create(vehicle=vehicle, worker=worker, kind=kind)
+
+
+@transaction.atomic
+def create_handover(agent, given_by, cart, kind=m.VanLoad.Kind.LOAD):
+    """Цех передаёт товар агенту (или агент сдаёт остаток в цех). ValidationError, если не хватает."""
+    if kind == m.VanLoad.Kind.LOAD:
+        _check(cart, {p.pk: n for p, n in workshop_stock().items()}, "в цеху")
+    else:
+        _check(cart, {p.pk: n for p, n in agent.stock().items()}, "у агента")
+    load = m.VanLoad.objects.create(worker=agent, given_by=given_by, vehicle=agent.vehicle, kind=kind)
     for pid, n in cart.items():
         if n > 0:
             m.VanLoadItem.objects.create(load=load, product_id=pid, qty=n)
     return load
 
 
-def unload_all(vehicle, worker):
-    cart = {p.pk: n for p, n in vehicle.stock().items() if n > 0}
+def unload_all(agent, given_by=None):
+    cart = {p.pk: n for p, n in agent.stock().items() if n > 0}
     if not cart:
         return None
-    return create_van_load(vehicle, worker, cart, m.VanLoad.Kind.UNLOAD)
+    return create_handover(agent, given_by, cart, m.VanLoad.Kind.UNLOAD)
 
 
-def van_text(vehicle):
-    stock = vehicle.stock()
-    lines = [f"Машина {vehicle}"]
+def agent_stock_text(agent):
+    stock = agent.stock()
+    lines = [f"У {agent.name} на руках:"]
     if stock:
         lines += [f"{p.name}: {n} шт" for p, n in sorted(stock.items(), key=lambda kv: kv[0].name)]
     else:
-        lines.append("Машина пустая.")
-    lines.append(f"Собрано денег сегодня: {money(vehicle.cash_on(timezone.localdate()))} сум")
+        lines.append("ничего.")
+    lines.append(f"Получено денег сегодня: {money(agent.cash_on(timezone.localdate()))} сум")
     return "\n".join(lines)
 
 
@@ -339,20 +529,20 @@ def cart_total(cart):
 
 
 @transaction.atomic
-def create_van_shipment(vehicle, shop, cart, paid, worker=None, order_id=None):
-    """Отгрузка магазину с машины. ValidationError, если в машине не хватает товара."""
-    have = {p.pk: n for p, n in vehicle.stock().items()}
-    found = m.Product.objects.in_bulk(list(cart))
-    short = [f"{found[pid].name}: в машине {have.get(pid, 0)}" for pid, n in cart.items()
-             if n > have.get(pid, 0)]
-    if short:
-        raise ValidationError("В машине не хватает. " + "; ".join(short))
+def create_shipment(shop, cart, paid, agent=None, order_id=None, note=""):
+    """Отгрузка магазину: с остатка агента или (agent=None) прямо из цеха."""
+    if agent:
+        _check(cart, {p.pk: n for p, n in agent.stock().items()}, "у вас")
+    else:
+        _check(cart, {p.pk: n for p, n in workshop_stock().items()}, "в цеху")
     order = None
     if order_id:
         order = m.Order.objects.filter(pk=order_id, shop=shop, shipment=None).first()
-    shipment = m.Shipment.objects.create(
-        shop=shop, vehicle=vehicle, worker=worker, paid=paid,
-        note=f"По заказу №{order.pk} из бота" if order else "")
+    if order:
+        note = f"По заказу №{order.pk} из бота. {note}".strip()
+    shipment = m.Shipment.objects.create(shop=shop, worker=agent, vehicle=agent.vehicle if agent else None,
+                                         paid=paid, note=note[:300])
+    found = m.Product.objects.in_bulk(list(cart))
     for pid, n in cart.items():
         if n > 0:
             m.ShipmentItem.objects.create(shipment=shipment, product=found[pid], qty=n)
@@ -376,6 +566,15 @@ def shipment_text(shipment):
 
 def create_return(shop, product_id, n, reason):
     return m.Return.objects.create(shop=shop, product_id=product_id, qty=n, reason=reason)
+
+
+def create_payment(shop, amount, worker=None):
+    return m.Payment.objects.create(shop=shop, amount=amount, worker=worker,
+                                    note=f"Принял: {worker}" if worker else "")
+
+
+def create_expense(category, amount, note="", worker=None):
+    return m.Expense.objects.create(category=category, amount=amount, note=note[:300], worker=worker)
 
 
 # ---------- Срок годности: напоминания о магазинах без заказа ----------
@@ -419,10 +618,11 @@ def due_reminders(today=None):
 
 
 def reminder_recipients(shop):
-    ids = set(owner_ids())
+    """Начальники и агенты, за которыми этот магазин (прикреплён или в их районе)."""
+    ids = boss_ids()
     district = shop.district.strip().lower()
-    for worker in m.Worker.objects.filter(active=True).exclude(telegram_id=None):
-        if district in worker.district_list():
+    for worker in m.Worker.objects.filter(active=True).exclude(telegram_id=None).prefetch_related("shops"):
+        if worker.pk in {a.pk for a in shop.agents.all()} or district in worker.district_list():
             ids.add(worker.telegram_id)
     return ids
 
