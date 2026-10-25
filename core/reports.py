@@ -466,6 +466,8 @@ def recent(limit=15):
         lambda o: o.total(), "purchase")
     add(m.Production.objects.select_related("product"), "Производство", lambda o: f"{o.product.name} × {o.qty}",
         lambda o: None, "production")
+    add(m.MaterialBatch.objects.select_related("material"), "Выпечка / заготовка",
+        lambda o: f"{o.material.name} × {o.qty:g}", lambda o: o.total_cost(), "materialbatch")
     add(m.VanLoad.objects.select_related("worker"), "Передача агенту",
         lambda o: f"{o.worker or ''}" + (" сдал остаток в цех" if o.kind == m.VanLoad.Kind.UNLOAD else ""),
         lambda o: None, "vanload")

@@ -78,8 +78,10 @@ class RawMaterial(models.Model):
                                  related_name="materials", verbose_name="Категория")
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT, default=default_unit, related_name="materials",
                              verbose_name="Единица")
-    min_stock = models.DecimalField("Мин. остаток", default=0, **QTY,
-                                    help_text="Ниже этого остатка будет предупреждение")
+    min_stock = models.DecimalField("Мин. остаток", default=0, blank=True, **QTY,
+                                    help_text="Необязательно. Если остаток станет меньше, сайт предупредит")
+    homemade = models.BooleanField("Делаем сами", default=False,
+                                   help_text="Например, булочки: не покупаем, а печём в цеху по своему рецепту")
 
     class Meta:
         verbose_name = "Сырьё"
@@ -92,6 +94,9 @@ class RawMaterial(models.Model):
     def purchased_qty(self):
         return self.purchase_items.aggregate(s=Sum("qty"))["s"] or ZERO
 
+    def made_qty(self):
+        return self.batches.aggregate(s=Sum("qty"))["s"] or ZERO
+
     def used_qty(self):
         return self.consumptions.aggregate(s=Sum("qty"))["s"] or ZERO
 
@@ -99,17 +104,118 @@ class RawMaterial(models.Model):
         return self.writeoffs.aggregate(s=Sum("qty"))["s"] or ZERO
 
     def stock(self):
-        return self.purchased_qty() - self.used_qty() - self.written_off_qty()
+        return self.purchased_qty() + self.made_qty() - self.used_qty() - self.written_off_qty()
 
     def avg_price(self):
-        """Средневзвешенная цена за единицу по всем закупкам."""
-        qty = self.purchased_qty()
+        """Средневзвешенная цена за единицу: по закупкам и по тому, что сделали сами."""
+        qty = self.purchased_qty() + self.made_qty()
         if not qty:
+            return self.recipe_cost() if self.homemade else ZERO
+        cost = _sum(self.purchase_items.all(), F("qty") * F("price")) + _sum(self.batches.all(),
+                                                                              F("qty") * F("unit_cost"))
+        return cost / qty
+
+    def recipe_cost(self, _seen=()):
+        """Себестоимость 1 единицы своего полуфабриката по рецепту и текущим ценам."""
+        if self.pk in _seen:  # рецепт по кругу: дальше не считаем
             return ZERO
-        return _sum(self.purchase_items.all(), F("qty") * F("price")) / qty
+        seen = (*_seen, self.pk)
+        total = ZERO
+        for r in self.ingredients.select_related("ingredient"):
+            x = r.ingredient
+            price = x.avg_price() if x.purchased_qty() + x.made_qty() or not x.homemade else x.recipe_cost(seen)
+            total += r.qty * price
+        return total
+
+    def save(self, *args, **kwargs):
+        if self.min_stock is None:
+            self.min_stock = 0
+        super().save(*args, **kwargs)
 
     def is_low(self):
         return self.stock() < self.min_stock
+
+
+class MaterialRecipeItem(models.Model):
+    """Рецепт своего полуфабриката: из чего делаем 1 единицу (например, 1 булочку)."""
+
+    material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE, related_name="ingredients")
+    ingredient = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="used_in",
+                                   verbose_name="Сырьё")
+    qty = models.DecimalField("Расход на 1 единицу", **QTY,
+                              help_text="В единицах этого сырья: 40 г муки = 0,040 кг")
+
+    class Meta:
+        verbose_name = "Строка рецепта"
+        verbose_name_plural = "Рецепт (из чего делаем 1 единицу)"
+        unique_together = [("material", "ingredient")]
+
+    def __str__(self):
+        return f"{self.ingredient.name}: {self.qty}"
+
+    def clean(self):
+        if self.material_id and self.material_id == self.ingredient_id:
+            raise ValidationError("Сырьё не может быть в своём же рецепте.")
+
+
+def _shortages(lines, times, own_consumptions=None):
+    """Чего не хватает на складе, чтобы сделать `times` единиц по рецепту [(сырьё, расход на 1)]."""
+    result = []
+    for material, per_unit in lines:
+        need = per_unit * times
+        available = material.stock()
+        if own_consumptions is not None:
+            available += own_consumptions.filter(material=material).aggregate(s=Sum("qty"))["s"] or ZERO
+        if need > available:
+            result.append(f"{material.name}: нужно {need:g}, есть {available:g}")
+    return result
+
+
+class MaterialBatch(models.Model):
+    """Сделали свой полуфабрикат в цеху (например, испекли булочки). Списывает сырьё по его рецепту."""
+
+    date = models.DateField("Дата", default=timezone.localdate)
+    material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="batches",
+                                 verbose_name="Что сделали", limit_choices_to={"homemade": True})
+    qty = models.DecimalField("Сколько сделали", **QTY)
+    unit_cost = models.DecimalField("Себестоимость 1 ед.", default=0, editable=False, **MONEY)
+    worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="batches", verbose_name="Кто сделал")
+
+    class Meta:
+        verbose_name = "Выпечка / заготовка"
+        verbose_name_plural = "Выпечка / заготовки"
+        ordering = ["-date", "-id"]
+
+    def __str__(self):
+        return f"{self.material.name} × {self.qty:g} ({self.date:%d.%m.%Y})"
+
+    def total_cost(self):
+        return self.unit_cost * self.qty
+
+    def clean(self):
+        if not self.material_id or not self.qty:
+            return
+        recipe = [(r.ingredient, r.qty) for r in self.material.ingredients.select_related("ingredient")]
+        if not recipe:
+            raise ValidationError(f"У «{self.material.name}» нет рецепта. Заполните его в карточке сырья.")
+        shortages = _shortages(recipe, self.qty, self.consumptions if self.pk else None)
+        if shortages:
+            raise ValidationError("Не хватает сырья. " + "; ".join(shortages))
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.consumptions.all().delete()
+        unit_cost = ZERO
+        for r in self.material.ingredients.select_related("ingredient"):
+            price = r.ingredient.avg_price()
+            unit_cost += r.qty * price
+            Consumption.objects.create(batch=self, material=r.ingredient, qty=r.qty * self.qty,
+                                       cost=(r.qty * self.qty * price).quantize(CENT))
+        unit_cost = unit_cost.quantize(CENT)
+        MaterialBatch.objects.filter(pk=self.pk).update(unit_cost=unit_cost)
+        self.unit_cost = unit_cost
 
 
 class Purchase(models.Model):
@@ -240,18 +346,10 @@ class Production(models.Model):
     def clean(self):
         if not self.product_id or not self.qty:
             return
-        recipe = list(self.product.recipe.select_related("material"))
+        recipe = [(r.material, r.qty) for r in self.product.recipe.select_related("material")]
         if not recipe:
             raise ValidationError("У продукта нет рецепта. Сначала заполните рецепт.")
-        shortages = []
-        for r in recipe:
-            need = r.qty * self.qty
-            available = r.material.stock()
-            if self.pk:
-                available += self.consumptions.filter(material=r.material).aggregate(
-                    s=Sum("qty"))["s"] or ZERO
-            if need > available:
-                shortages.append(f"{r.material.name}: нужно {need:g}, есть {available:g}")
+        shortages = _shortages(recipe, self.qty, self.consumptions if self.pk else None)
         if shortages:
             raise ValidationError("Не хватает сырья. " + "; ".join(shortages))
 
@@ -275,7 +373,10 @@ class Production(models.Model):
 class Consumption(models.Model):
     """Сколько сырья ушло на партию. Создаётся автоматически."""
 
-    production = models.ForeignKey(Production, on_delete=models.CASCADE, related_name="consumptions")
+    production = models.ForeignKey(Production, on_delete=models.CASCADE, null=True, blank=True,
+                                   related_name="consumptions")
+    batch = models.ForeignKey(MaterialBatch, on_delete=models.CASCADE, null=True, blank=True,
+                              related_name="consumptions")
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="consumptions",
                                  verbose_name="Сырьё")
     qty = models.DecimalField("Количество", **QTY)

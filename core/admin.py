@@ -35,7 +35,7 @@ class UnitAdmin(admin.ModelAdmin):
 class RawMaterialInline(admin.TabularInline):
     model = m.RawMaterial
     extra = 3
-    fields = ["name", "unit", "min_stock"]
+    fields = ["name", "unit", "homemade"]
 
 
 @admin.register(m.MaterialCategory)
@@ -49,11 +49,28 @@ class MaterialCategoryAdmin(admin.ModelAdmin):
         return ", ".join(x.name for x in obj.materials.all()) or "—"
 
 
+class MaterialRecipeInline(admin.TabularInline):
+    model = m.MaterialRecipeItem
+    fk_name = "material"
+    extra = 3
+    autocomplete_fields = ["ingredient"]
+
+
 @admin.register(m.RawMaterial)
 class RawMaterialAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "unit", "stock_display", "avg_price_display", "min_stock"]
-    list_filter = ["category", "unit"]
+    list_display = ["name", "category", "unit", "homemade", "stock_display", "avg_price_display", "min_stock"]
+    list_filter = ["homemade", "category", "unit"]
     search_fields = ["name"]
+    fields = ["name", "category", "unit", "homemade", "min_stock", "recipe_cost_display"]
+    readonly_fields = ["recipe_cost_display"]
+    inlines = [MaterialRecipeInline]
+
+    class Media:
+        js = ["core/homemade.js"]
+
+    @admin.display(description="Себестоимость 1 ед. по рецепту")
+    def recipe_cost_display(self, obj):
+        return money(obj.recipe_cost()) if obj.pk and obj.homemade else "—"
 
     @admin.display(description="Остаток")
     def stock_display(self, obj):
@@ -124,12 +141,30 @@ class ProductAdmin(admin.ModelAdmin):
 
 class ConsumptionInline(admin.TabularInline):
     model = m.Consumption
+    fk_name = "production"
     extra = 0
     can_delete = False
-    readonly_fields = ["material", "qty", "cost"]
+    fields = readonly_fields = ["material", "qty", "cost"]
 
     def has_add_permission(self, request, obj=None):
         return False
+
+
+class BatchConsumptionInline(ConsumptionInline):
+    fk_name = "batch"
+
+
+@admin.register(m.MaterialBatch)
+class MaterialBatchAdmin(admin.ModelAdmin):
+    list_display = ["material", "date", "qty", "worker", "unit_cost", "total_cost_display"]
+    list_filter = ["material", "worker", "date"]
+    date_hierarchy = "date"
+    readonly_fields = ["unit_cost"]
+    inlines = [BatchConsumptionInline]
+
+    @admin.display(description="Себестоимость партии")
+    def total_cost_display(self, obj):
+        return money(obj.total_cost())
 
 
 @admin.register(m.Production)
