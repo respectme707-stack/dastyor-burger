@@ -86,6 +86,10 @@ class RawMaterial(models.Model):
                              verbose_name="Единица")
     min_stock = models.DecimalField("Мин. остаток", default=0, blank=True, **QTY,
                                     help_text="Необязательно. Если остаток станет меньше, сайт предупредит")
+    pack_name = models.CharField("Упаковка", max_length=30, blank=True,
+                                 help_text="Как покупаете: банка, пачка, ведро, коробка")
+    pack_size = models.DecimalField("Сколько в упаковке", null=True, blank=True, **QTY,
+                                    help_text="В единицах этого сырья. Майонез в гр: банка = 900")
     homemade = models.BooleanField("Делаем сами", default=False,
                                    help_text="Например, булочки: не покупаем, а печём в цеху по своему рецепту")
 
@@ -248,7 +252,8 @@ class PurchaseItem(models.Model):
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="purchase_items",
                                  verbose_name="Сырьё")
     qty = models.DecimalField("Количество", **QTY)
-    price = models.DecimalField("Цена за единицу", max_digits=16, decimal_places=4)
+    price = models.DecimalField("Цена", max_digits=20, decimal_places=6,
+                                help_text="За то, как считаете: за 1 гр, за 1 кг или за 1 упаковку")
 
     class Meta:
         verbose_name = "Строка закупки"

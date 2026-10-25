@@ -558,7 +558,7 @@ class FeedbackTests(TestCase):
             "items-0-material": self.mayo.pk, "items-0-qty": "2", "items-0-price": "36000",
         }
         if in_big:
-            data["items-0-in_big"] = "on"
+            data["items-0-how"] = "big"
         return self.client.post("/admin/core/purchase/add/", data)
 
     def test_purchase_in_kg_for_gram_material(self):
@@ -585,3 +585,20 @@ class FeedbackTests(TestCase):
         self.assertContains(response, "Гулноза")
         self.assertNotContains(response, "Азиз</a>")
         self.assertContains(self.client.get("/"), "Рейтинг сотрудников")
+
+
+    def test_purchase_in_packs(self):
+        self.mayo.pack_name, self.mayo.pack_size = "банка", 900
+        self.mayo.save()
+        data = {
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "note": "",
+            "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
+            "items-MAX_NUM_FORMS": "1000",
+            "items-0-material": self.mayo.pk, "items-0-how": "pack", "items-0-qty": "2", "items-0-price": "16800",
+        }
+        response = self.client.post("/admin/core/purchase/add/", data)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.mayo.stock(), 1800)
+        self.assertEqual(round(self.supplier.debt()), 33600)
+        # 11,25 г майонеза на хот-дог: 16 800 / 900 × 11,25 = 210 сум
+        self.assertEqual(round(self.mayo.avg_price() * D("11.25")), 210)

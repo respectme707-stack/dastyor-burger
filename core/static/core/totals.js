@@ -4,6 +4,8 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!group) return;
   const pricesEl = document.getElementById("product-prices");
   const prices = pricesEl ? JSON.parse(pricesEl.textContent) : {};
+  const unitsEl = document.getElementById("material-units");
+  const units = unitsEl ? JSON.parse(unitsEl.textContent) : {};
   const paid = document.getElementById("id_paid");
   const num = (v) => parseFloat(String(v || "").replace(/\s/g, "").replace(",", ".")) || 0;
   const fmt = (v) => Math.round(v).toLocaleString("ru-RU");
@@ -22,14 +24,39 @@ document.addEventListener("DOMContentLoaded", function () {
     const product = row.querySelector('select[name$="-product"]');
     if (!price.value && product && prices[product.value]) p = prices[product.value];
     let total = num(qty.value) * p;
-    let cell = row.querySelector(".dastyor-line");
+    let cell = row.querySelector(".dastyor-sum");
     if (!cell) {
       cell = document.createElement("div");
-      cell.className = "dastyor-line";
+      cell.className = "dastyor-line dastyor-sum";
       price.closest("td").appendChild(cell);
     }
     cell.textContent = total ? "= " + fmt(total) + " сум" : "";
+    stockHint(row, num(qty.value));
     return total;
+  }
+
+  // Закупка: подписи «как считаете» под выбранное сырьё и сколько придёт на склад.
+  function stockHint(row, qty) {
+    const material = row.querySelector('select[name$="-material"]');
+    const how = row.querySelector('select[name$="-how"]');
+    if (!material || !how) return;
+    const u = units[material.value];
+    const opts = how.options;
+    if (u) {
+      opts[0].text = "в " + u.unit;
+      opts[1].text = u.big ? "в " + u.big : "в кг / л";
+      opts[1].disabled = !u.big_ratio;
+      opts[2].text = u.pack_size ? u.pack + " (" + u.pack_size.toLocaleString("ru-RU") + " " + u.unit + ")" : "упаковками";
+      opts[2].disabled = !u.pack_size;
+    }
+    let hint = row.querySelector(".dastyor-stock");
+    if (!hint) {
+      hint = document.createElement("div");
+      hint.className = "dastyor-line dastyor-stock";
+      row.querySelector('input[name$="-qty"]').closest("td").appendChild(hint);
+    }
+    const ratio = !u ? 0 : how.value === "big" ? u.big_ratio : how.value === "pack" ? u.pack_size : 1;
+    hint.textContent = u && qty && ratio ? "на склад: " + (qty * ratio).toLocaleString("ru-RU") + " " + u.unit : "";
   }
 
   function update() {

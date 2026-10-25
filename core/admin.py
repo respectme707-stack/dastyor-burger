@@ -37,7 +37,7 @@ class UnitAdmin(admin.ModelAdmin):
 class RawMaterialInline(admin.TabularInline):
     model = m.RawMaterial
     extra = 3
-    fields = ["name", "unit", "homemade"]
+    fields = ["name", "unit", "pack_name", "pack_size", "homemade"]
 
 
 @admin.register(m.MaterialCategory)
@@ -63,7 +63,7 @@ class RawMaterialAdmin(admin.ModelAdmin):
     list_display = ["name", "category", "unit", "homemade", "stock_display", "avg_price_display", "min_stock"]
     list_filter = ["homemade", "category", "unit"]
     search_fields = ["name"]
-    fields = ["name", "category", "unit", "homemade", "min_stock", "recipe_cost_display"]
+    fields = ["name", "category", "unit", "pack_name", "pack_size", "homemade", "min_stock", "recipe_cost_display"]
     readonly_fields = ["recipe_cost_display"]
     inlines = [MaterialRecipeInline]
 
@@ -87,25 +87,35 @@ class RawMaterialAdmin(admin.ModelAdmin):
 
 
 class PurchaseItemForm(forms.ModelForm):
-    in_big = forms.BooleanField(
-        label="В кг / л", required=False,
-        help_text="Отметьте, если количество и цену пишете в кг или л, а сырьё считается в гр или мл")
+    """Количество и цену можно писать в единицах сырья, в кг/л или упаковками."""
+
+    AS_IS, BIG, PACK = "", "big", "pack"
+    how = forms.ChoiceField(
+        label="Как считаете", required=False,
+        choices=[(AS_IS, "в ед. сырья"), (BIG, "в кг / л"), (PACK, "упаковками")],
+        help_text="Упаковками: пишете «2 банки» и цену за банку, на склад придёт 2 × 900 гр")
 
     class Meta:
         model = m.PurchaseItem
-        fields = ["material", "qty", "price", "in_big"]
+        fields = ["material", "how", "qty", "price"]
 
     def clean(self):
         data = super().clean()
-        material = data.get("material")
-        if data.get("in_big") and material and data.get("qty") is not None and data.get("price") is not None:
+        material, how = data.get("material"), data.get("how")
+        if not how or not material or data.get("qty") is None or data.get("price") is None:
+            return data
+        if how == self.BIG:
             ratio = material.unit.big_ratio
             if not ratio:
-                raise ValidationError(f"У единицы «{material.unit}» не указана крупная единица. "
-                                      "Уберите галочку или заполните её в «Единицах измерения».")
-            data["qty"] = data["qty"] * ratio
-            data["price"] = (data["price"] / ratio).quantize(m.Decimal("0.0001"))
-            self.instance.qty, self.instance.price = data["qty"], data["price"]
+                raise ValidationError(f"У единицы «{material.unit}» нет крупной единицы (кг, л). "
+                                      "Выберите «в ед. сырья» или заполните её в «Единицах измерения».")
+        else:
+            ratio = material.pack_size
+            if not ratio:
+                raise ValidationError(f"У «{material.name}» не указано, сколько в упаковке. "
+                                      "Заполните это в карточке сырья.")
+        data["qty"] = data["qty"] * ratio
+        data["price"] = (data["price"] / ratio).quantize(m.Decimal("0.000001"))
         return data
 
 
@@ -125,6 +135,13 @@ class PurchaseAdmin(admin.ModelAdmin):
 
     class Media:
         js = ["core/totals.js"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["material_units"] = {
+            x.pk: {"unit": x.unit.name, "big": x.unit.big_name, "big_ratio": float(x.unit.big_ratio or 0),
+                   "pack": x.pack_name or "упаковка", "pack_size": float(x.pack_size or 0)}
+            for x in m.RawMaterial.objects.select_related("unit")}
+        return super().render_change_form(request, context, *args, **kwargs)
 
     @admin.display(description="Сумма")
     def total_display(self, obj):
