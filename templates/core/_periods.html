@@ -1,0 +1,1 @@
+<nav class="periods" aria-label="Период">{% for key, label in periods %}<a href="?period={{ key }}" class="{% if key == period %}on{% endif %}">{{ label }}</a>{% endfor %}</nav>

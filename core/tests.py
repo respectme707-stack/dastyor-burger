@@ -107,7 +107,36 @@ class DashboardTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "Нур (пример)")
         response = self.client.get("/admin/")
-        self.assertContains(response, "Дашборд")
+        self.assertContains(response, "Внести данные")
+
+    def test_all_pages_render(self):
+        self.client.force_login(self.user)
+        agent = m.Worker.objects.create(name="Азиз", role=m.Worker.Role.AGENT)
+        load = m.VanLoad.objects.create(worker=agent)
+        m.VanLoadItem.objects.create(load=load, product=m.Product.objects.first(), qty=5)
+        m.Expense.objects.create(category=m.Expense.Category.FUEL, amount=1000, worker=agent)
+        pages = ["/money/", "/shops/", "/products/", "/staff/", "/stock/", "/entry/", "/settings/",
+                 "/admin/core/shipment/add/"]
+        pages += [f"/shops/{s.pk}/" for s in m.Shop.objects.all()]
+        pages += [f"/products/{p.pk}/" for p in m.Product.objects.all()]
+        pages += [f"/staff/{w.pk}/" for w in m.Worker.objects.all()]
+        for url in pages:
+            for period in ["today", "all"]:
+                response = self.client.get(url, {"period": period})
+                self.assertEqual(response.status_code, 200, url)
+        self.assertContains(self.client.get("/shops/"), "Нур (пример)")
+        self.assertContains(self.client.get("/entry/"), "Приход сырья")
+        self.assertEqual(self.client.get("/shops/999999/").status_code, 404)
+
+    def test_staff_and_money_numbers(self):
+        from . import reports
+
+        money = reports.money("all")
+        self.assertEqual(money["receivable"], D("1492000"))
+        detail = reports.shop_detail(m.Shop.objects.get(name="Нур (пример)"), "all")
+        self.assertEqual(detail["sales"], D("1440000"))
+        self.assertEqual(detail["debt"], D("892000"))
+        self.assertTrue(reports.recent(5))
 
 
 class FormatTests(TestCase):

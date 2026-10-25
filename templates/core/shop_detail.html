@@ -1,0 +1,86 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}{{ shop.name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'shops' %}?period={{ period }}">Магазины</a> / {{ shop.name }}</div>
+<div class="head">
+  <div><h1>{{ shop.name }} {% if not shop.active %}<span class="tag">не работаем</span>{% endif %}{% if shop.archived %} <span class="tag">архив</span>{% endif %}</h1>
+    <div class="sub">{{ shop.district }}{% if shop.address %} · {{ shop.address }}{% endif %}{% if shop.phone %} · {{ shop.phone }}{% endif %}{% if shop.map_url %} · <a href="{{ shop.map_url }}" target="_blank" rel="noopener">на карте</a>{% endif %}</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn" href="{% url 'admin:core_shop_change' shop.pk %}">Изменить</a></div>
+</div>
+
+<section class="tiles">
+  <div class="box tile"><div class="label">Продажи</div><div class="value">{{ sales|money }}</div><div class="sub">{{ qty|money }} шт</div></div>
+  <div class="box tile"><div class="label">Возвраты</div><div class="value {% if return_pct >= 10 %}bad{% endif %}">{{ returned|money }}</div><div class="sub">{{ returned_qty }} шт, {{ return_pct }}%</div></div>
+  <div class="box tile"><div class="label">Долг сейчас</div><div class="value {% if debt > 0 %}bad{% endif %}">{{ debt|money }}</div><div class="sub"><a href="{% url 'admin:core_payment_add' %}?shop={{ shop.pk }}">+ принять оплату</a></div></div>
+  <div class="box tile"><div class="label">Последняя поставка</div>{% if fresh %}<div class="value">{{ fresh.date|date:"d.m" }}</div><div class="sub">годен до {{ fresh.expires|date:"d.m" }}</div>{% else %}<div class="value">—</div><div class="sub">ещё не возили</div>{% endif %}</div>
+</section>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+  <a class="btn primary" href="{% url 'admin:core_shipment_add' %}?shop={{ shop.pk }}">+ Отгрузка</a>
+  <a class="btn" href="{% url 'admin:core_return_add' %}?shop={{ shop.pk }}">+ Возврат</a>
+  <a class="btn" href="{% url 'admin:core_payment_add' %}?shop={{ shop.pk }}">+ Оплата</a>
+</div>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Продажи по дням, сум</h2>
+    {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="Продажи по дням"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>По товарам</h2>
+    {% if by_product %}
+    <div class="scroll"><table>
+      <thead><tr><th>Товар</th><th class="num">Шт</th><th class="num">Сумма</th><th class="num">Возвраты</th></tr></thead>
+      {% for p in by_product %}<tr><td>{{ p.name }}</td><td class="num">{{ p.qty|money }}</td><td class="num">{{ p.sales|money }}</td><td class="num {% if p.return_pct >= 10 %}bad{% endif %}">{{ p.returns }} ({{ p.return_pct }}%)</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
+  </section>
+</div>
+
+<section class="box">
+  <h2>Отгрузки</h2>
+  {% if shipments %}
+  <div class="scroll"><table>
+    <thead><tr><th>Дата</th><th>Что</th><th>Агент</th><th>Оплата</th><th class="num">Сумма</th><th class="num">Оплачено</th></tr></thead>
+    {% for s in shipments %}<tr>
+      <td><a href="{% url 'admin:core_shipment_change' s.pk %}">{{ s.date|date:"d.m.Y" }}</a></td>
+      <td class="wrap">{% for i in s.items.all %}{{ i.product.name }} {{ i.qty }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+      <td>{{ s.worker|default:"цех" }}</td><td>{{ s.get_method_display }}</td>
+      <td class="num">{{ s.total|money }}</td><td class="num">{{ s.paid|money }}</td></tr>{% endfor %}
+  </table></div>
+  {% else %}<p class="empty">Отгрузок за этот период нет.</p>{% endif %}
+</section>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Возвраты</h2>
+    {% if returns %}
+    <div class="scroll"><table>
+      <thead><tr><th>Дата</th><th>Товар</th><th>Причина</th><th class="num">Шт</th><th class="num">Сумма</th></tr></thead>
+      {% for r in returns %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.product.name }}</td><td>{{ r.get_reason_display }}</td><td class="num">{{ r.qty }}</td><td class="num">{{ r.total|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Возвратов нет.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Оплаты долга</h2>
+    {% if payments %}
+    <div class="scroll"><table>
+      <thead><tr><th>Дата</th><th>Способ</th><th>Принял</th><th class="num">Сумма</th></tr></thead>
+      {% for p in payments %}<tr><td>{{ p.date|date:"d.m.Y" }}</td><td>{{ p.get_method_display }}</td><td>{{ p.worker|default:"" }}</td><td class="num">{{ p.amount|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Оплат нет.</p>{% endif %}
+  </section>
+</div>
+
+<section class="box">
+  <h2>Данные магазина</h2>
+  <dl class="kv">
+    <dt>Фирма</dt><dd>{{ shop.firm|default:"—" }}</dd>
+    <dt>Контакт</dt><dd>{{ shop.contact|default:"—" }}</dd>
+    <dt>Агенты</dt><dd>{% for a in agents %}<a href="{% url 'staff_detail' a.pk %}">{{ a.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+    <dt>Бот</dt><dd>{% if shop.telegram_id %}<span class="tag green">подключён</span>{% else %}<span class="tag">не подключён</span>{% endif %}</dd>
+  </dl>
+</section>
+{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}
+{% endblock %}
+{% block scripts %}<script>barChart("byDay", "days", "sales", {color: "#f78166"});</script>{% endblock %}

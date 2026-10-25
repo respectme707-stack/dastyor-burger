@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Магазины{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Магазины</h1><div class="sub">Нажмите на магазин, чтобы открыть подробный отчёт.</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_shop_add' %}">+ Магазин</a></div>
+</div>
+
+<section class="box">
+  <h2>Продажи по магазинам</h2>
+  {% if shops %}
+  <div class="scroll"><table>
+    <thead><tr><th>Магазин</th><th>Район</th><th class="num">Продажи</th><th class="num">Шт</th><th class="num">Возвраты</th><th class="num">Долг</th></tr></thead>
+    <tbody>
+    {% for s in shops %}
+    <tr>
+      <td><a href="{% url 'shop_detail' s.shop.pk %}?period={{ period }}">{{ s.shop.name }}</a></td>
+      <td>{{ s.shop.district }}</td>
+      <td class="num">{{ s.sales|money }}</td>
+      <td class="num">{{ s.qty|money }}</td>
+      <td class="num {% if s.return_pct >= 10 %}bad{% endif %}">{{ s.returns }} ({{ s.return_pct }}%)</td>
+      <td class="num {% if s.debt > 0 %}bad{% endif %}">{{ s.debt|money }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty">За этот период продаж не было.</p>{% endif %}
+</section>
+
+{% if quiet_shops %}
+<section class="box">
+  <h2>Без продаж за период ({{ quiet_shops|length }})</h2>
+  <div class="pad">{% for s in quiet_shops %}<a href="{% url 'shop_detail' s.pk %}?period={{ period }}">{{ s.name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</div>
+</section>
+{% endif %}
+
+<div class="grid2">
+  <section class="box">
+    <h2>Продажи по районам, сум</h2>
+    {% if chart_districts %}<div class="chart"><canvas id="byDistrict" role="img" aria-label="Продажи по районам"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Кто больше возвращает</h2>
+    {% if returners %}
+    <div class="scroll"><table>
+      <thead><tr><th>Магазин</th><th class="num">Шт</th><th class="num">На сумму</th><th class="num">Наш убыток</th></tr></thead>
+      {% for r in returners %}<tr><td><a href="{% url 'shop_detail' r.shop.pk %}?period={{ period }}">{{ r.shop.name }}</a></td><td class="num">{{ r.qty|money }}</td><td class="num">{{ r.amount|money }}</td><td class="num bad">{{ r.loss|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Возвратов за этот период нет.</p>{% endif %}
+  </section>
+</div>
+
+<section class="box">
+  <h2>Последняя поставка и срок годности</h2>
+  {% if freshness %}
+  <div class="scroll"><table>
+    <thead><tr><th>Магазин</th><th>Район</th><th>Привезли</th><th class="num">Дней назад</th><th>Годен до</th><th class="num">Визитов за период</th></tr></thead>
+    <tbody>
+    {% for x in freshness %}
+    <tr class="{% if not x.shop.archived %}{{ x.level }}{% endif %}">
+      <td><a href="{% url 'shop_detail' x.shop.pk %}?period={{ period }}">{{ x.shop.name }}</a>{% if x.shop.archived %} <span class="tag">архив</span>{% endif %}</td>
+      <td>{{ x.shop.district }}</td>
+      <td>{{ x.date|date:"d.m.Y" }}</td>
+      <td class="num">{{ x.days_ago }}</td>
+      <td>{{ x.expires|date:"d.m" }}{% if x.days_left < 0 %} · просрочено{% elif x.days_left == 0 %} · сегодня{% endif %}</td>
+      <td class="num">{{ x.visits }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty">Ещё никому не возили товар.</p>{% endif %}
+</section>
+{{ chart_districts|json_script:"districts" }}{{ chart_district_sales|json_script:"districtSales" }}
+{% endblock %}
+{% block scripts %}<script>barChart("byDistrict", "districts", "districtSales", {horizontal: true});</script>{% endblock %}
