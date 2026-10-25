@@ -1,0 +1,77 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Деньги{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Деньги</h1><div class="sub">Сколько пришло, сколько ушло и кто кому должен.</div></div>
+  {% include "core/_periods.html" %}
+</div>
+
+<section class="tiles">
+  <div class="box tile"><div class="label">Получили денег</div><div class="value good">{{ cash_in|money }}</div><div class="sub">наличные {{ cash_only|money }} · карта {{ card_in|money }}</div></div>
+  <div class="box tile"><div class="label">На консигнации</div><div class="value">{{ consignment|money }}</div><div class="sub">ещё не оплачено</div></div>
+  <div class="box tile"><div class="label">Купили сырья</div><div class="value">{{ purchased|money }}</div><div class="sub">по закупкам</div></div>
+  <div class="box tile"><div class="label">Прочие расходы</div><div class="value">{{ expenses|money }}</div><div class="sub">бензин, зарплата и т.д.</div></div>
+  <div class="box tile"><div class="label">Нам должны</div><div class="value bad">{{ receivable|money }}</div><div class="sub">магазины, всего</div></div>
+  <div class="box tile"><div class="label">Мы должны</div><div class="value">{{ payable|money }}</div><div class="sub">поставщикам, всего</div></div>
+</section>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Расходы по статьям <a href="{% url 'admin:core_expense_add' %}">+ Расход</a></h2>
+    {% if expense_rows %}
+    <div class="chart"><canvas id="exp" role="img" aria-label="Расходы по статьям"></canvas></div>
+    <table>{% for x in expense_rows %}<tr><td>{{ x.label }}</td><td class="num">{{ x.amount|money }}</td></tr>{% endfor %}
+      <tr class="total"><td>Всего</td><td class="num">{{ expenses|money }}</td></tr></table>
+    {% else %}<p class="empty">Расходов за этот период нет.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Отгрузки по способу оплаты</h2>
+    {% if by_method %}
+    <div class="scroll"><table>
+      <thead><tr><th>Способ</th><th class="num">Отгрузок</th><th class="num">На сумму</th><th class="num">Оплачено сразу</th></tr></thead>
+      {% for x in by_method %}<tr><td>{{ x.label }}</td><td class="num">{{ x.count }}</td><td class="num">{{ x.amount|money }}</td><td class="num">{{ x.paid|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Отгрузок за этот период нет.</p>{% endif %}
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Должники (магазины) <a href="{% url 'admin:core_payment_add' %}">+ Оплата долга</a></h2>
+    {% if debtors %}
+    <div class="scroll"><table>
+      {% for s, d in debtors %}<tr><td><a href="{% url 'shop_detail' s.pk %}">{{ s.name }}</a> <span class="muted">{{ s.district }}</span></td><td class="num bad">{{ d|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Никто не должен.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Мы должны поставщикам <a href="{% url 'admin:core_payment_add' %}">+ Оплатить</a></h2>
+    {% if supplier_debts %}
+    <table>{% for s, d in supplier_debts %}<tr><td>{{ s.name }}</td><td class="num">{{ d|money }}</td></tr>{% endfor %}</table>
+    {% else %}<p class="empty">Долгов нет.</p>{% endif %}
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Оплаты долгов <a href="{% url 'admin:core_payment_changelist' %}">все →</a></h2>
+    {% if payments %}
+    <div class="scroll"><table>
+      <thead><tr><th>Дата</th><th>Кто / кому</th><th>Способ</th><th class="num">Сумма</th></tr></thead>
+      {% for p in payments %}<tr><td>{{ p.date|date:"d.m.Y" }}</td><td>{% if p.shop %}от {{ p.shop.name }}{% else %}→ {{ p.supplier.name }}{% endif %}</td><td>{{ p.get_method_display }}</td><td class="num">{{ p.amount|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Оплат за этот период нет.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Последние расходы <a href="{% url 'admin:core_expense_changelist' %}">все →</a></h2>
+    {% if expense_list %}
+    <div class="scroll"><table>
+      <thead><tr><th>Дата</th><th>Статья</th><th>Кто</th><th class="num">Сумма</th></tr></thead>
+      {% for e in expense_list %}<tr><td>{{ e.date|date:"d.m.Y" }}</td><td>{{ e.get_category_display }}{% if e.note %} <span class="muted">· {{ e.note }}</span>{% endif %}</td><td>{{ e.worker|default:"" }}</td><td class="num">{{ e.amount|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Расходов за этот период нет.</p>{% endif %}
+  </section>
+</div>
+{{ chart_exp_labels|json_script:"expLabels" }}{{ chart_exp_values|json_script:"expValues" }}
+{% endblock %}
+{% block scripts %}<script>barChart("exp", "expLabels", "expValues", {horizontal: true, color: "#d29922"});</script>{% endblock %}

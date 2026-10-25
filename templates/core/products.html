@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Товары{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Товары</h1><div class="sub">Нажмите на товар, чтобы увидеть рецепт, себестоимость и кто его берёт.</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_product_add' %}">+ Товар</a></div>
+</div>
+<section class="box">
+  <h2>Продажи и прибыль по товарам</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Товар</th><th class="num">Цена</th><th class="num">Себест.</th><th class="num">Прибыль/шт</th><th class="num">Продано, шт</th><th class="num">Сумма</th><th class="num">Возвраты</th><th class="num">Убыток от возвр.</th><th class="num">В цеху</th><th class="num">У агентов</th></tr></thead>
+    <tbody>
+    {% for p in products %}
+    <tr>
+      <td><a href="{% url 'product_detail' p.product.pk %}?period={{ period }}">{{ p.product.name }}</a></td>
+      <td class="num">{{ p.product.price|money }}</td>
+      <td class="num">{{ p.unit_cost|money }}</td>
+      <td class="num {% if p.unit_profit < 0 %}bad{% else %}good{% endif %}">{{ p.unit_profit|money }}</td>
+      <td class="num">{{ p.qty|money }}</td>
+      <td class="num">{{ p.sales|money }}</td>
+      <td class="num {% if p.return_pct >= 10 %}bad{% endif %}">{{ p.returns }} ({{ p.return_pct }}%)</td>
+      <td class="num">{{ p.loss|money }}</td>
+      <td class="num">{{ p.stock|money }}</td>
+      <td class="num">{{ p.in_vans|money }}</td>
+    </tr>
+    {% empty %}<tr><td colspan="10" class="empty">Товаров ещё нет. <a href="{% url 'admin:core_product_add' %}">Добавить</a></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

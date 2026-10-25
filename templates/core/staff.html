@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Сотрудники{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Сотрудники</h1><div class="sub">Кто сколько продал, собрал денег, сделал и потратил. Нажмите на имя для подробностей.</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_worker_add' %}">+ Сотрудник</a></div>
+</div>
+<section class="box">
+  <h2>Сводка по сотрудникам</h2>
+  {% if rows %}
+  <div class="scroll"><table>
+    <thead><tr><th>Сотрудник</th><th>Роль</th><th class="num">Продал, сум</th><th class="num">Шт</th><th class="num">Магазинов</th><th class="num">Собрал денег</th><th class="num">Расходы</th><th class="num">Сделал, шт</th><th class="num">Получил товара</th><th class="num">Передал агентам</th><th class="num">Сейчас на руках</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a>{% if not r.worker.active %} <span class="tag">не работает</span>{% endif %}</td>
+      <td>{{ r.worker.get_role_display }}</td>
+      <td class="num">{{ r.sales|money }}</td>
+      <td class="num">{{ r.qty|money }}</td>
+      <td class="num">{{ r.shops }}</td>
+      <td class="num">{{ r.cash|money }}</td>
+      <td class="num">{{ r.expenses|money }}</td>
+      <td class="num">{{ r.produced|money }}</td>
+      <td class="num">{{ r.received|money }}</td>
+      <td class="num">{{ r.given|money }}</td>
+      <td class="num">{{ r.on_hand|money }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="empty">Сотрудников ещё нет. <a href="{% url 'admin:core_worker_add' %}">Добавить</a></p>{% endif %}
+</section>
+{% endblock %}

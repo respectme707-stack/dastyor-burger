@@ -1,0 +1,68 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'products' %}?period={{ period }}">Товары</a> / {{ product.name }}</div>
+<div class="head">
+  <div><h1>{{ product.name }} {% if not product.active %}<span class="tag">не продаётся</span>{% endif %}</h1>
+    <div class="sub">Цена {{ product.price|money }} сум · годен {{ product.shelf_life_days }} дн.</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn" href="{% url 'admin:core_product_change' product.pk %}">Изменить цену и рецепт</a></div>
+</div>
+
+<section class="tiles">
+  <div class="box tile"><div class="label">Продано</div><div class="value">{{ qty|money }} шт</div><div class="sub">на {{ sales|money }} сум</div></div>
+  <div class="box tile"><div class="label">Возвраты</div><div class="value {% if return_pct >= 10 %}bad{% endif %}">{{ returned_qty }} шт</div><div class="sub">{{ return_pct }}% от проданного</div></div>
+  <div class="box tile"><div class="label">Сделано</div><div class="value">{{ produced|money }} шт</div><div class="sub">за период</div></div>
+  <div class="box tile"><div class="label">Остаток</div><div class="value">{{ stock|money }}</div><div class="sub">в цеху · у агентов {{ in_agents|money }}</div></div>
+  <div class="box tile"><div class="label">Прибыль с 1 шт</div><div class="value {% if unit_profit < 0 %}bad{% else %}good{% endif %}">{{ unit_profit|money }}</div><div class="sub">себестоимость {{ unit_cost|money }}</div></div>
+</section>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Продажи по дням, сум</h2>
+    {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="Продажи по дням"></canvas></div>{% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Рецепт на 1 шт <a href="{% url 'admin:core_product_change' product.pk %}">изменить</a></h2>
+    {% if recipe %}
+    <div class="scroll"><table>
+      <thead><tr><th>Сырьё</th><th class="num">Расход</th><th class="num">Цена ед.</th><th class="num">Стоимость</th></tr></thead>
+      {% for r in recipe %}<tr><td>{{ r.item.material.name }}</td><td class="num">{{ r.item.qty|qty }} {{ r.item.material.unit }}</td><td class="num">{{ r.price|money }}</td><td class="num">{{ r.cost|money }}</td></tr>{% endfor %}
+      <tr class="total"><td>Себестоимость</td><td></td><td></td><td class="num">{{ unit_cost|money }}</td></tr>
+    </table></div>
+    {% else %}<p class="empty">Рецепт не заполнен, себестоимость не считается. <a href="{% url 'admin:core_product_change' product.pk %}">Заполнить</a></p>{% endif %}
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Какие магазины берут</h2>
+    {% if top_shops %}
+    <div class="scroll"><table>
+      <thead><tr><th>Магазин</th><th class="num">Шт</th><th class="num">Сумма</th></tr></thead>
+      {% for s in top_shops %}<tr><td>{{ s.shipment__shop__name }}</td><td class="num">{{ s.q|money }}</td><td class="num">{{ s.s|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Производство <a href="{% url 'admin:core_production_add' %}?product={{ product.pk }}">+ Сделали</a></h2>
+    {% if productions %}
+    <div class="scroll"><table>
+      <thead><tr><th>Дата</th><th>Кто</th><th class="num">Шт</th><th class="num">Себест. 1 шт</th></tr></thead>
+      {% for p in productions %}<tr><td>{{ p.date|date:"d.m.Y" }}</td><td>{{ p.worker|default:"" }}</td><td class="num">{{ p.qty|money }}</td><td class="num">{{ p.unit_cost|money }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<p class="empty">За этот период не производили.</p>{% endif %}
+  </section>
+</div>
+
+{% if returns %}
+<section class="box">
+  <h2>Возвраты</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Дата</th><th>Магазин</th><th>Причина</th><th class="num">Шт</th></tr></thead>
+    {% for r in returns %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.shop.name }}</td><td>{{ r.get_reason_display }}</td><td class="num">{{ r.qty }}</td></tr>{% endfor %}
+  </table></div>
+</section>
+{% endif %}
+{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}
+{% endblock %}
+{% block scripts %}<script>barChart("byDay", "days", "sales", {color: "#f78166"});</script>{% endblock %}

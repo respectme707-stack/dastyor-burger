@@ -1,0 +1,49 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Внести данные{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Внести данные</h1><div class="sub">Выберите, что записать. Откроется форма, после сохранения запись сразу попадёт в отчёты.</div></div>
+</div>
+
+<h2 class="section-title">Цех</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_purchase_add' %}"><span class="ic">📥</span><span><b>Приход сырья</b><small>Купили у поставщика</small></span></a>
+  <a class="action" href="{% url 'admin:core_production_add' %}"><span class="ic">🍔</span><span><b>Производство</b><small>Сколько сделали за день</small></span></a>
+  <a class="action" href="{% url 'admin:core_vanload_add' %}"><span class="ic">🚚</span><span><b>Передать агенту</b><small>Товар из цеха агенту</small></span></a>
+  <a class="action" href="{% url 'admin:core_materialwriteoff_add' %}"><span class="ic">🗑️</span><span><b>Списать сырьё</b><small>Испортилось, пропало</small></span></a>
+</div>
+
+<h2 class="section-title">Магазины</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_shipment_add' %}"><span class="ic">📦</span><span><b>Отгрузка</b><small>Привезли товар в магазин</small></span></a>
+  <a class="action" href="{% url 'admin:core_return_add' %}"><span class="ic">↩️</span><span><b>Возврат</b><small>Магазин вернул товар</small></span></a>
+  <a class="action" href="{% url 'admin:core_payment_add' %}"><span class="ic">💵</span><span><b>Оплата долга</b><small>Магазин заплатил или мы поставщику</small></span></a>
+  <a class="action" href="{% url 'admin:core_order_changelist' %}"><span class="ic">🛒</span><span><b>Заказы из бота</b><small>Подтвердить и отгрузить</small></span></a>
+</div>
+
+<h2 class="section-title">Расходы</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_expense_add' %}"><span class="ic">🧾</span><span><b>Расход</b><small>Бензин, зарплата, аренда, такси…</small></span></a>
+  <a class="action" href="{% url 'admin:core_expense_add' %}?category=salary"><span class="ic">👷</span><span><b>Зарплата</b><small>Выдали сотруднику</small></span></a>
+  <a class="action" href="{% url 'admin:core_expense_add' %}?category=fuel"><span class="ic">⛽</span><span><b>Бензин</b><small>Заправка машины</small></span></a>
+</div>
+
+<h2 class="section-title">Добавить в справочник</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_shop_add' %}"><span class="ic">🏪</span><span><b>Новый магазин</b></span></a>
+  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">🌭</span><span><b>Новый товар</b><small>Цена и рецепт</small></span></a>
+  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}"><span class="ic">🥫</span><span><b>Новое сырьё</b></span></a>
+  <a class="action" href="{% url 'admin:core_supplier_add' %}"><span class="ic">🏭</span><span><b>Новый поставщик</b></span></a>
+  <a class="action" href="{% url 'admin:core_worker_add' %}"><span class="ic">🧑</span><span><b>Новый сотрудник</b></span></a>
+</div>
+
+<section class="box">
+  <h2>Последние записи</h2>
+  {% if recent %}
+  <div class="scroll"><table>
+    <thead><tr><th>Дата</th><th>Что</th><th>Подробно</th><th class="num">Сумма</th><th></th></tr></thead>
+    {% for r in recent %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.kind }}</td><td class="wrap">{{ r.text }}</td><td class="num">{% if r.amount is not None %}{{ r.amount|money }}{% endif %}</td><td><a href="{% url r.url r.id %}">открыть</a></td></tr>{% endfor %}
+  </table></div>
+  {% else %}<p class="empty">Пока ничего не внесено. Начните с «Приход сырья».</p>{% endif %}
+</section>
+{% endblock %}

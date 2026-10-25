@@ -222,10 +222,11 @@ def build(period):
             "unit_profit": product.price - cost,
         })
 
-    materials = [
-        {"material": x, "stock": x.stock(), "low": x.is_low()}
-        for x in m.RawMaterial.objects.all()
-    ]
+    materials = []
+    for x in m.RawMaterial.objects.select_related("unit", "category"):
+        left, price = x.stock(), x.avg_price()
+        materials.append({"material": x, "stock": left, "low": left < x.min_stock, "price": price,
+                          "value": left * price if left > 0 else m.ZERO})
     materials.sort(key=lambda x: (not x["low"], x["material"].name))
 
     suppliers = [(s, s.debt()) for s in m.Supplier.objects.all()]
@@ -260,4 +261,222 @@ def build(period):
         "returners": returners,
         "materials": materials,
         "low_materials": [x for x in materials if x["low"]],
+        "materials_value": sum((x["value"] for x in materials), m.ZERO),
     }
+
+
+def _day_range(start, items_by_day):
+    """Дни для графика: весь период подряд, а для «всё время» только дни с данными."""
+    if start:
+        return [start + timedelta(days=i) for i in range((timezone.localdate() - start).days + 1)]
+    return sorted(items_by_day)
+
+
+def _sales_by_day(items, start):
+    by_day = defaultdict(lambda: m.ZERO)
+    for row in items.values("shipment__date").annotate(s=_money(F("qty") * F("price"))):
+        by_day[row["shipment__date"]] += row["s"]
+    days = _day_range(start, by_day)
+    return [d.strftime("%d.%m") for d in days], [float(by_day.get(d, 0)) for d in days]
+
+
+def money(period):
+    """Деньги за период: что пришло, куда ушло, кто кому должен."""
+    start = period_start(period)
+    t = totals(start)
+    expenses = _since(m.Expense.objects.all(), "date", start)
+    labels = dict(m.Expense.Category.choices)
+    by_category = [
+        {"label": labels.get(r["category"], r["category"]), "amount": r["s"]}
+        for r in expenses.values("category").annotate(s=Sum("amount")).order_by("-s")
+    ]
+    debtors = sorted(((s, s.debt()) for s in m.Shop.objects.all()), key=lambda x: -x[1])
+    suppliers = sorted(((s, s.debt()) for s in m.Supplier.objects.all()), key=lambda x: -x[1])
+    shipments = _since(m.Shipment.objects.all(), "date", start)
+    method_labels = dict(m.Shipment.Method.choices)
+    by_method = []
+    for r in shipments.values("method").annotate(n=Count("id"), paid=Sum("paid")).order_by("method"):
+        total = _money(F("qty") * F("price"))
+        amount = m.ShipmentItem.objects.filter(shipment__in=shipments.filter(method=r["method"])).aggregate(
+            s=total)["s"] or m.ZERO
+        by_method.append({"label": method_labels.get(r["method"], r["method"]), "count": r["n"],
+                          "amount": amount, "paid": r["paid"] or m.ZERO})
+    return {
+        **t,
+        "cash_only": t["cash_in"] - t["card_in"],
+        "expense_rows": by_category,
+        "chart_exp_labels": [x["label"] for x in by_category],
+        "chart_exp_values": [float(x["amount"]) for x in by_category],
+        "debtors": [(s, d) for s, d in debtors if d > 0],
+        "supplier_debts": [(s, d) for s, d in suppliers if d > 0],
+        "by_method": by_method,
+        "payments": _since(m.Payment.objects.select_related("shop", "supplier", "worker"), "date", start)[:30],
+        "expense_list": expenses.select_related("worker")[:30],
+    }
+
+
+def staff(period):
+    """Сводка по каждому сотруднику за период."""
+    start = period_start(period)
+    items = _since(m.ShipmentItem.objects.exclude(shipment__worker=None), "shipment__date", start)
+    sales = {r["shipment__worker"]: (r["s"], r["q"]) for r in items.values("shipment__worker").annotate(
+        s=_money(F("qty") * F("price")), q=Sum("qty"))}
+    shipments = _since(m.Shipment.objects.exclude(worker=None), "date", start)
+    visits = {r["worker"]: r["n"] for r in shipments.values("worker").annotate(n=Count("shop", distinct=True))}
+    cash = defaultdict(lambda: m.ZERO)
+    for r in shipments.values("worker").annotate(s=Sum("paid")):
+        cash[r["worker"]] += r["s"] or m.ZERO
+    for r in _since(m.Payment.objects.exclude(worker=None).exclude(shop=None), "date", start) \
+            .values("worker").annotate(s=Sum("amount")):
+        cash[r["worker"]] += r["s"] or m.ZERO
+    expenses = {r["worker"]: r["s"] for r in _since(m.Expense.objects.exclude(worker=None), "date", start)
+                .values("worker").annotate(s=Sum("amount"))}
+    produced = {r["worker"]: r["q"] for r in _since(m.Production.objects.exclude(worker=None), "date", start)
+                .values("worker").annotate(q=Sum("qty"))}
+    loads = _since(m.VanLoadItem.objects.filter(load__kind=m.VanLoad.Kind.LOAD), "load__date", start)
+    received = {r["load__worker"]: r["q"] for r in loads.values("load__worker").annotate(q=Sum("qty"))}
+    given = {r["load__given_by"]: r["q"] for r in loads.exclude(load__given_by=None)
+             .values("load__given_by").annotate(q=Sum("qty"))}
+    rows = []
+    for w in m.Worker.objects.all().order_by("-active", "role", "name"):
+        s, q = sales.get(w.pk, (m.ZERO, 0))
+        rows.append({
+            "worker": w,
+            "sales": s,
+            "qty": q,
+            "shops": visits.get(w.pk, 0),
+            "cash": cash.get(w.pk, m.ZERO),
+            "expenses": expenses.get(w.pk) or m.ZERO,
+            "produced": produced.get(w.pk, 0),
+            "received": received.get(w.pk, 0),
+            "given": given.get(w.pk, 0),
+            "on_hand": sum(w.stock().values()) if w.is_seller() else 0,
+        })
+    return {"rows": rows}
+
+
+def staff_detail(worker, period):
+    start = period_start(period)
+    items = _since(m.ShipmentItem.objects.filter(shipment__worker=worker), "shipment__date", start)
+    days, values = _sales_by_day(items, start)
+    shipments = _since(worker.shipments.select_related("shop"), "date", start)
+    payments = _since(worker.payments.exclude(shop=None), "date", start)
+    expenses = _since(worker.expenses.all(), "date", start)
+    productions = _since(worker.productions.select_related("product"), "date", start)
+    loads = _since(worker.loads.prefetch_related("items__product"), "date", start)
+    by_product = items.values("product__name").annotate(q=Sum("qty"), s=_money(F("qty") * F("price"))).order_by("-s")
+    return {
+        "worker": worker,
+        "sales": items.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO,
+        "qty": items.aggregate(s=Sum("qty"))["s"] or 0,
+        "cash": (shipments.aggregate(s=Sum("paid"))["s"] or m.ZERO) + (payments.aggregate(s=Sum("amount"))["s"]
+                                                                       or m.ZERO),
+        "expense_total": expenses.aggregate(s=Sum("amount"))["s"] or m.ZERO,
+        "produced": productions.aggregate(s=Sum("qty"))["s"] or 0,
+        "stock": sorted(worker.stock().items(), key=lambda kv: kv[0].name) if worker.is_seller() else [],
+        "by_product": by_product,
+        "shipments": shipments[:50],
+        "expenses": expenses[:50],
+        "productions": productions[:50],
+        "loads": loads[:30],
+        "shop_list": worker.shops.all(),
+        "chart_days": days,
+        "chart_sales": values,
+    }
+
+
+def shop_detail(shop, period):
+    start = period_start(period)
+    items = _since(m.ShipmentItem.objects.filter(shipment__shop=shop), "shipment__date", start)
+    returns = _since(shop.returns.select_related("product"), "date", start)
+    days, values = _sales_by_day(items, start)
+    sales = items.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO
+    qty = items.aggregate(s=Sum("qty"))["s"] or 0
+    returned_qty = returns.aggregate(s=Sum("qty"))["s"] or 0
+    by_product = []
+    ret_by_product = {r["product"]: r["q"] for r in returns.values("product").annotate(q=Sum("qty"))}
+    for r in items.values("product", "product__name").annotate(q=Sum("qty"), s=_money(F("qty") * F("price"))) \
+            .order_by("-s"):
+        back = ret_by_product.get(r["product"], 0)
+        by_product.append({"name": r["product__name"], "qty": r["q"], "sales": r["s"], "returns": back,
+                           "return_pct": round(back / r["q"] * 100) if r["q"] else 0})
+    return {
+        "shop": shop,
+        "sales": sales,
+        "qty": qty,
+        "returned": returns.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO,
+        "returned_qty": returned_qty,
+        "return_pct": round(returned_qty / qty * 100) if qty else 0,
+        "debt": shop.debt(),
+        "fresh": shop.freshness(),
+        "by_product": by_product,
+        "shipments": _since(shop.shipments.select_related("worker").prefetch_related("items__product"),
+                            "date", start)[:50],
+        "returns": returns[:50],
+        "payments": _since(shop.payments.select_related("worker"), "date", start)[:50],
+        "orders": shop.orders.all()[:10],
+        "agents": shop.agents.all(),
+        "chart_days": days,
+        "chart_sales": values,
+    }
+
+
+def product_detail(product, period):
+    start = period_start(period)
+    items = _since(product.shipment_items.all(), "shipment__date", start)
+    returns = _since(product.returns.select_related("shop"), "date", start)
+    days, values = _sales_by_day(items, start)
+    qty = items.aggregate(s=Sum("qty"))["s"] or 0
+    returned_qty = returns.aggregate(s=Sum("qty"))["s"] or 0
+    recipe = [{"item": r, "price": r.material.avg_price(), "cost": r.qty * r.material.avg_price()}
+              for r in product.recipe.select_related("material__unit")]
+    in_agents = sum(w.stock().get(product, 0) for w in m.Worker.objects.filter(active=True) if w.is_seller())
+    unit_cost = product.unit_cost()
+    return {
+        "product": product,
+        "sales": items.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO,
+        "qty": qty,
+        "returned_qty": returned_qty,
+        "return_pct": round(returned_qty / qty * 100) if qty else 0,
+        "produced": _since(product.productions.all(), "date", start).aggregate(s=Sum("qty"))["s"] or 0,
+        "stock": product.stock(),
+        "in_agents": in_agents,
+        "unit_cost": unit_cost,
+        "unit_profit": product.price - unit_cost,
+        "recipe": recipe,
+        "top_shops": items.values("shipment__shop__name").annotate(
+            q=Sum("qty"), s=_money(F("qty") * F("price"))).order_by("-q")[:15],
+        "returns": returns[:30],
+        "productions": _since(product.productions.select_related("worker"), "date", start)[:30],
+        "chart_days": days,
+        "chart_sales": values,
+    }
+
+
+def recent(limit=15):
+    """Последние записи всех видов: что и когда вносили."""
+    rows = []
+
+    def add(qs, kind, text, amount, url_name):
+        for obj in qs[:limit]:
+            rows.append({"date": obj.date, "id": obj.pk, "kind": kind, "text": text(obj),
+                         "amount": amount(obj), "url": f"admin:core_{url_name}_change"})
+
+    add(m.Purchase.objects.select_related("supplier"), "Приход сырья", lambda o: o.supplier.name,
+        lambda o: o.total(), "purchase")
+    add(m.Production.objects.select_related("product"), "Производство", lambda o: f"{o.product.name} × {o.qty}",
+        lambda o: None, "production")
+    add(m.VanLoad.objects.select_related("worker"), "Передача агенту",
+        lambda o: f"{o.worker or ''}" + (" сдал остаток в цех" if o.kind == m.VanLoad.Kind.UNLOAD else ""),
+        lambda o: None, "vanload")
+    add(m.Shipment.objects.select_related("shop"), "Отгрузка", lambda o: o.shop.name, lambda o: o.total(), "shipment")
+    add(m.Return.objects.select_related("shop", "product"), "Возврат",
+        lambda o: f"{o.shop.name}: {o.product.name} × {o.qty}", lambda o: o.total(), "return")
+    add(m.Payment.objects.select_related("shop", "supplier"), "Оплата",
+        lambda o: f"от {o.shop.name}" if o.shop else f"поставщику {o.supplier.name}", lambda o: o.amount, "payment")
+    add(m.Expense.objects.all(), "Расход", lambda o: o.get_category_display() + (f" · {o.note}" if o.note else ""),
+        lambda o: o.amount, "expense")
+    add(m.MaterialWriteOff.objects.select_related("material"), "Списание сырья",
+        lambda o: f"{o.material.name}: {o.qty:g}", lambda o: None, "materialwriteoff")
+    rows.sort(key=lambda r: (r["date"], r["id"]), reverse=True)
+    return rows[:limit]

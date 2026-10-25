@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Настройки</h1><div class="sub">Справочники: товары, цены, сырьё, магазины, сотрудники и всё остальное.</div></div>
+</div>
+
+<h2 class="section-title">Товары и сырьё</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_product_changelist' %}"><span class="ic">🌭</span><span><b>Товары, цены, рецепты</b><small>Цена для магазинов, срок годности</small></span><span class="list tag">{{ counts.products }}</span></a>
+  <a class="action" href="{% url 'admin:core_rawmaterial_changelist' %}"><span class="ic">🥫</span><span><b>Сырьё</b><small>Мин. остаток для предупреждения</small></span><span class="list tag">{{ counts.materials }}</span></a>
+  <a class="action" href="{% url 'admin:core_materialcategory_changelist' %}"><span class="ic">🗂️</span><span><b>Категории сырья</b><small>Бургер, булочки, упаковка…</small></span><span class="list tag">{{ counts.categories }}</span></a>
+  <a class="action" href="{% url 'admin:core_unit_changelist' %}"><span class="ic">⚖️</span><span><b>Единицы измерения</b><small>шт, кг, гр, л…</small></span><span class="list tag">{{ counts.units }}</span></a>
+</div>
+
+<h2 class="section-title">Люди и места</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_shop_changelist' %}"><span class="ic">🏪</span><span><b>Магазины</b><small>Адрес, район, ссылка для бота</small></span><span class="list tag">{{ counts.shops }}</span></a>
+  <a class="action" href="{% url 'admin:core_worker_changelist' %}"><span class="ic">🧑</span><span><b>Сотрудники</b><small>Роль, магазины агента, ссылка для бота</small></span><span class="list tag">{{ counts.workers }}</span></a>
+  <a class="action" href="{% url 'admin:core_supplier_changelist' %}"><span class="ic">🏭</span><span><b>Поставщики</b></span><span class="list tag">{{ counts.suppliers }}</span></a>
+  <a class="action" href="{% url 'admin:core_vehicle_changelist' %}"><span class="ic">🚐</span><span><b>Машины</b></span><span class="list tag">{{ counts.vehicles }}</span></a>
+</div>
+
+<h2 class="section-title">Доступ к сайту</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:auth_user_changelist' %}"><span class="ic">🔑</span><span><b>Пользователи сайта</b><small>Кто может входить на сайт</small></span></a>
+  <a class="action" href="{% url 'admin:password_change' %}"><span class="ic">🔒</span><span><b>Сменить пароль</b></span></a>
+  <a class="action" href="{% url 'admin:index' %}"><span class="ic">📋</span><span><b>Все таблицы</b><small>Полный список записей</small></span></a>
+</div>
+
+<section class="box">
+  <h2>Telegram-бот</h2>
+  <dl class="kv">
+    <dt>Бот</dt><dd>{% if bot.username %}<a href="https://t.me/{{ bot.username }}" target="_blank" rel="noopener">@{{ bot.username }}</a>{% else %}не указан{% endif %}</dd>
+    <dt>Владельцев в боте</dt><dd>{{ bot.owners }}</dd>
+    <dt>Напоминания о магазинах</dt><dd>каждый день в {{ bot.reminder_hour }}:00</dd>
+    <dt>Итоги дня начальнику</dt><dd>каждый день в {{ bot.report_hour }}:00</dd>
+  </dl>
+  <p class="empty" style="padding-top:0">Эти настройки меняются в файле .env на сервере.</p>
+</section>
+{% endblock %}

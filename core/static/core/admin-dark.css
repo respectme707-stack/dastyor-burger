@@ -1,0 +1,62 @@
+/* Формы ввода (админка Django) в той же тёмной теме, что и сайт. */
+:root, html[data-theme="light"], html[data-theme="dark"] {
+  --primary: #212830;
+  --secondary: #010409;
+  --accent: #f78166;
+  --primary-fg: #f0f6fc;
+  --body-fg: #f0f6fc;
+  --body-bg: #0d1117;
+  --body-quiet-color: #9198a1;
+  --body-medium-color: #d1d7e0;
+  --body-loud-color: #ffffff;
+  --header-color: #f0f6fc;
+  --header-branding-color: #f0f6fc;
+  --header-bg: #010409;
+  --header-link-color: #f0f6fc;
+  --breadcrumbs-fg: #9198a1;
+  --breadcrumbs-link-fg: #4493f8;
+  --breadcrumbs-bg: #0d1117;
+  --link-fg: #4493f8;
+  --link-hover-color: #79b8ff;
+  --link-selected-fg: #4493f8;
+  --hairline-color: #262c36;
+  --border-color: #3d444d;
+  --error-fg: #f85149;
+  --message-success-bg: #12261e;
+  --message-warning-bg: #272115;
+  --message-error-bg: #25171c;
+  --darkened-bg: #151b23;
+  --selected-bg: #1f2937;
+  --selected-row: #1c2a3d;
+  --button-fg: #fff;
+  --button-bg: #238636;
+  --button-hover-bg: #29903b;
+  --default-button-bg: #238636;
+  --default-button-hover-bg: #29903b;
+  --close-button-bg: #3d444d;
+  --close-button-hover-bg: #656c76;
+  --delete-button-bg: #b62324;
+  --delete-button-hover-bg: #da3633;
+  --object-tools-fg: #f0f6fc;
+  --object-tools-bg: #212830;
+  --object-tools-hover-bg: #3d444d;
+  color-scheme: dark;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
+#header { display: none; }
+div.breadcrumbs { border-bottom: 1px solid #262c36; padding: 10px 16px; }
+.module, fieldset.module, .inline-group { background: #151b23; border: 1px solid #3d444d; border-radius: 6px; overflow: hidden; }
+.module h2, .module caption, .inline-group h2 { background: #212830; color: #f0f6fc; font-weight: 600; }
+input[type=text], input[type=password], input[type=email], input[type=url], input[type=number], input[type=tel],
+textarea, select, .vTextField { background: #0d1117; color: #f0f6fc; border: 1px solid #3d444d; border-radius: 6px; }
+input:focus, select:focus, textarea:focus { border-color: #1f6feb; outline: 1px solid #1f6feb; }
+.submit-row { background: #151b23; border: 1px solid #3d444d; border-radius: 6px; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 6px; }
+.object-tools a { border-radius: 6px; }
+#changelist-filter { background: #151b23; border: 1px solid #3d444d; border-radius: 6px; }
+#changelist .actions { background: #151b23; }
+.calendarbox, .clockbox { background: #151b23; border-color: #3d444d; }
+.help, p.help, div.help { color: #9198a1; }
+.select2-container--admin-autocomplete .select2-selection--single, .select2-dropdown { background: #0d1117 !important; border-color: #3d444d !important; }
+.select2-results__option { color: #f0f6fc; }
+.theme-toggle { display: none; }

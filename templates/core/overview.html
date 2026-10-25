@@ -1,0 +1,70 @@
+{% extends "core/base.html" %}{% load fmt %}
+{% block title %}Обзор{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Обзор</h1><div class="sub">Главные цифры за период. Подробности во вкладках выше.</div></div>
+  {% include "core/_periods.html" %}
+</div>
+
+{% if low_materials %}
+<div class="flash warn" role="status">Заканчивается сырьё:
+  {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.unit }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+  <a href="{% url 'stock' %}">Склад →</a>
+</div>
+{% endif %}
+{% if expiring %}
+<div class="flash err" role="status">Срок товара кончается или прошёл:
+  {% for x in expiring %}<a href="{% url 'shop_detail' x.shop.pk %}">{{ x.shop.name }}</a> (до {{ x.expires|date:"d.m" }}){% if not forloop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<section class="tiles">
+  <div class="box tile"><div class="label">Выручка</div><div class="value">{{ revenue|money }}</div><div class="sub">{{ sold_qty|money }} шт отгружено</div></div>
+  <div class="box tile"><div class="label">Прибыль</div><div class="value {% if profit < 0 %}bad{% else %}good{% endif %}">{{ profit|money }}</div><div class="sub">маржа {{ margin }}%</div></div>
+  <div class="box tile"><div class="label">Возвраты</div><div class="value">{{ returned|money }}</div><div class="sub">{{ returned_qty|money }} шт, {{ return_pct }}% от отгрузок</div></div>
+  <a class="box tile" href="{% url 'money' %}" style="color:inherit;text-decoration:none"><div class="label">Нам должны</div><div class="value bad">{{ receivable|money }}</div><div class="sub">{{ debtor_count }} магазинов</div></a>
+  <a class="box tile" href="{% url 'money' %}" style="color:inherit;text-decoration:none"><div class="label">Мы должны</div><div class="value">{{ payable|money }}</div><div class="sub">поставщикам</div></a>
+</section>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Продажи по дням, сум</h2>
+    {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="Продажи по дням"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Как считается прибыль</h2>
+    <table>
+      <tr><td>Выручка от отгрузок</td><td class="num">{{ revenue|money }}</td></tr>
+      <tr><td>− Возвраты</td><td class="num">{{ returned|money }}</td></tr>
+      <tr><td>− Себестоимость (сырьё)</td><td class="num">{{ cogs|money }}</td></tr>
+      <tr><td>− Прочие расходы</td><td class="num">{{ expenses|money }}</td></tr>
+      <tr class="total"><td>= Прибыль</td><td class="num {% if profit < 0 %}bad{% endif %}">{{ profit|money }}</td></tr>
+    </table>
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="box">
+    <h2>Сколько магазинов получили товар</h2>
+    {% if chart_days %}<div class="chart"><canvas id="visits" role="img" aria-label="Сколько магазинов получили товар в каждый день"></canvas></div>{% else %}<p class="empty">Нет отгрузок за этот период.</p>{% endif %}
+  </section>
+  <section class="box">
+    <h2>Лучшие за период</h2>
+    {% if top_shops %}
+    <table>
+      <thead><tr><th>Магазин</th><th class="num">Продажи</th></tr></thead>
+      {% for s in top_shops %}<tr><td>{{ forloop.counter }}. <a href="{% url 'shop_detail' s.shop.pk %}?period={{ period }}">{{ s.shop.name }}</a></td><td class="num">{{ s.sales|money }}</td></tr>{% endfor %}
+    </table>
+    <table>
+      <thead><tr><th>Товар</th><th class="num">Продано, шт</th></tr></thead>
+      {% for p in top_products %}<tr><td>{{ forloop.counter }}. <a href="{% url 'product_detail' p.product.pk %}?period={{ period }}">{{ p.product.name }}</a></td><td class="num">{{ p.qty|money }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p class="empty">Нет продаж за этот период.</p>{% endif %}
+  </section>
+</div>
+{{ chart_days|json_script:"days" }}{{ chart_sales|json_script:"sales" }}{{ chart_visits|json_script:"visitsData" }}
+{% endblock %}
+{% block scripts %}<script>
+barChart("byDay", "days", "sales", {color: "#f78166"});
+barChart("visits", "days", "visitsData", {color: "#3fb950", unit: " магазинов"});
+</script>{% endblock %}
