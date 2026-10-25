@@ -56,16 +56,28 @@ class MaterialCategory(models.Model):
         return self.name
 
 
-class RawMaterial(models.Model):
-    class Unit(models.TextChoices):
-        PIECE = "pc", "шт"
-        KG = "kg", "кг"
-        LITER = "l", "л"
+class Unit(models.Model):
+    name = models.CharField("Единица", max_length=20, unique=True, help_text="Например: шт, кг, гр, л, пачка")
 
+    class Meta:
+        verbose_name = "Единица измерения"
+        verbose_name_plural = "Единицы измерения"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+def default_unit():
+    return Unit.objects.get_or_create(name="шт")[0].pk
+
+
+class RawMaterial(models.Model):
     name = models.CharField("Название", max_length=200, unique=True)
     category = models.ForeignKey(MaterialCategory, on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="materials", verbose_name="Категория")
-    unit = models.CharField("Единица", max_length=4, choices=Unit.choices, default=Unit.PIECE)
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT, default=default_unit, related_name="materials",
+                             verbose_name="Единица")
     min_stock = models.DecimalField("Мин. остаток", default=0, **QTY,
                                     help_text="Ниже этого остатка будет предупреждение")
 
@@ -75,7 +87,7 @@ class RawMaterial(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        return f"{self.name} ({self.get_unit_display()})"
+        return f"{self.name} ({self.unit})"
 
     def purchased_qty(self):
         return self.purchase_items.aggregate(s=Sum("qty"))["s"] or ZERO
@@ -345,6 +357,12 @@ class Shop(models.Model):
 
 
 class Shipment(models.Model):
+    class Method(models.TextChoices):
+        CASH = "cash", "Наличные"
+        CARD = "card", "Карта"
+        CONSIGNMENT = "consign", "Консигнация"
+        DEBT = "debt", "В долг"
+
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="shipments",
                              verbose_name="Магазин")
     date = models.DateField("Дата", default=timezone.localdate)
@@ -355,6 +373,8 @@ class Shipment(models.Model):
                                 related_name="shipments", verbose_name="Машина")
     paid = models.DecimalField("Оплачено при отгрузке", default=0, **MONEY,
                                help_text="Остаток уходит магазину в долг")
+    method = models.CharField("Оплата", max_length=10, choices=Method.choices, default=Method.CASH,
+                              help_text="Консигнация: магазин платит за проданное, непроданное оформляется возвратом")
     note = models.CharField("Заметка", max_length=300, blank=True)
 
     class Meta:

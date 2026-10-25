@@ -18,8 +18,9 @@ class Command(BaseCommand):
         bun = m.RawMaterial.objects.create(name="Булочка", min_stock=200)
         sausage = m.RawMaterial.objects.create(name="Сосиска", min_stock=200)
         cutlet = m.RawMaterial.objects.create(name="Котлета", min_stock=100)
-        ketchup = m.RawMaterial.objects.create(name="Кетчуп", unit="kg", min_stock=5)
-        mayo = m.RawMaterial.objects.create(name="Майонез", unit="kg", min_stock=5)
+        kg = m.Unit.objects.get_or_create(name="кг")[0]
+        ketchup = m.RawMaterial.objects.create(name="Кетчуп", unit=kg, min_stock=5)
+        mayo = m.RawMaterial.objects.create(name="Майонез", unit=kg, min_stock=5)
         box = m.RawMaterial.objects.create(name="Тара", min_stock=300)
 
         purchase = m.Purchase.objects.create(supplier=supplier, paid=D("3000000"))

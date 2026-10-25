@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from . import botlogic as logic
-from .models import Expense, RawMaterial, Return, Worker
+from .models import Expense, Payment, RawMaterial, Return, Shipment, Worker
 from .templatetags.fmt import money
 
 router = Router()
@@ -65,6 +65,7 @@ class Income(StatesGroup):
     pick = State()
     material_name = State()
     material_unit = State()
+    unit_name = State()
     qty = State()
     price = State()
     paid = State()
@@ -79,8 +80,10 @@ class Goods(StatesGroup):
     pick = State()
     qty = State()
     reason = State()
+    method = State()
     paid = State()
     amount = State()
+    pay_method = State()
 
 
 class Make(StatesGroup):
@@ -300,7 +303,7 @@ async def _category_picker(message, state):
 
 async def _material_picker(message, state, category_id):
     await state.update_data(category=category_id)
-    rows = [[(f"{x.name} ({x.get_unit_display()})", f"m:{x.pk}")]
+    rows = [[(f"{x.name} ({x.unit})", f"m:{x.pk}")]
             for x in await db(logic.materials, category_id or None)]
     rows.append([("➕ Новое сырьё", "m:new")])
     await state.set_state(Income.pick)
@@ -338,28 +341,49 @@ async def income_material_new(callback: CallbackQuery, state: FSMContext):
 async def income_material_name(message: Message, state: FSMContext):
     await state.update_data(material_name=message.text.strip())
     await state.set_state(Income.material_unit)
-    await message.answer("В чём считаем?", reply_markup=kb(
-        [[(label, f"u:{value}") for value, label in RawMaterial.Unit.choices]]))
+    units = await db(logic.units)
+    rows = [[(u.name, f"u:{u.pk}") for u in units[i:i + 4]] for i in range(0, len(units), 4)]
+    rows.append([("➕ Другая единица", "u:new")])
+    await message.answer("В чём считаем?", reply_markup=kb(rows))
 
 
 async def _ask_qty(message, state, material):
-    await state.update_data(material=material.pk, unit=material.get_unit_display())
+    await state.update_data(material=material.pk, unit=str(material.unit))
     await state.set_state(Income.qty)
-    await message.answer(f"{material.name}: сколько {material.get_unit_display()}? Напишите число.")
+    await message.answer(f"{material.name}: сколько {material.unit}? Напишите число.")
+
+
+async def _new_material(message, state, unit_name):
+    data = await state.get_data()
+    material = await db(logic.get_or_create_material, data["material_name"], unit_name,
+                        data.get("category") or None)
+    await _ask_qty(message, state, material)
+
+
+@router.callback_query(Income.material_unit, F.data == "u:new")
+async def income_unit_new(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Income.unit_name)
+    await callback.message.answer("Напишите единицу, например «гр», «пачка», «ящик».", reply_markup=kb([]))
+    await callback.answer()
+
+
+@router.message(Income.unit_name, F.text)
+async def income_unit_name(message: Message, state: FSMContext):
+    await _new_material(message, state, message.text)
 
 
 @router.callback_query(Income.material_unit, F.data.startswith("u:"))
 async def income_material_unit(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    material = await db(logic.get_or_create_material, data["material_name"], callback.data[2:],
-                        data.get("category") or None)
-    await _ask_qty(callback.message, state, material)
+    unit = await db(lambda pk: logic.m.Unit.objects.filter(pk=pk).first(), int(callback.data[2:]))
     await callback.answer()
+    if unit:
+        await _new_material(callback.message, state, unit.name)
 
 
 @router.callback_query(Income.pick, F.data.startswith("m:"))
 async def income_material(callback: CallbackQuery, state: FSMContext):
-    material = await db(lambda pk: RawMaterial.objects.filter(pk=pk).first(), int(callback.data[2:]))
+    material = await db(lambda pk: RawMaterial.objects.select_related("unit").filter(pk=pk).first(),
+                        int(callback.data[2:]))
     if material:
         await _ask_qty(callback.message, state, material)
     await callback.answer()
@@ -666,9 +690,10 @@ async def goods_done(callback: CallbackQuery, state: FSMContext, bot: Bot):
     if data["flow"] == "ship":
         total = await db(logic.cart_total, cart)
         await state.update_data(total=str(total))
-        await state.set_state(Goods.paid)
-        await callback.message.answer(f"Сумма {money(total)} сум. Сколько магазин заплатил сейчас?",
-                                      reply_markup=kb([[("Всё оплачено", "pay:all"), ("Всё в долг", "pay:0")]]))
+        await state.set_state(Goods.method)
+        await callback.message.answer(f"Сумма {money(total)} сум. Как магазин платит?", reply_markup=kb(
+            [[(label, f"pm:{value}") for value, label in Shipment.Method.choices[:2]],
+             [(label, f"pm:{value}") for value, label in Shipment.Method.choices[2:]]]))
         return
     _, me = await who(callback.from_user.id)
     agent = await db(logic.get_worker, data["agent"])
@@ -692,7 +717,8 @@ async def _save_shipment(event, state, bot, paid):
     agent = await db(logic.get_worker, data["agent"]) if data.get("agent") else None
     shop = await db(logic.get_shop, data["shop"])
     try:
-        shipment = await db(logic.create_shipment, shop, _cart(data), paid, agent, data.get("order"))
+        shipment = await db(logic.create_shipment, shop, _cart(data), paid, agent, data.get("order"), "",
+                            data.get("method", Shipment.Method.CASH))
     except ValidationError as e:
         await state.set_state(Goods.pick)
         await message.answer(e.messages[0], reply_markup=kb([[("Добавить ещё", "c:more"), ("Готово", "c:done")]]))
@@ -703,6 +729,19 @@ async def _save_shipment(event, state, bot, paid):
     await message.answer("Сохранено.\n" + full)
     await notify_bosses(bot, event.from_user.id, f"Отгрузка ({agent or 'из цеха'}).\n" + text)
     await tell(bot, shop.telegram_id, "Вы получили товар. Спасибо!\n" + text)
+
+
+@router.callback_query(Goods.method, F.data.startswith("pm:"))
+async def goods_method(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    method = callback.data[3:]
+    data = await state.update_data(method=method)
+    await callback.answer()
+    if method in (Shipment.Method.CONSIGNMENT, Shipment.Method.DEBT):
+        await _save_shipment(callback, state, bot, logic.Decimal(0))
+        return
+    await state.set_state(Goods.paid)
+    await callback.message.answer("Сколько заплатили сейчас? Если часть, напишите сумму, остальное уйдёт в долг.",
+                                  reply_markup=kb([[(f"Всё, {money(logic.Decimal(data['total']))}", "pay:all")]]))
 
 
 @router.callback_query(Goods.paid, F.data.startswith("pay:"))
@@ -737,33 +776,44 @@ async def goods_reason(callback: CallbackQuery, state: FSMContext, bot: Bot):
     await callback.answer()
 
 
-async def _save_payment(event, state, bot, amount):
+async def _ask_pay_method(message, state, amount):
+    await state.update_data(amount=str(amount))
+    await state.set_state(Goods.pay_method)
+    await message.answer(f"{money(amount)} сум. Как заплатили?", reply_markup=kb(
+        [[(label, f"pym:{value}") for value, label in Payment.Method.choices]]))
+
+
+@router.callback_query(Goods.pay_method, F.data.startswith("pym:"))
+async def goods_pay_method(callback: CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
     shop = await db(logic.get_shop, data["shop"])
-    _, me = await who(event.from_user.id)
-    await db(logic.create_payment, shop, amount, me)
+    amount = logic.Decimal(data["amount"])
+    _, me = await who(callback.from_user.id)
+    await callback.answer()
+    payment = await db(logic.create_payment, shop, amount, me, callback.data[4:])
     await state.clear()
-    text = f"Оплата от «{shop.name}»: {money(amount)} сум. Долг теперь: {money(await db(shop.debt))} сум"
-    await _msg(event).answer("Сохранено.\n" + text)
-    await notify_bosses(bot, event.from_user.id, f"{text} (принял {me or 'начальник'})")
+    text = (f"Оплата от «{shop.name}»: {money(amount)} сум ({payment.get_method_display().lower()}). "
+            f"Долг теперь: {money(await db(shop.debt))} сум")
+    await callback.message.answer("Сохранено.\n" + text)
+    await notify_bosses(bot, callback.from_user.id, f"{text} (принял {me or 'начальник'})")
     await tell(bot, shop.telegram_id, f"Получили вашу оплату {money(amount)} сум. Спасибо!\n"
                + await db(logic.debt_text, shop))
 
 
 @router.callback_query(Goods.amount, F.data == "debt:all")
-async def goods_pay_all(callback: CallbackQuery, state: FSMContext, bot: Bot):
+async def goods_pay_all(callback: CallbackQuery, state: FSMContext):
     shop = await db(logic.get_shop, (await state.get_data())["shop"])
     await callback.answer()
-    await _save_payment(callback, state, bot, await db(shop.debt))
+    await _ask_pay_method(callback.message, state, await db(shop.debt))
 
 
 @router.message(Goods.amount, F.text)
-async def goods_pay(message: Message, state: FSMContext, bot: Bot):
+async def goods_pay(message: Message, state: FSMContext):
     value = logic.parse_number(message.text)
     if value is None:
         await message.answer("Напишите сумму числом, например 150000.")
         return
-    await _save_payment(message, state, bot, value)
+    await _ask_pay_method(message, state, value)
 
 
 # ---------- Остатки ----------

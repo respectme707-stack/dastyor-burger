@@ -48,7 +48,7 @@
 
   {% if low_materials %}
   <div class="alert" role="status">Заканчивается:
-    {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.get_unit_display }}){% if not forloop.last %}, {% endif %}{% endfor %}
+    {% for x in low_materials %}{{ x.material.name }} ({{ x.stock|qty }} {{ x.material.unit }}){% if not forloop.last %}, {% endif %}{% endfor %}
   </div>
   {% endif %}
 
@@ -213,7 +213,7 @@
         {% for x in materials %}
         <tr>
           <td>{{ x.material.name }}</td>
-          <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.get_unit_display }}</td>
+          <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.unit }}</td>
           <td class="num">{{ x.material.min_stock|qty }}</td>
         </tr>
         {% empty %}<tr><td colspan="3" class="empty">Нет сырья.</td></tr>{% endfor %}

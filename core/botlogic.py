@@ -126,12 +126,17 @@ def summary_text(start=None, end=None, title=None):
     lines = [title or f"Сводка {period}", ""]
     lines += [
         f"💰 Продажи: {money(d['revenue'])} сум",
-        f"💵 Получено денег: {money(d['cash_in'])}",
+        f"💵 Получено денег: {money(d['cash_in'])}"
+        + (f" (из них картой {money(d['card_in'])})" if d["card_in"] else ""),
         f"📦 Приход сырья: {money(d['purchased'])}",
         f"🧾 Прочие расходы: {money(d['expenses'])}",
         f"↩️ Возвраты: {money(d['returned'])}",
         f"📈 Прибыль: {money(d['profit'])}",
         f"Нам должны: {money(d['receivable'])} · Мы должны: {money(d['payable'])}",
+    ]
+    if d["consignment"]:
+        lines.append(f"На консигнации за период: {money(d['consignment'])}")
+    lines += [
         "",
         "Изделия, шт:",
         f"сделано {d['produced_qty']} · продано {d['sold_qty']} · возврат {d['returned_qty']}",
@@ -144,7 +149,7 @@ def summary_text(start=None, end=None, title=None):
     low = [x for x in m.RawMaterial.objects.all() if x.is_low()]
     if low:
         lines.append("Заканчивается: " + ", ".join(
-            f"{x.name} ({qty(x.stock())} {x.get_unit_display()})" for x in low))
+            f"{x.name} ({qty(x.stock())} {x.unit})" for x in low))
     return "\n".join(lines)
 
 
@@ -392,7 +397,7 @@ def categories():
 
 
 def materials(category_id=None):
-    qs = m.RawMaterial.objects.all()
+    qs = m.RawMaterial.objects.select_related("unit")
     return list(qs.filter(category_id=category_id) if category_id else qs.filter(category=None))
 
 
@@ -404,13 +409,22 @@ def get_or_create_category(name):
     return m.MaterialCategory.objects.get_or_create(name=name.strip()[:100])[0]
 
 
-def get_or_create_material(name, unit, category_id=None):
+def units():
+    m.default_unit()  # «шт» есть всегда
+    return list(m.Unit.objects.all())
+
+
+def get_or_create_unit(name):
+    return m.Unit.objects.get_or_create(name=name.strip()[:20])[0]
+
+
+def get_or_create_material(name, unit_name, category_id=None):
     material, created = m.RawMaterial.objects.get_or_create(
-        name=name.strip()[:200], defaults={"unit": unit, "category_id": category_id})
+        name=name.strip()[:200], defaults={"unit": get_or_create_unit(unit_name), "category_id": category_id})
     if not created and category_id and not material.category_id:
         material.category_id = category_id
         material.save(update_fields=["category"])
-    return material
+    return m.RawMaterial.objects.select_related("unit").get(pk=material.pk)
 
 
 def purchase_lines_text(lines):
@@ -420,7 +434,7 @@ def purchase_lines_text(lines):
     for material_id, q, p in lines:
         material, q, p = found[material_id], Decimal(q), Decimal(p)
         total += q * p
-        out.append(f"{material.name}: {qty(q)} {material.get_unit_display()} × {money(p)} = {money(q * p)}")
+        out.append(f"{material.name}: {qty(q)} {material.unit} × {money(p)} = {money(q * p)}")
     out.append(f"Итого: {money(total)} сум")
     return "\n".join(out), total
 
@@ -438,7 +452,7 @@ def purchase_text(purchase):
     total = purchase.total()
     lines = [f"Приход №{purchase.pk} · {purchase.supplier}"]
     for item in purchase.items.select_related("material"):
-        lines.append(f"{item.material.name}: {qty(item.qty)} {item.material.get_unit_display()} × "
+        lines.append(f"{item.material.name}: {qty(item.qty)} {item.material.unit} × "
                      f"{money(item.price)}")
     lines.append(f"Сумма: {money(total)} сум, оплачено {money(purchase.paid)}, "
                  f"в долг {money(total - purchase.paid)}")
@@ -460,7 +474,7 @@ def production_text(production):
     lines = [f"Записано: {production.product.name} × {production.qty}",
              f"Себестоимость 1 шт: {money(production.unit_cost)} сум"]
     for c in production.consumptions.select_related("material"):
-        lines.append(f"− {c.material.name}: {qty(c.qty)} {c.material.get_unit_display()}")
+        lines.append(f"− {c.material.name}: {qty(c.qty)} {c.material.unit}")
     lines.append(f"В цеху теперь: {production.product.stock()} шт")
     return "\n".join(lines)
 
@@ -529,7 +543,7 @@ def cart_total(cart):
 
 
 @transaction.atomic
-def create_shipment(shop, cart, paid, agent=None, order_id=None, note=""):
+def create_shipment(shop, cart, paid, agent=None, order_id=None, note="", method=m.Shipment.Method.CASH):
     """Отгрузка магазину: с остатка агента или (agent=None) прямо из цеха."""
     if agent:
         _check(cart, {p.pk: n for p, n in agent.stock().items()}, "у вас")
@@ -541,7 +555,7 @@ def create_shipment(shop, cart, paid, agent=None, order_id=None, note=""):
     if order:
         note = f"По заказу №{order.pk} из бота. {note}".strip()
     shipment = m.Shipment.objects.create(shop=shop, worker=agent, vehicle=agent.vehicle if agent else None,
-                                         paid=paid, note=note[:300])
+                                         paid=paid, method=method, note=note[:300])
     found = m.Product.objects.in_bulk(list(cart))
     for pid, n in cart.items():
         if n > 0:
@@ -558,8 +572,8 @@ def shipment_text(shipment):
     for item in shipment.items.select_related("product"):
         lines.append(f"{item.product.name} × {item.qty} = {money(item.qty * item.price)}")
     total = shipment.total()
-    lines.append(f"Сумма: {money(total)} сум, оплачено {money(shipment.paid)}, "
-                 f"в долг {money(total - shipment.paid)}")
+    lines.append(f"Оплата: {shipment.get_method_display().lower()}. Сумма: {money(total)} сум, "
+                 f"оплачено {money(shipment.paid)}, в долг {money(total - shipment.paid)}")
     lines.append(f"Общий долг магазина: {money(shipment.shop.debt())} сум")
     return "\n".join(lines)
 
@@ -568,8 +582,8 @@ def create_return(shop, product_id, n, reason):
     return m.Return.objects.create(shop=shop, product_id=product_id, qty=n, reason=reason)
 
 
-def create_payment(shop, amount, worker=None):
-    return m.Payment.objects.create(shop=shop, amount=amount, worker=worker,
+def create_payment(shop, amount, worker=None, method=m.Payment.Method.CASH):
+    return m.Payment.objects.create(shop=shop, amount=amount, worker=worker, method=method,
                                     note=f"Принял: {worker}" if worker else "")
 
 

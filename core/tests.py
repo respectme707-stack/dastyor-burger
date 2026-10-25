@@ -11,7 +11,7 @@ class AccountingTests(TestCase):
         self.supplier = m.Supplier.objects.create(name="Оптовик")
         self.bun = m.RawMaterial.objects.create(name="Булочка")
         self.sausage = m.RawMaterial.objects.create(name="Сосиска")
-        self.ketchup = m.RawMaterial.objects.create(name="Кетчуп", unit="kg")
+        self.ketchup = m.RawMaterial.objects.create(name="Кетчуп", unit=m.Unit.objects.get_or_create(name="кг")[0])
         purchase = m.Purchase.objects.create(supplier=self.supplier, paid=D("100000"))
         m.PurchaseItem.objects.create(purchase=purchase, material=self.bun, qty=100, price=1500)
         m.PurchaseItem.objects.create(purchase=purchase, material=self.sausage, qty=100, price=3500)
@@ -224,7 +224,7 @@ class StaffBotTests(TestCase):
         self.assertEqual(self.logic.districts(), ["Чиланзар", "Юнусабад"])
 
     def test_purchase(self):
-        mayo = self.logic.get_or_create_material("Майонез", "kg")
+        mayo = self.logic.get_or_create_material("Майонез", "кг")
         supplier = self.logic.get_or_create_supplier("Новый склад")
         lines = [[mayo.pk, "10", "35000"]]
         text, total = self.logic.purchase_lines_text(lines)
@@ -307,7 +307,8 @@ class StaffBotTests(TestCase):
     def test_categories(self):
         logic = self.logic
         buns = logic.get_or_create_category("Булочки")
-        flour = logic.get_or_create_material("Мука", "kg", buns.pk)
+        flour = logic.get_or_create_material("Мука", "гр", buns.pk)
+        self.assertEqual(str(flour.unit), "гр")
         self.assertEqual(flour.category, buns)
         self.assertEqual(logic.materials(buns.pk), [flour])
         self.assertEqual([x.name for x in logic.materials()], ["Булочка"])
@@ -340,6 +341,17 @@ class StaffBotTests(TestCase):
         self.assertIn("Прочие расходы: 80\xa0000", text)
         self.assertIn("в цеху 70 · у агентов 20", text)
         self.assertIn("Азиз: продал на 120\xa0000", logic.daily_report_text())
+
+    def test_payment_methods(self):
+        logic = self.logic
+        card = m.Shipment.Method.CARD
+        shipment = logic.create_shipment(self.shop, {self.hotdog.pk: 5}, D("60000"), None, None, "", card)
+        self.assertIn("картой 60\xa0000", logic.summary_text())
+        logic.create_shipment(self.shop, {self.hotdog.pk: 5}, 0, None, None, "", m.Shipment.Method.CONSIGNMENT)
+        self.assertIn("На консигнации за период: 60\xa0000", logic.summary_text())
+        payment = logic.create_payment(self.shop, D("10000"), None, m.Payment.Method.CARD)
+        self.assertEqual((shipment.method, payment.method), (card, "card"))
+        self.assertIn("картой 70\xa0000", logic.summary_text())
 
     def test_parse_location(self):
         p = self.logic.parse_location

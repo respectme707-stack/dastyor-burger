@@ -26,6 +26,12 @@ class SupplierAdmin(admin.ModelAdmin):
         return money(obj.debt())
 
 
+@admin.register(m.Unit)
+class UnitAdmin(admin.ModelAdmin):
+    list_display = ["name"]
+    search_fields = ["name"]
+
+
 class RawMaterialInline(admin.TabularInline):
     model = m.RawMaterial
     extra = 3
@@ -46,12 +52,12 @@ class MaterialCategoryAdmin(admin.ModelAdmin):
 @admin.register(m.RawMaterial)
 class RawMaterialAdmin(admin.ModelAdmin):
     list_display = ["name", "category", "unit", "stock_display", "avg_price_display", "min_stock"]
-    list_filter = ["category"]
+    list_filter = ["category", "unit"]
     search_fields = ["name"]
 
     @admin.display(description="Остаток")
     def stock_display(self, obj):
-        text = f"{qty(obj.stock())} {obj.get_unit_display()}"
+        text = f"{qty(obj.stock())} {obj.unit}"
         if obj.is_low():
             return format_html('<b style="color:#b4410c">{} (мало)</b>', text)
         return text
@@ -184,8 +190,8 @@ class ShipmentItemInline(admin.TabularInline):
 
 @admin.register(m.Shipment)
 class ShipmentAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "date", "shop", "worker", "total_display", "paid", "debt_display"]
-    list_filter = ["worker", "shop__district", "shop", "date"]
+    list_display = ["__str__", "date", "shop", "worker", "total_display", "method", "paid", "debt_display"]
+    list_filter = ["method", "worker", "shop__district", "shop", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
     inlines = [ShipmentItemInline]

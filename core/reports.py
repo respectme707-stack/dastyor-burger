@@ -49,8 +49,13 @@ def totals(start=None, end=None):
     expenses = _between(m.Expense.objects.all(), "date", start, end).aggregate(s=Sum("amount"))["s"] or m.ZERO
     purchased = _between(m.PurchaseItem.objects.all(), "purchase__date", start, end).aggregate(
         s=_money(F("qty") * F("price")))["s"] or m.ZERO
-    cash_in = (_between(m.Shipment.objects.all(), "date", start, end).aggregate(s=Sum("paid"))["s"] or m.ZERO) + (
-        _between(m.Payment.objects.exclude(shop=None), "date", start, end).aggregate(s=Sum("amount"))["s"] or m.ZERO)
+    shipments = _between(m.Shipment.objects.all(), "date", start, end)
+    payments = _between(m.Payment.objects.exclude(shop=None), "date", start, end)
+    cash_in = (shipments.aggregate(s=Sum("paid"))["s"] or m.ZERO) + (
+        payments.aggregate(s=Sum("amount"))["s"] or m.ZERO)
+    card_in = (shipments.filter(method=m.Shipment.Method.CARD).aggregate(s=Sum("paid"))["s"] or m.ZERO) + (
+        payments.filter(method=m.Payment.Method.CARD).aggregate(s=Sum("amount"))["s"] or m.ZERO)
+    consignment = sum((s.debt() for s in shipments.filter(method=m.Shipment.Method.CONSIGNMENT)), m.ZERO)
     products = list(m.Product.objects.filter(active=True))
     agents = [w for w in m.Worker.objects.filter(active=True) if w.is_seller()]
     receivable = sum((d for d in (s.debt() for s in m.Shop.objects.all()) if d > 0), m.ZERO)
@@ -58,6 +63,8 @@ def totals(start=None, end=None):
     return {
         "revenue": revenue,
         "cash_in": cash_in,
+        "card_in": card_in,
+        "consignment": consignment,
         "purchased": purchased,
         "expenses": expenses,
         "returned": returned,
