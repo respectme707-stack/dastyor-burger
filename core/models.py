@@ -86,10 +86,11 @@ class RawMaterial(models.Model):
                              verbose_name="Единица")
     min_stock = models.DecimalField("Мин. остаток", default=0, blank=True, **QTY,
                                     help_text="Необязательно. Если остаток станет меньше, сайт предупредит")
-    pack_name = models.CharField("Упаковка", max_length=30, blank=True,
-                                 help_text="Как покупаете: банка, пачка, ведро, коробка")
-    pack_size = models.DecimalField("Сколько в упаковке", null=True, blank=True, **QTY,
-                                    help_text="В единицах этого сырья. Майонез в гр: банка = 900")
+    pack_name = models.CharField("Название упаковки", max_length=30, blank=True,
+                                 help_text="Необязательно, только слово: банка, пачка, ведро. Не число")
+    pack_size = models.DecimalField("Сколько в 1 упаковке", null=True, blank=True, **QTY,
+                                    help_text="В единицах этого сырья. Майонез в гр: 900. Колбаса в гр: 600. "
+                                              "Если заполнено, закупка вводится упаковками")
     homemade = models.BooleanField("Делаем сами", default=False,
                                    help_text="Например, булочки: не покупаем, а печём в цеху по своему рецепту")
 
@@ -99,7 +100,23 @@ class RawMaterial(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        return f"{self.name} ({self.unit})"
+        return f"{self.name} ({self.pack_label()})"
+
+    def pack_word(self):
+        name = self.pack_name.strip()
+        return name if name and not any(ch.isdigit() for ch in name) else "упак."
+
+    def pack_label(self):
+        """«банка по 900 гр» или просто единица, если упаковки нет."""
+        if not self.pack_size:
+            return str(self.unit)
+        return f"{self.pack_word()} по {Decimal(self.pack_size).normalize():f} {self.unit}"
+
+    def from_packs(self, qty, price):
+        """Количество и цена упаковками → в единицах сырья (для склада и себестоимости)."""
+        if not self.pack_size:
+            return qty, price
+        return qty * self.pack_size, (price / self.pack_size).quantize(Decimal("0.000001"))
 
     def purchased_qty(self):
         return self.purchase_items.aggregate(s=Sum("qty"))["s"] or ZERO

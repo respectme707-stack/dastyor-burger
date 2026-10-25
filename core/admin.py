@@ -37,7 +37,7 @@ class UnitAdmin(admin.ModelAdmin):
 class RawMaterialInline(admin.TabularInline):
     model = m.RawMaterial
     extra = 3
-    fields = ["name", "unit", "pack_name", "pack_size", "homemade"]
+    fields = ["name", "unit", "pack_size", "homemade"]
 
 
 @admin.register(m.MaterialCategory)
@@ -87,35 +87,25 @@ class RawMaterialAdmin(admin.ModelAdmin):
 
 
 class PurchaseItemForm(forms.ModelForm):
-    """Количество и цену можно писать в единицах сырья, в кг/л или упаковками."""
-
-    AS_IS, BIG, PACK = "", "big", "pack"
-    how = forms.ChoiceField(
-        label="Как считаете", required=False,
-        choices=[(AS_IS, "в ед. сырья"), (BIG, "в кг / л"), (PACK, "упаковками")],
-        help_text="Упаковками: пишете «2 банки» и цену за банку, на склад придёт 2 × 900 гр")
+    """Если у сырья задана упаковка, количество и цена вводятся упаковками, а на склад идут гр/шт."""
 
     class Meta:
         model = m.PurchaseItem
-        fields = ["material", "how", "qty", "price"]
+        fields = ["material", "qty", "price"]
+        labels = {"qty": "Количество", "price": "Цена"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        material = self.instance.material if self.instance.pk else None
+        if material and material.pack_size:
+            self.initial["qty"] = (self.instance.qty / material.pack_size).normalize()
+            self.initial["price"] = (self.instance.price * material.pack_size).quantize(m.CENT)
 
     def clean(self):
         data = super().clean()
-        material, how = data.get("material"), data.get("how")
-        if not how or not material or data.get("qty") is None or data.get("price") is None:
-            return data
-        if how == self.BIG:
-            ratio = material.unit.big_ratio
-            if not ratio:
-                raise ValidationError(f"У единицы «{material.unit}» нет крупной единицы (кг, л). "
-                                      "Выберите «в ед. сырья» или заполните её в «Единицах измерения».")
-        else:
-            ratio = material.pack_size
-            if not ratio:
-                raise ValidationError(f"У «{material.name}» не указано, сколько в упаковке. "
-                                      "Заполните это в карточке сырья.")
-        data["qty"] = data["qty"] * ratio
-        data["price"] = (data["price"] / ratio).quantize(m.Decimal("0.000001"))
+        material = data.get("material")
+        if material and data.get("qty") is not None and data.get("price") is not None:
+            data["qty"], data["price"] = material.from_packs(data["qty"], data["price"])
         return data
 
 
@@ -138,8 +128,7 @@ class PurchaseAdmin(admin.ModelAdmin):
 
     def render_change_form(self, request, context, *args, **kwargs):
         context["material_units"] = {
-            x.pk: {"unit": x.unit.name, "big": x.unit.big_name, "big_ratio": float(x.unit.big_ratio or 0),
-                   "pack": x.pack_name or "упаковка", "pack_size": float(x.pack_size or 0)}
+            x.pk: {"unit": x.unit.name, "pack": x.pack_word(), "pack_size": float(x.pack_size or 0)}
             for x in m.RawMaterial.objects.select_related("unit")}
         return super().render_change_form(request, context, *args, **kwargs)
 
