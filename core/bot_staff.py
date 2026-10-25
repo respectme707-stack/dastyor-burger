@@ -765,13 +765,13 @@ async def goods_paid(message: Message, state: FSMContext, bot: Bot):
 async def goods_reason(callback: CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
     shop = await db(logic.get_shop, data["shop"])
-    item = await db(logic.create_return, shop, data["product"], data["qty"], callback.data[2:])
+    _, me = await who(callback.from_user.id)
+    item = await db(logic.create_return, shop, data["product"], data["qty"], callback.data[2:], me)
     await state.set_state(Goods.pick)
     debt = await db(shop.debt)
     text = (f"Возврат записан: {await db(lambda: item.product.name)} × {item.qty} = {money(item.total())} сум "
             f"({item.get_reason_display()}).\nДолг магазина теперь: {money(debt)} сум")
     await callback.message.answer(text, reply_markup=kb([[("Ещё возврат от этого магазина", "c:more")]]))
-    _, me = await who(callback.from_user.id)
     await notify_bosses(bot, callback.from_user.id, f"Возврат от «{shop.name}» ({me or 'начальник'}).\n{text}")
     await callback.answer()
 

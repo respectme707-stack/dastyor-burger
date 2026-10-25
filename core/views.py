@@ -13,14 +13,18 @@ def _period(request):
 
 
 def _render(request, template, tab, context, period=None):
-    context.update(tab=tab, period=period, periods=reports.PERIODS.items())
+    keep = request.GET.copy()
+    keep.pop("period", None)
+    context.update(tab=tab, period=period, periods=reports.PERIODS.items(), keep=keep.urlencode())
     return render(request, template, context)
 
 
 @staff_member_required
 def dashboard(request):
     period = _period(request)
-    return _render(request, "core/overview.html", "overview", reports.build(period), period)
+    data = reports.build(period)
+    data["staff_ratings"] = reports.staff(period)["ratings"]
+    return _render(request, "core/overview.html", "overview", data, period)
 
 
 @staff_member_required
@@ -62,7 +66,12 @@ def product_detail(request, pk):
 @staff_member_required
 def staff(request):
     period = _period(request)
-    return _render(request, "core/staff.html", "staff", reports.staff(period), period)
+    query = request.GET.get("q", "").strip()
+    role = request.GET.get("role", "")
+    inactive = request.GET.get("inactive") == "1"
+    data = reports.staff(period, query, role, inactive)
+    data.update(q=query, role=role, inactive=inactive, roles=m.Worker.Role.choices)
+    return _render(request, "core/staff.html", "staff", data, period)
 
 
 @staff_member_required

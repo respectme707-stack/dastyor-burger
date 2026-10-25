@@ -1,9 +1,11 @@
 import os
 
+from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from . import models as m
 
@@ -28,7 +30,7 @@ class SupplierAdmin(admin.ModelAdmin):
 
 @admin.register(m.Unit)
 class UnitAdmin(admin.ModelAdmin):
-    list_display = ["name"]
+    list_display = ["name", "big_name", "big_ratio"]
     search_fields = ["name"]
 
 
@@ -84,8 +86,32 @@ class RawMaterialAdmin(admin.ModelAdmin):
         return money(obj.avg_price())
 
 
+class PurchaseItemForm(forms.ModelForm):
+    in_big = forms.BooleanField(
+        label="В кг / л", required=False,
+        help_text="Отметьте, если количество и цену пишете в кг или л, а сырьё считается в гр или мл")
+
+    class Meta:
+        model = m.PurchaseItem
+        fields = ["material", "qty", "price", "in_big"]
+
+    def clean(self):
+        data = super().clean()
+        material = data.get("material")
+        if data.get("in_big") and material and data.get("qty") is not None and data.get("price") is not None:
+            ratio = material.unit.big_ratio
+            if not ratio:
+                raise ValidationError(f"У единицы «{material.unit}» не указана крупная единица. "
+                                      "Уберите галочку или заполните её в «Единицах измерения».")
+            data["qty"] = data["qty"] * ratio
+            data["price"] = (data["price"] / ratio).quantize(m.Decimal("0.0001"))
+            self.instance.qty, self.instance.price = data["qty"], data["price"]
+        return data
+
+
 class PurchaseItemInline(admin.TabularInline):
     model = m.PurchaseItem
+    form = PurchaseItemForm
     extra = 3
     autocomplete_fields = ["material"]
 
@@ -95,8 +121,10 @@ class PurchaseAdmin(admin.ModelAdmin):
     list_display = ["__str__", "date", "supplier", "total_display", "paid"]
     list_filter = ["supplier", "date"]
     date_hierarchy = "date"
-    autocomplete_fields = ["supplier"]
     inlines = [PurchaseItemInline]
+
+    class Media:
+        js = ["core/totals.js"]
 
     @admin.display(description="Сумма")
     def total_display(self, obj):
@@ -123,7 +151,23 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ["active"]
     search_fields = ["name"]
     inlines = [RecipeItemInline]
-    readonly_fields = ["unit_cost_display", "profit_display"]
+    readonly_fields = ["unit_cost_display", "profit_display", "breakdown_display"]
+
+    @admin.display(description="Из чего складывается")
+    def breakdown_display(self, obj):
+        if not obj.pk:
+            return "—"
+        lines = []
+        for r in obj.recipe.select_related("material__unit"):
+            price = r.material.avg_price()
+            cost = r.qty * price
+            warn = cost > obj.price / 2
+            lines.append(format_html(
+                '<div{}>{}: {} {} × {} за 1 {} = <b>{}</b>{}</div>',
+                format_html(' style="color:#f85149"') if warn else "", r.material.name, qty(r.qty),
+                r.material.unit, money(price), r.material.unit, money(cost),
+                " ← проверьте цену закупки и единицу" if warn else ""))
+        return mark_safe("".join(lines)) if lines else "Рецепт пуст"
 
     @admin.display(description="Себестоимость 1 шт")
     def unit_cost_display(self, obj):
@@ -231,6 +275,13 @@ class ShipmentAdmin(admin.ModelAdmin):
     autocomplete_fields = ["shop"]
     inlines = [ShipmentItemInline]
 
+    class Media:
+        js = ["core/totals.js"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["product_prices"] = {p.pk: float(p.price) for p in m.Product.objects.all()}
+        return super().render_change_form(request, context, *args, **kwargs)
+
     @admin.display(description="Сумма")
     def total_display(self, obj):
         return money(obj.total())
@@ -242,8 +293,8 @@ class ShipmentAdmin(admin.ModelAdmin):
 
 @admin.register(m.Return)
 class ReturnAdmin(admin.ModelAdmin):
-    list_display = ["product", "shop", "date", "qty", "reason", "total_display"]
-    list_filter = ["reason", "shop__district", "shop", "product", "date"]
+    list_display = ["product", "shop", "date", "qty", "reason", "worker", "total_display"]
+    list_filter = ["reason", "worker", "shop__district", "shop", "product", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
 
@@ -317,6 +368,9 @@ class WorkerAdmin(admin.ModelAdmin):
     filter_horizontal = ["shops"]
     readonly_fields = ["bot_link"]
 
+    class Media:
+        js = ["core/worker_form.js"]
+
     @admin.display(description="На руках")
     def stock_display(self, obj):
         if not obj.is_seller():
@@ -343,3 +397,20 @@ class VanLoadAdmin(admin.ModelAdmin):
     list_filter = ["kind", "worker", "date"]
     date_hierarchy = "date"
     inlines = [VanLoadItemInline]
+
+
+@admin.register(m.WorkDay)
+class WorkDayAdmin(admin.ModelAdmin):
+    list_display = ["date", "worker", "status", "note"]
+    list_editable = ["status"]
+    list_filter = ["status", "worker", "date"]
+    date_hierarchy = "date"
+    actions = ["mark_worked", "mark_absent"]
+
+    @admin.action(description="Отметить: работал")
+    def mark_worked(self, request, queryset):
+        queryset.update(status=m.WorkDay.Status.WORKED)
+
+    @admin.action(description="Отметить: не вышел")
+    def mark_absent(self, request, queryset):
+        queryset.update(status=m.WorkDay.Status.ABSENT)

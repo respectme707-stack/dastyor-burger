@@ -60,3 +60,6 @@ input:focus, select:focus, textarea:focus { border-color: #1f6feb; outline: 1px 
 .select2-container--admin-autocomplete .select2-selection--single, .select2-dropdown { background: #0d1117 !important; border-color: #3d444d !important; }
 .select2-results__option { color: #f0f6fc; }
 .theme-toggle { display: none; }
+.dastyor-totals { display: flex; flex-wrap: wrap; gap: 24px; margin: -10px 0 20px; padding: 12px 16px; background: #151b23; border: 1px solid #3d444d; border-radius: 6px; font-size: 15px; }
+.dastyor-totals b.debt { color: #f85149; }
+.dastyor-line { color: #9198a1; font-size: 12px; margin-top: 4px; }

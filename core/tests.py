@@ -537,3 +537,51 @@ class HomemadeTests(TestCase):
         x = m.RawMaterial(name="Соль", min_stock=None)
         x.save()
         self.assertEqual(x.min_stock, 0)
+
+
+class FeedbackTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.user = User.objects.create_superuser("owner", password="x")
+        self.client.force_login(self.user)
+        self.gram = m.Unit.objects.get(name="гр")  # крупную единицу (кг) заполняет миграция
+        self.assertEqual(self.gram.big_ratio, 1000)
+        self.mayo = m.RawMaterial.objects.create(name="Майонез", unit=self.gram)
+        self.supplier = m.Supplier.objects.create(name="Бозор")
+
+    def _purchase(self, in_big):
+        data = {
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "20000", "note": "",
+            "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
+            "items-MAX_NUM_FORMS": "1000",
+            "items-0-material": self.mayo.pk, "items-0-qty": "2", "items-0-price": "36000",
+        }
+        if in_big:
+            data["items-0-in_big"] = "on"
+        return self.client.post("/admin/core/purchase/add/", data)
+
+    def test_purchase_in_kg_for_gram_material(self):
+        response = self._purchase(in_big=True)
+        self.assertEqual(response.status_code, 302, response.content.decode()[:3000])
+        item = m.PurchaseItem.objects.get()
+        self.assertEqual(item.qty, 2000)
+        self.assertEqual(item.price, D("36"))
+        self.assertEqual(self.mayo.stock(), 2000)
+        # 72 000 куплено − 20 000 оплачено
+        self.assertEqual(self.supplier.debt(), D("52000"))
+
+    def test_staff_filters_and_ratings(self):
+        from . import reports
+
+        a = m.Worker.objects.create(name="Азиз", role=m.Worker.Role.AGENT)
+        m.Worker.objects.create(name="Гулноза", role=m.Worker.Role.WORKSHOP)
+        m.WorkDay.objects.create(worker=a)
+        data = reports.staff("month", role=m.Worker.Role.AGENT)
+        self.assertEqual([r["worker"].name for r in data["rows"]], ["Азиз"])
+        self.assertEqual(data["rows"][0]["days"], 1)
+        self.assertEqual(data["ratings"]["days"][0]["worker"], a)
+        response = self.client.get("/staff/", {"q": "гул"})
+        self.assertContains(response, "Гулноза")
+        self.assertNotContains(response, "Азиз</a>")
+        self.assertContains(self.client.get("/"), "Рейтинг сотрудников")
