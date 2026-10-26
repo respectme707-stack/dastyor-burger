@@ -9,6 +9,12 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-key")
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+# Свой домен (DOMAIN=dastyor.uz в .env): сайт работает по https через Caddy.
+DOMAIN = os.environ.get("DOMAIN", "").strip()
+if DOMAIN:
+    CSRF_TRUSTED_ORIGINS += [f"https://{DOMAIN}", f"https://www.{DOMAIN}"]
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",

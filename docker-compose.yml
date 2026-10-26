@@ -17,8 +17,23 @@ services:
     environment:
       DATABASE_URL: postgres://dastyor:${DB_PASSWORD}@db:5432/dastyor
       DEBUG: "0"
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      # dastyor.uz → «dastyor.uz, www.dastyor.uz»; без домена сайт работает по IP на порту 80
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     ports:
-      - "80:8000"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
   bot:
     build: .
@@ -33,3 +48,5 @@ services:
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
