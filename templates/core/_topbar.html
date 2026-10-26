@@ -1,7 +1,11 @@
 <header class="gh-top">
   <div class="gh-bar">
+    {% if user.is_authenticated and user.is_staff %}<button type="button" class="gh-back" title="Назад" onclick="if (history.length > 1) history.back(); else location.href='{% url 'dashboard' %}'"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg><span>Назад</span></button>{% endif %}
     <div class="gh-logo" aria-hidden="true">D</div>
     <a class="gh-brand" href="{% url 'dashboard' %}">Dastyor Burger <span>/ учёт</span></a>
+    {% if user.is_authenticated and user.is_staff %}{% url 'search' as search_url %}
+    <form class="gh-search" role="search" action="{{ search_url }}"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg><input type="search" name="q" placeholder="Поиск: магазин, товар, сырьё, сотрудник…" value="{% if request.path == search_url %}{{ request.GET.q }}{% endif %}" aria-label="Поиск"></form>
+    {% endif %}
     <div class="gh-spacer"></div>
     {% if user.is_authenticated %}
     <div class="gh-user">

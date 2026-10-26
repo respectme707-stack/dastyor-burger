@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+{% block title %}Поиск{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Поиск{% if q %}: «{{ q }}»{% endif %}</h1><div class="sub">Ищет по магазинам, товарам, сырью, сотрудникам и поставщикам: по названию, адресу, телефону.</div></div>
+</div>
+{% if not q %}
+<p class="empty">Введите слово в строку поиска сверху.</p>
+{% else %}
+{% for title, rows in groups %}
+<section class="box">
+  <h2>{{ title }} <span class="muted">{{ rows|length }}</span></h2>
+  <div class="scroll"><table>
+    {% for name, info, url in rows %}<tr><td><a href="{{ url }}">{{ name }}</a></td><td class="muted wrap">{{ info }}</td></tr>{% endfor %}
+  </table></div>
+</section>
+{% empty %}
+<p class="empty">Ничего не нашлось по «{{ q }}».</p>
+{% endfor %}
+{% endif %}
+{% endblock %}

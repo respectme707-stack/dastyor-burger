@@ -597,9 +597,73 @@ class FeedbackTests(TestCase):
         purchase = m.Purchase.objects.get()
         page = self.client.get(f"/admin/core/purchase/{purchase.pk}/change/").content.decode()
         self.assertIn('name="items-0-qty" value="2"', page)
-        self.assertIn('name="items-0-price" value="16800.00"', page)
+        self.assertIn('name="items-0-price" value="16800"', page)
         # Бот тоже считает упаковками
         from . import botlogic
         botlogic.create_purchase(self.supplier.pk, [[self.mayo.pk, "1", "16800"]], 0)
         self.assertEqual(self.mayo.stock(), 2700)
         self.assertEqual(self.mayo.pack_label(), "банка по 900 гр")
+
+    def _resave(self, purchase, item, qty, price):
+        data = {
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "note": "",
+            "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "1", "items-MIN_NUM_FORMS": "0",
+            "items-MAX_NUM_FORMS": "1000", "items-0-id": item.pk, "items-0-purchase": purchase.pk,
+            "items-0-material": self.mayo.pk, "items-0-qty": qty, "items-0-price": price,
+        }
+        response = self.client.post(f"/admin/core/purchase/{purchase.pk}/change/", data)
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+
+    def test_old_purchase_written_before_packs(self):
+        # До упаковок записали «1» колбасу за 30 000 — на склад попал 1 гр по 30 000
+        purchase = m.Purchase.objects.create(supplier=self.supplier)
+        item = m.PurchaseItem.objects.create(purchase=purchase, material=self.mayo, qty=1, price=30000)
+        self.mayo.pack_size = 600
+        self.mayo.save()
+        self.assertIn("проверить</span>", self.client.get("/entry/").content.decode())
+        page = self.client.get(f"/admin/core/purchase/{purchase.pk}/change/").content.decode()
+        self.assertIn('name="items-0-qty" value="1"', page)
+        self.assertIn('name="items-0-price" value="30000"', page)
+        self.assertIn('name="paid" value="0"', page)
+        self._resave(purchase, item, "1", "30000")
+        self.assertEqual((item.qty, item.price), (600, 50))
+        self.assertEqual(round(purchase.total()), 30000)
+        self.assertFalse(item.before_packs())
+
+    def test_resave_keeps_exact_numbers(self):
+        # 10 шт из упаковки по 30: на экране 0,333 упак., а после сохранения остаются ровно 10
+        self.mayo.pack_size = 30
+        self.mayo.save()
+        purchase = m.Purchase.objects.create(supplier=self.supplier)
+        item = m.PurchaseItem.objects.create(purchase=purchase, material=self.mayo, qty=10, price=250)
+        page = self.client.get(f"/admin/core/purchase/{purchase.pk}/change/").content.decode()
+        self.assertIn('name="items-0-qty" value="0.333"', page)
+        self.assertIn('name="items-0-price" value="7500"', page)
+        self._resave(purchase, item, "0.333", "8000")
+        self.assertEqual(item.qty, 10)
+        self.assertEqual(round(item.price, 2), D("266.67"))
+
+    def test_search_recipes_and_purchases_on_entry(self):
+        shop = m.Shop.objects.create(name="Корзинка", district="Юнусабад", phone="+998 90 111")
+        hot_dog = m.Product.objects.create(name="Хот-дог", price=12000)
+        m.RecipeItem.objects.create(product=hot_dog, material=self.mayo, qty=D("11.25"))
+        bun = m.RawMaterial.objects.create(name="Булочка", unit=self.gram, homemade=True)
+        m.MaterialRecipeItem.objects.create(material=bun, ingredient=self.mayo, qty=1)
+        response = self.client.get("/search/", {"q": "КОРЗ"})
+        self.assertContains(response, f"/shops/{shop.pk}/")
+        self.assertContains(self.client.get("/search/", {"q": "майон"}), "Майонез")
+        self.assertContains(self.client.get("/search/", {"q": "нет такого"}), "Ничего не нашлось")
+        page = self.client.get("/entry/recipes/")
+        self.assertContains(page, "Хот-дог")
+        self.assertContains(page, "Булочка")
+        purchase = m.Purchase.objects.create(supplier=self.supplier)
+        m.PurchaseItem.objects.create(purchase=purchase, material=self.mayo, qty=1800, price=D("18.666667"))
+        self.mayo.pack_name, self.mayo.pack_size = "банка", 900
+        self.mayo.save()
+        entry = self.client.get("/entry/").content.decode()
+        self.assertIn("Что купили", entry)
+        self.assertIn("2 банка", entry)
+        self.assertNotIn("проверить</span>", entry)
+        self.assertIn("Назад", entry)
+        self.assertIn('action="/search/"', self.client.get("/admin/").content.decode())

@@ -89,7 +89,19 @@ def stock(request):
 
 @staff_member_required
 def entry(request):
-    return _render(request, "core/entry.html", "entry", {"recent": reports.recent(20)})
+    return _render(request, "core/entry.html", "entry",
+                   {"recent": reports.recent(20), "purchases": reports.purchases(15)})
+
+
+@staff_member_required
+def recipes(request):
+    return _render(request, "core/recipes.html", "entry", reports.recipes())
+
+
+@staff_member_required
+def search(request):
+    query = request.GET.get("q", "").strip()
+    return _render(request, "core/search.html", "", {"q": query, "groups": reports.search(query)})
 
 
 @staff_member_required

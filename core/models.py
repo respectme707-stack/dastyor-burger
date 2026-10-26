@@ -276,6 +276,16 @@ class PurchaseItem(models.Model):
         verbose_name = "Строка закупки"
         verbose_name_plural = "Строки закупки"
 
+    def before_packs(self):
+        """Записано до упаковок: «1» колбасу по 600 гр попала на склад как 1 гр по 30 000 сум.
+
+        Целое число меньше упаковки, единица гр/мл, а цена за 1 гр/мл от 1 000 сум — так не бывает.
+        Такую строку показываем упаковками; при сохранении закупки она пересчитается.
+        """
+        size = self.material.pack_size
+        return bool(size and self.material.unit.big_ratio and self.qty < size
+                    and self.qty == self.qty.to_integral() and self.price >= 1000)
+
     def __str__(self):
         return f"{self.material.name}: {self.qty}"
 

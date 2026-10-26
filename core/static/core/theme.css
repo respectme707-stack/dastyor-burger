@@ -26,4 +26,14 @@
 .gh-tabs svg { width: 16px; height: 16px; fill: none; stroke: var(--gh-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .gh-tabs a.cta span { color: var(--gh-green-fg); font-weight: 600; }
 .gh-tabs a.cta svg { stroke: var(--gh-green-fg); }
-@media (max-width: 600px) { .gh-brand span, .gh-user .gh-name { display: none; } }
+.gh-back { display: flex; align-items: center; gap: 4px; background: var(--gh-subtle); color: var(--gh-fg); border: 1px solid var(--gh-line); border-radius: 6px; padding: 4px 10px 4px 6px; font: inherit; font-size: 13px; cursor: pointer; flex: none; }
+.gh-back:hover { border-color: var(--gh-muted); }
+.gh-back svg, .gh-search svg { width: 16px; height: 16px; fill: none; stroke: var(--gh-muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.gh-search { display: flex; align-items: center; gap: 6px; margin: 0 0 0 12px; flex: 0 1 340px; min-width: 0; background: var(--gh-bg); border: 1px solid var(--gh-line); border-radius: 6px; padding: 0 8px; }
+.gh-search:focus-within { border-color: var(--gh-link); box-shadow: 0 0 0 1px var(--gh-link); }
+.gh-search input { flex: 1; min-width: 0; background: transparent !important; border: 0 !important; outline: 0; box-shadow: none !important; color: var(--gh-fg) !important; font: inherit; font-size: 14px; padding: 5px 0 !important; margin: 0; height: auto !important; }
+@media (max-width: 600px) {
+  .gh-brand span, .gh-user .gh-name, .gh-back span { display: none; }
+  .gh-bar { flex-wrap: wrap; }
+  .gh-search { order: 9; flex: 1 1 100%; margin: 0; }
+}

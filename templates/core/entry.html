@@ -14,6 +14,14 @@
   <a class="action" href="{% url 'admin:core_materialwriteoff_add' %}"><span class="ic">🗑️</span><span><b>Списать сырьё</b><small>Испортилось, пропало</small></span></a>
 </div>
 
+<h2 class="section-title">Закупки и рецепты</h2>
+<div class="actions">
+  <a class="action" href="{% url 'admin:core_purchase_changelist' %}"><span class="ic">🧺</span><span><b>Все закупки</b><small>Что купили, у кого, по какой цене</small></span></a>
+  <a class="action" href="{% url 'recipes' %}"><span class="ic">📖</span><span><b>Рецепты</b><small>Все рецепты товаров и булочек</small></span></a>
+  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">➕</span><span><b>Новый рецепт товара</b><small>Хот-дог, бургер: из чего 1 шт</small></span></a>
+  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}?homemade=1"><span class="ic">🥯</span><span><b>Новый полуфабрикат</b><small>Булочка и т.п.: из чего 1 шт</small></span></a>
+</div>
+
 <h2 class="section-title">Магазины</h2>
 <div class="actions">
   <a class="action" href="{% url 'admin:core_shipment_add' %}"><span class="ic">📦</span><span><b>Отгрузка</b><small>Привезли товар в магазин</small></span></a>
@@ -42,6 +50,24 @@
   <a class="action" href="{% url 'admin:core_supplier_add' %}"><span class="ic">🏭</span><span><b>Новый поставщик</b></span></a>
   <a class="action" href="{% url 'admin:core_worker_add' %}"><span class="ic">🧑</span><span><b>Новый сотрудник</b></span></a>
 </div>
+
+<section class="box">
+  <h2>Что купили <a href="{% url 'admin:core_purchase_changelist' %}">все закупки →</a></h2>
+  {% if purchases %}
+  <div class="scroll"><table>
+    <thead><tr><th>Дата</th><th>Сырьё</th><th>Поставщик</th><th class="num">Сколько</th><th class="num">Цена</th><th class="num">Сумма</th><th></th></tr></thead>
+    {% for p in purchases %}<tr>
+      <td>{{ p.purchase.date|date:"d.m.Y" }}</td>
+      <td>{{ p.material.name }}{% if p.old %} <span class="tag warn" title="Записано до упаковок: откройте закупку и нажмите «Сохранить»">проверить</span>{% endif %}</td>
+      <td>{{ p.purchase.supplier }}</td>
+      <td class="num">{% if p.old %}{{ p.packs|qty }} {{ p.material.pack_word }}{% elif p.material.pack_size %}{{ p.packs|qty }} {{ p.material.pack_word }} <span class="muted">({{ p.item.qty|qty }} {{ p.material.unit }})</span>{% else %}{{ p.item.qty|qty }} {{ p.material.unit }}{% endif %}</td>
+      <td class="num">{{ p.pack_price|money }}</td>
+      <td class="num">{{ p.sum|money }}</td>
+      <td><a href="{% url 'admin:core_purchase_change' p.purchase.pk %}">открыть</a></td>
+    </tr>{% endfor %}
+  </table></div>
+  {% else %}<p class="empty">Закупок пока нет.</p>{% endif %}
+</section>
 
 <section class="box">
   <h2>Последние записи</h2>
