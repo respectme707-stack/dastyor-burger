@@ -1,11 +1,11 @@
-{% extends "core/base.html" %}
-{% block title %}Поиск{% endblock %}
+{% extends "core/base.html" %}{% load i18n %}
+{% block title %}{% translate "Поиск" %}{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>Поиск{% if q %}: «{{ q }}»{% endif %}</h1><div class="sub">Ищет по магазинам, товарам, сырью, сотрудникам и поставщикам: по названию, адресу, телефону.</div></div>
+  <div><h1>{% translate "Поиск" %}{% if q %}: «{{ q }}»{% endif %}</h1><div class="sub">{% translate "Ищет по магазинам, товарам, сырью, сотрудникам и поставщикам: по названию, адресу, телефону." %}</div></div>
 </div>
 {% if not q %}
-<p class="empty">Введите слово в строку поиска сверху.</p>
+<p class="empty">{% translate "Введите слово в строку поиска сверху." %}</p>
 {% else %}
 {% for title, rows in groups %}
 <section class="box">
@@ -15,7 +15,7 @@
   </table></div>
 </section>
 {% empty %}
-<p class="empty">Ничего не нашлось по «{{ q }}».</p>
+<p class="empty">{% blocktranslate %}Ничего не нашлось по «{{ q }}».{% endblocktranslate %}</p>
 {% endfor %}
 {% endif %}
 {% endblock %}

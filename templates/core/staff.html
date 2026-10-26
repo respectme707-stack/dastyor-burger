@@ -1,31 +1,31 @@
-{% extends "core/base.html" %}{% load fmt %}
-{% block title %}Сотрудники{% endblock %}
+{% extends "core/base.html" %}{% load fmt i18n %}
+{% block title %}{% translate "Сотрудники" %}{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>Сотрудники</h1><div class="sub">Кто сколько продал, собрал денег, сделал и потратил. Нажмите на имя для подробностей.</div></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_worker_add' %}">+ Сотрудник</a></div>
+  <div><h1>{% translate "Сотрудники" %}</h1><div class="sub">{% translate "Кто сколько продал, собрал денег, сделал и потратил. Нажмите на имя для подробностей." %}</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn primary" href="{% url 'admin:core_worker_add' %}">+ {% translate "Сотрудник" %}</a></div>
 </div>
 <form class="filters" method="get">
   <input type="hidden" name="period" value="{{ period }}">
-  <input type="search" name="q" value="{{ q }}" placeholder="Поиск по имени или телефону" aria-label="Поиск">
-  <select name="role" aria-label="Роль" onchange="this.form.submit()">
-    <option value="">Все роли</option>
+  <input type="search" name="q" value="{{ q }}" placeholder="{% translate "Поиск по имени или телефону" %}" aria-label="{% translate "Поиск" %}">
+  <select name="role" aria-label="{% translate "Роль" %}" onchange="this.form.submit()">
+    <option value="">{% translate "Все роли" %}</option>
     {% for value, label in roles %}<option value="{{ value }}" {% if value == role %}selected{% endif %}>{{ label }}</option>{% endfor %}
   </select>
-  <label><input type="checkbox" name="inactive" value="1" {% if inactive %}checked{% endif %} onchange="this.form.submit()"> показать уволенных</label>
-  <button class="btn" type="submit">Найти</button>
-  {% if q or role or inactive %}<a href="?period={{ period }}">сбросить</a>{% endif %}
+  <label><input type="checkbox" name="inactive" value="1" {% if inactive %}checked{% endif %} onchange="this.form.submit()"> {% translate "показать уволенных" %}</label>
+  <button class="btn" type="submit">{% translate "Найти" %}</button>
+  {% if q or role or inactive %}<a href="?period={{ period }}">{% translate "сбросить" %}</a>{% endif %}
 </form>
 
 <section class="box">
-  <h2>Сводка по сотрудникам <a href="{% url 'admin:core_workday_changelist' %}">табель →</a></h2>
+  <h2>{% translate "Сводка по сотрудникам" %} <a href="{% url 'admin:core_workday_changelist' %}">{% translate "табель →" %}</a></h2>
   {% if rows %}
   <div class="scroll"><table>
-    <thead><tr><th>Сотрудник</th><th>Роль</th><th class="num">Продал, сум</th><th class="num">Шт</th><th class="num">Магазинов</th><th class="num">Собрал денег</th><th class="num">Расходы</th><th class="num">Возвраты принял</th><th class="num">Убыток от возвр.</th><th class="num">Сделал, шт</th><th class="num">Получил товара</th><th class="num">Передал агентам</th><th class="num">Сейчас на руках</th><th class="num">Дней работал</th><th class="num">Не вышел</th></tr></thead>
+    <thead><tr><th>{% translate "Сотрудник" %}</th><th>{% translate "Роль" %}</th><th class="num">{% translate "Продал, сум" %}</th><th class="num">{% translate "Шт" %}</th><th class="num">{% translate "Магазинов" %}</th><th class="num">{% translate "Собрал денег" %}</th><th class="num">{% translate "Расходы" %}</th><th class="num">{% translate "Возвраты принял" %}</th><th class="num">{% translate "Убыток от возвр." %}</th><th class="num">{% translate "Сделал, шт" %}</th><th class="num">{% translate "Получил товара" %}</th><th class="num">{% translate "Передал агентам" %}</th><th class="num">{% translate "Сейчас на руках" %}</th><th class="num">{% translate "Дней работал" %}</th><th class="num">{% translate "Не вышел" %}</th></tr></thead>
     <tbody>
     {% for r in rows %}
     <tr>
-      <td><a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a>{% if not r.worker.active %} <span class="tag">не работает</span>{% endif %}</td>
+      <td><a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a>{% if not r.worker.active %} <span class="tag">{% translate "не работает" %}</span>{% endif %}</td>
       <td>{{ r.worker.get_role_display }}</td>
       <td class="num">{{ r.sales|money }}</td>
       <td class="num">{{ r.qty|money }}</td>
@@ -44,7 +44,7 @@
     {% endfor %}
     </tbody>
   </table></div>
-  {% elif q or role %}<p class="empty">Никого не нашли.</p>{% else %}<p class="empty">Сотрудников ещё нет. <a href="{% url 'admin:core_worker_add' %}">Добавить</a></p>{% endif %}
+  {% elif q or role %}<p class="empty">{% translate "Никого не нашли." %}</p>{% else %}<p class="empty">{% translate "Сотрудников ещё нет." %} <a href="{% url 'admin:core_worker_add' %}">{% translate "Добавить" %}</a></p>{% endif %}
 </section>
 {% include "core/_staff_ratings.html" with ratings=ratings %}
 {% endblock %}

@@ -1,9 +1,9 @@
-{% load fmt %}<section class="box">
-  <h2>Рейтинг сотрудников <a href="{% url 'staff' %}?period={{ period }}">все →</a></h2>
+{% load fmt i18n %}<section class="box">
+  <h2>{% translate "Рейтинг сотрудников" %} <a href="{% url 'staff' %}?period={{ period }}">{% translate "все →" %}</a></h2>
   <div class="ratings">
-    <div><h3>Больше продал</h3>{% for r in ratings.sales %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.sales|money }}</b></p>{% empty %}<p class="muted">нет продаж</p>{% endfor %}</div>
-    <div><h3>Больше убытка от возвратов</h3>{% for r in ratings.loss %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b class="bad">{{ r.loss|money }}</b></p>{% empty %}<p class="muted">возвратов нет</p>{% endfor %}</div>
-    <div><h3>Больше магазинов посетил</h3>{% for r in ratings.shops %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.shops }}</b></p>{% empty %}<p class="muted">нет посещений</p>{% endfor %}</div>
-    <div><h3>Больше дней работал</h3>{% for r in ratings.days %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.days }} дн.</b></p>{% empty %}<p class="muted">табель пуст</p>{% endfor %}</div>
+    <div><h3>{% translate "Больше продал" %}</h3>{% for r in ratings.sales %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.sales|money }}</b></p>{% empty %}<p class="muted">{% translate "нет продаж" %}</p>{% endfor %}</div>
+    <div><h3>{% translate "Больше убытка от возвратов" %}</h3>{% for r in ratings.loss %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b class="bad">{{ r.loss|money }}</b></p>{% empty %}<p class="muted">{% translate "возвратов нет" %}</p>{% endfor %}</div>
+    <div><h3>{% translate "Больше магазинов посетил" %}</h3>{% for r in ratings.shops %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.shops }}</b></p>{% empty %}<p class="muted">{% translate "нет посещений" %}</p>{% endfor %}</div>
+    <div><h3>{% translate "Больше дней работал" %}</h3>{% for r in ratings.days %}<p><span>{{ forloop.counter }}. <a href="{% url 'staff_detail' r.worker.pk %}?period={{ period }}">{{ r.worker.name }}</a></span><b>{{ r.days }} {% translate "дн." %}</b></p>{% empty %}<p class="muted">{% translate "табель пуст" %}</p>{% endfor %}</div>
   </div>
 </section>

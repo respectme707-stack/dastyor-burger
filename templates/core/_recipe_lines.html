@@ -1,6 +1,6 @@
-{% load fmt %}{% if lines %}
+{% load fmt i18n %}{% if lines %}
 <div class="scroll"><table>
-  <thead><tr><th>Сырьё</th><th class="num">Расход на 1</th><th class="num">Стоимость</th></tr></thead>
+  <thead><tr><th>{% translate "Сырьё" %}</th><th class="num">{% translate "Расход на 1" %}</th><th class="num">{% translate "Стоимость" %}</th></tr></thead>
   {% for x in lines %}<tr><td>{{ x.material.name }}</td><td class="num">{{ x.qty|qty }} {{ x.material.unit }}</td><td class="num">{{ x.cost|money }}</td></tr>{% endfor %}
 </table></div>
-{% else %}<p class="empty">Рецепт не заполнен. <a href="{% if kind == 'product' %}{% url 'admin:core_product_change' edit %}{% else %}{% url 'admin:core_rawmaterial_change' edit %}{% endif %}">Заполнить</a></p>{% endif %}
+{% else %}<p class="empty">{% translate "Рецепт не заполнен." %} <a href="{% if kind == 'product' %}{% url 'admin:core_product_change' edit %}{% else %}{% url 'admin:core_rawmaterial_change' edit %}{% endif %}">{% translate "Заполнить" %}</a></p>{% endif %}

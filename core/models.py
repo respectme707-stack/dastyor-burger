@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 ZERO = Decimal("0")
 MONEY = dict(max_digits=14, decimal_places=2)
@@ -23,13 +24,13 @@ def _sum(qs, expr):
 
 
 class Supplier(models.Model):
-    name = models.CharField("Название", max_length=200, unique=True)
-    phone = models.CharField("Телефон", max_length=50, blank=True)
-    note = models.TextField("Заметка", blank=True)
+    name = models.CharField(_("Название"), max_length=200, unique=True)
+    phone = models.CharField(_("Телефон"), max_length=50, blank=True)
+    note = models.TextField(_("Заметка"), blank=True)
 
     class Meta:
-        verbose_name = "Поставщик"
-        verbose_name_plural = "Поставщики"
+        verbose_name = _("Поставщик")
+        verbose_name_plural = _("Поставщики")
         ordering = ["name"]
 
     def __str__(self):
@@ -44,12 +45,12 @@ class Supplier(models.Model):
 
 
 class MaterialCategory(models.Model):
-    name = models.CharField("Название", max_length=100, unique=True,
-                            help_text="Например: Бургер, Булочки, Упаковка")
+    name = models.CharField(_("Название"), max_length=100, unique=True,
+                            help_text=_("Например: Бургер, Булочки, Упаковка"))
 
     class Meta:
-        verbose_name = "Категория сырья"
-        verbose_name_plural = "Категории сырья"
+        verbose_name = _("Категория сырья")
+        verbose_name_plural = _("Категории сырья")
         ordering = ["name"]
 
     def __str__(self):
@@ -57,15 +58,15 @@ class MaterialCategory(models.Model):
 
 
 class Unit(models.Model):
-    name = models.CharField("Единица", max_length=20, unique=True, help_text="Например: шт, кг, гр, л, пачка")
-    big_name = models.CharField("Крупная единица", max_length=20, blank=True,
-                                help_text="Для закупки. Например, для «гр» это «кг», для «мл» это «л»")
-    big_ratio = models.DecimalField("Сколько в ней", max_digits=12, decimal_places=3, null=True, blank=True,
-                                    help_text="Для «гр» → «кг» это 1000")
+    name = models.CharField(_("Единица"), max_length=20, unique=True, help_text=_("Например: шт, кг, гр, л, пачка"))
+    big_name = models.CharField(_("Крупная единица"), max_length=20, blank=True,
+                                help_text=_("Для закупки. Например, для «гр» это «кг», для «мл» это «л»"))
+    big_ratio = models.DecimalField(_("Сколько в ней"), max_digits=12, decimal_places=3, null=True, blank=True,
+                                    help_text=_("Для «гр» → «кг» это 1000"))
 
     class Meta:
-        verbose_name = "Единица измерения"
-        verbose_name_plural = "Единицы измерения"
+        verbose_name = _("Единица измерения")
+        verbose_name_plural = _("Единицы измерения")
         ordering = ["name"]
 
     def __str__(self):
@@ -79,24 +80,24 @@ def default_unit():
 
 
 class RawMaterial(models.Model):
-    name = models.CharField("Название", max_length=200, unique=True)
+    name = models.CharField(_("Название"), max_length=200, unique=True)
     category = models.ForeignKey(MaterialCategory, on_delete=models.SET_NULL, null=True, blank=True,
-                                 related_name="materials", verbose_name="Категория")
+                                 related_name="materials", verbose_name=_("Категория"))
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT, default=default_unit, related_name="materials",
-                             verbose_name="Единица")
-    min_stock = models.DecimalField("Мин. остаток", default=0, blank=True, **QTY,
-                                    help_text="Необязательно. Если остаток станет меньше, сайт предупредит")
-    pack_name = models.CharField("Название упаковки", max_length=30, blank=True,
-                                 help_text="Необязательно, только слово: банка, пачка, ведро. Не число")
-    pack_size = models.DecimalField("Сколько в 1 упаковке", null=True, blank=True, **QTY,
-                                    help_text="В единицах этого сырья. Майонез в гр: 900. Колбаса в гр: 600. "
-                                              "Если заполнено, закупка вводится упаковками")
-    homemade = models.BooleanField("Делаем сами", default=False,
-                                   help_text="Например, булочки: не покупаем, а печём в цеху по своему рецепту")
+                             verbose_name=_("Единица"))
+    min_stock = models.DecimalField(_("Мин. остаток"), default=0, blank=True, **QTY,
+                                    help_text=_("Необязательно. Если остаток станет меньше, сайт предупредит"))
+    pack_name = models.CharField(_("Название упаковки"), max_length=30, blank=True,
+                                 help_text=_("Необязательно, только слово: банка, пачка, ведро. Не число"))
+    pack_size = models.DecimalField(_("Сколько в 1 упаковке"), null=True, blank=True, **QTY,
+                                    help_text=_("В единицах этого сырья. Майонез в гр: 900. Колбаса в гр: 600. "
+                                              "Если заполнено, закупка вводится упаковками"))
+    homemade = models.BooleanField(_("Делаем сами"), default=False,
+                                   help_text=_("Например, булочки: не покупаем, а печём в цеху по своему рецепту"))
 
     class Meta:
-        verbose_name = "Сырьё"
-        verbose_name_plural = "Сырьё"
+        verbose_name = _("Сырьё")
+        verbose_name_plural = _("Сырьё")
         ordering = ["name"]
 
     def __str__(self):
@@ -104,13 +105,14 @@ class RawMaterial(models.Model):
 
     def pack_word(self):
         name = self.pack_name.strip()
-        return name if name and not any(ch.isdigit() for ch in name) else "упак."
+        return name if name and not any(ch.isdigit() for ch in name) else _("упак.")
 
     def pack_label(self):
         """«банка по 900 гр» или просто единица, если упаковки нет."""
         if not self.pack_size:
             return str(self.unit)
-        return f"{self.pack_word()} по {Decimal(self.pack_size).normalize():f} {self.unit}"
+        return _("%(pack)s по %(size)s %(unit)s") % {
+            "pack": self.pack_word(), "size": f"{Decimal(self.pack_size).normalize():f}", "unit": self.unit}
 
     def from_packs(self, qty, price):
         """Количество и цена упаковками → в единицах сырья (для склада и себестоимости)."""
@@ -168,13 +170,13 @@ class MaterialRecipeItem(models.Model):
 
     material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE, related_name="ingredients")
     ingredient = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="used_in",
-                                   verbose_name="Сырьё")
-    qty = models.DecimalField("Расход на 1 единицу", **QTY,
-                              help_text="В единицах этого сырья: 40 г муки = 0,040 кг")
+                                   verbose_name=_("Сырьё"))
+    qty = models.DecimalField(_("Расход на 1 единицу"), **QTY,
+                              help_text=_("В единицах этого сырья: 40 г муки = 0,040 кг"))
 
     class Meta:
-        verbose_name = "Строка рецепта"
-        verbose_name_plural = "Рецепт (из чего делаем 1 единицу)"
+        verbose_name = _("Строка рецепта")
+        verbose_name_plural = _("Рецепт (из чего делаем 1 единицу)")
         unique_together = [("material", "ingredient")]
 
     def __str__(self):
@@ -182,7 +184,7 @@ class MaterialRecipeItem(models.Model):
 
     def clean(self):
         if self.material_id and self.material_id == self.ingredient_id:
-            raise ValidationError("Сырьё не может быть в своём же рецепте.")
+            raise ValidationError(_("Сырьё не может быть в своём же рецепте."))
 
 
 def _shortages(lines, times, own_consumptions=None):
@@ -194,24 +196,25 @@ def _shortages(lines, times, own_consumptions=None):
         if own_consumptions is not None:
             available += own_consumptions.filter(material=material).aggregate(s=Sum("qty"))["s"] or ZERO
         if need > available:
-            result.append(f"{material.name}: нужно {need:g}, есть {available:g}")
+            result.append(_("%(name)s: нужно %(need)s, есть %(have)s") % {
+                "name": material.name, "need": f"{need:g}", "have": f"{available:g}"})
     return result
 
 
 class MaterialBatch(models.Model):
     """Сделали свой полуфабрикат в цеху (например, испекли булочки). Списывает сырьё по его рецепту."""
 
-    date = models.DateField("Дата", default=timezone.localdate)
+    date = models.DateField(_("Дата"), default=timezone.localdate)
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="batches",
-                                 verbose_name="Что сделали", limit_choices_to={"homemade": True})
-    qty = models.DecimalField("Сколько сделали", **QTY)
-    unit_cost = models.DecimalField("Себестоимость 1 ед.", default=0, editable=False, **MONEY)
+                                 verbose_name=_("Что сделали"), limit_choices_to={"homemade": True})
+    qty = models.DecimalField(_("Сколько сделали"), **QTY)
+    unit_cost = models.DecimalField(_("Себестоимость 1 ед."), default=0, editable=False, **MONEY)
     worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="batches", verbose_name="Кто сделал")
+                               related_name="batches", verbose_name=_("Кто сделал"))
 
     class Meta:
-        verbose_name = "Выпечка / заготовка"
-        verbose_name_plural = "Выпечка / заготовки"
+        verbose_name = _("Выпечка / заготовка")
+        verbose_name_plural = _("Выпечка / заготовки")
         ordering = ["-date", "-id"]
 
     def __str__(self):
@@ -225,10 +228,10 @@ class MaterialBatch(models.Model):
             return
         recipe = [(r.ingredient, r.qty) for r in self.material.ingredients.select_related("ingredient")]
         if not recipe:
-            raise ValidationError(f"У «{self.material.name}» нет рецепта. Заполните его в карточке сырья.")
+            raise ValidationError(_("У «%(name)s» нет рецепта. Заполните его в карточке сырья.") % {"name": self.material.name})
         shortages = _shortages(recipe, self.qty, self.consumptions if self.pk else None)
         if shortages:
-            raise ValidationError("Не хватает сырья. " + "; ".join(shortages))
+            raise ValidationError(_("Не хватает сырья. ") + "; ".join(shortages))
 
     @transaction.atomic
     def save(self, *args, **kwargs):
@@ -247,18 +250,18 @@ class MaterialBatch(models.Model):
 
 class Purchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="purchases",
-                                 verbose_name="Поставщик")
-    date = models.DateField("Дата", default=timezone.localdate)
-    paid = models.DecimalField("Оплачено сразу", default=0, **MONEY)
-    note = models.CharField("Заметка", max_length=300, blank=True)
+                                 verbose_name=_("Поставщик"))
+    date = models.DateField(_("Дата"), default=timezone.localdate)
+    paid = models.DecimalField(_("Оплачено сразу"), default=0, **MONEY)
+    note = models.CharField(_("Заметка"), max_length=300, blank=True)
 
     class Meta:
-        verbose_name = "Закупка"
-        verbose_name_plural = "Закупки"
+        verbose_name = _("Закупка")
+        verbose_name_plural = _("Закупки")
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"Закупка №{self.pk} от {self.date:%d.%m.%Y}, {self.supplier}"
+        return _("Закупка №%(pk)s от %(date)s, %(who)s") % {"pk": self.pk, "date": f"{self.date:%d.%m.%Y}", "who": self.supplier}
 
     def total(self):
         return _sum(self.items.all(), F("qty") * F("price"))
@@ -267,14 +270,14 @@ class Purchase(models.Model):
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name="items")
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="purchase_items",
-                                 verbose_name="Сырьё")
-    qty = models.DecimalField("Количество", **QTY)
-    price = models.DecimalField("Цена", max_digits=20, decimal_places=6,
-                                help_text="За то, как считаете: за 1 гр, за 1 кг или за 1 упаковку")
+                                 verbose_name=_("Сырьё"))
+    qty = models.DecimalField(_("Количество"), **QTY)
+    price = models.DecimalField(_("Цена"), max_digits=20, decimal_places=6,
+                                help_text=_("За то, как считаете: за 1 гр, за 1 кг или за 1 упаковку"))
 
     class Meta:
-        verbose_name = "Строка закупки"
-        verbose_name_plural = "Строки закупки"
+        verbose_name = _("Строка закупки")
+        verbose_name_plural = _("Строки закупки")
 
     def before_packs(self):
         """Записано до упаковок: «1» колбасу по 600 гр попала на склад как 1 гр по 30 000 сум.
@@ -292,32 +295,32 @@ class PurchaseItem(models.Model):
 
 class MaterialWriteOff(models.Model):
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="writeoffs",
-                                 verbose_name="Сырьё")
-    date = models.DateField("Дата", default=timezone.localdate)
-    qty = models.DecimalField("Количество", **QTY)
-    reason = models.CharField("Причина", max_length=300, blank=True,
-                              help_text="Испорчено, просрочено, инвентаризация")
+                                 verbose_name=_("Сырьё"))
+    date = models.DateField(_("Дата"), default=timezone.localdate)
+    qty = models.DecimalField(_("Количество"), **QTY)
+    reason = models.CharField(_("Причина"), max_length=300, blank=True,
+                              help_text=_("Испорчено, просрочено, инвентаризация"))
 
     class Meta:
-        verbose_name = "Списание сырья"
-        verbose_name_plural = "Списания сырья"
+        verbose_name = _("Списание сырья")
+        verbose_name_plural = _("Списания сырья")
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"Списание {self.material.name}: {self.qty}"
+        return _("Списание %(name)s: %(qty)s") % {"name": self.material.name, "qty": self.qty}
 
 
 class Product(models.Model):
-    name = models.CharField("Название", max_length=200, unique=True)
-    price = models.DecimalField("Цена для магазинов", **MONEY)
+    name = models.CharField(_("Название"), max_length=200, unique=True)
+    price = models.DecimalField(_("Цена для магазинов"), **MONEY)
     shelf_life_days = models.PositiveSmallIntegerField(
-        "Срок годности, дней", default=5,
-        help_text="Летом можно уменьшить. По нему бот напоминает о магазинах без заказа")
-    active = models.BooleanField("Продаётся", default=True)
+        _("Срок годности, дней"), default=5,
+        help_text=_("Летом можно уменьшить. По нему бот напоминает о магазинах без заказа"))
+    active = models.BooleanField(_("Продаётся"), default=True)
 
     class Meta:
-        verbose_name = "Продукт"
-        verbose_name_plural = "Продукты"
+        verbose_name = _("Продукт")
+        verbose_name_plural = _("Продукты")
         ordering = ["name"]
 
     def __str__(self):
@@ -348,13 +351,13 @@ class Product(models.Model):
 class RecipeItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="recipe")
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="recipe_items",
-                                 verbose_name="Сырьё")
-    qty = models.DecimalField("Расход на 1 шт", **QTY,
-                              help_text="В единицах сырья: шт, кг (20 г = 0,020) или л")
+                                 verbose_name=_("Сырьё"))
+    qty = models.DecimalField(_("Расход на 1 шт"), **QTY,
+                              help_text=_("В единицах сырья: шт, кг (20 г = 0,020) или л"))
 
     class Meta:
-        verbose_name = "Строка рецепта"
-        verbose_name_plural = "Рецепт"
+        verbose_name = _("Строка рецепта")
+        verbose_name_plural = _("Рецепт")
         unique_together = [("product", "material")]
 
     def __str__(self):
@@ -362,17 +365,17 @@ class RecipeItem(models.Model):
 
 
 class Production(models.Model):
-    date = models.DateField("Дата", default=timezone.localdate)
+    date = models.DateField(_("Дата"), default=timezone.localdate)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="productions",
-                                verbose_name="Продукт")
-    qty = models.PositiveIntegerField("Количество, шт")
-    unit_cost = models.DecimalField("Себестоимость 1 шт", default=0, editable=False, **MONEY)
+                                verbose_name=_("Продукт"))
+    qty = models.PositiveIntegerField(_("Количество, шт"))
+    unit_cost = models.DecimalField(_("Себестоимость 1 шт"), default=0, editable=False, **MONEY)
     worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="productions", verbose_name="Кто сделал")
+                               related_name="productions", verbose_name=_("Кто сделал"))
 
     class Meta:
-        verbose_name = "Производство"
-        verbose_name_plural = "Производство"
+        verbose_name = _("Производство")
+        verbose_name_plural = _("Производство")
         ordering = ["-date", "-id"]
 
     def __str__(self):
@@ -386,10 +389,10 @@ class Production(models.Model):
             return
         recipe = [(r.material, r.qty) for r in self.product.recipe.select_related("material")]
         if not recipe:
-            raise ValidationError("У продукта нет рецепта. Сначала заполните рецепт.")
+            raise ValidationError(_("У продукта нет рецепта. Сначала заполните рецепт."))
         shortages = _shortages(recipe, self.qty, self.consumptions if self.pk else None)
         if shortages:
-            raise ValidationError("Не хватает сырья. " + "; ".join(shortages))
+            raise ValidationError(_("Не хватает сырья. ") + "; ".join(shortages))
 
     @transaction.atomic
     def save(self, *args, **kwargs):
@@ -416,37 +419,37 @@ class Consumption(models.Model):
     batch = models.ForeignKey(MaterialBatch, on_delete=models.CASCADE, null=True, blank=True,
                               related_name="consumptions")
     material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, related_name="consumptions",
-                                 verbose_name="Сырьё")
-    qty = models.DecimalField("Количество", **QTY)
-    cost = models.DecimalField("Стоимость", **MONEY)
+                                 verbose_name=_("Сырьё"))
+    qty = models.DecimalField(_("Количество"), **QTY)
+    cost = models.DecimalField(_("Стоимость"), **MONEY)
 
     class Meta:
-        verbose_name = "Расход сырья"
-        verbose_name_plural = "Расход сырья"
+        verbose_name = _("Расход сырья")
+        verbose_name_plural = _("Расход сырья")
 
 
 class Shop(models.Model):
-    name = models.CharField("Название", max_length=200)
-    firm = models.CharField("Фирма (юр. название)", max_length=200, blank=True)
-    district = models.CharField("Район", max_length=100)
-    address = models.CharField("Адрес", max_length=300, blank=True)
-    latitude = models.DecimalField("Широта", max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField("Долгота", max_digits=9, decimal_places=6, null=True, blank=True)
-    contact = models.CharField("Контакт", max_length=200, blank=True)
-    phone = models.CharField("Телефон", max_length=50, blank=True)
+    name = models.CharField(_("Название"), max_length=200)
+    firm = models.CharField(_("Фирма (юр. название)"), max_length=200, blank=True)
+    district = models.CharField(_("Район"), max_length=100)
+    address = models.CharField(_("Адрес"), max_length=300, blank=True)
+    latitude = models.DecimalField(_("Широта"), max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(_("Долгота"), max_digits=9, decimal_places=6, null=True, blank=True)
+    contact = models.CharField(_("Контакт"), max_length=200, blank=True)
+    phone = models.CharField(_("Телефон"), max_length=50, blank=True)
     telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True,
-                                         help_text="Заполнится сам, когда магазин подключит бота")
-    bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
+                                         help_text=_("Заполнится сам, когда магазин подключит бота"))
+    bot_code = models.CharField(_("Код для бота"), max_length=16, unique=True, null=True, blank=True,
                                 editable=False)
-    active = models.BooleanField("Работаем", default=True)
-    archived = models.BooleanField("В архиве", default=False,
-                                   help_text="Бот не напоминает. Снимется сам, когда магазин закажет или получит товар")
+    active = models.BooleanField(_("Работаем"), default=True)
+    archived = models.BooleanField(_("В архиве"), default=False,
+                                   help_text=_("Бот не напоминает. Снимется сам, когда магазин закажет или получит товар"))
     snoozed_shipment = models.IntegerField(null=True, blank=True, editable=False)
     reminded_on = models.DateField(null=True, blank=True, editable=False)
 
     class Meta:
-        verbose_name = "Магазин"
-        verbose_name_plural = "Магазины"
+        verbose_name = _("Магазин")
+        verbose_name_plural = _("Магазины")
         ordering = ["district", "name"]
 
     def __str__(self):
@@ -497,32 +500,32 @@ class Shop(models.Model):
 
 class Shipment(models.Model):
     class Method(models.TextChoices):
-        CASH = "cash", "Наличные"
-        CARD = "card", "Карта"
-        CONSIGNMENT = "consign", "Консигнация"
-        DEBT = "debt", "В долг"
+        CASH = "cash", _("Наличные")
+        CARD = "card", _("Карта")
+        CONSIGNMENT = "consign", _("Консигнация")
+        DEBT = "debt", _("В долг")
 
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="shipments",
-                             verbose_name="Магазин")
-    date = models.DateField("Дата", default=timezone.localdate)
+                             verbose_name=_("Магазин"))
+    date = models.DateField(_("Дата"), default=timezone.localdate)
     worker = models.ForeignKey("Worker", on_delete=models.PROTECT, null=True, blank=True,
-                               related_name="shipments", verbose_name="Агент",
-                               help_text="Товар списывается с остатка этого агента. Пусто = прямо из цеха")
+                               related_name="shipments", verbose_name=_("Агент"),
+                               help_text=_("Товар списывается с остатка этого агента. Пусто = прямо из цеха"))
     vehicle = models.ForeignKey("Vehicle", on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name="shipments", verbose_name="Машина")
-    paid = models.DecimalField("Оплачено при отгрузке", default=0, **MONEY,
-                               help_text="Остаток уходит магазину в долг")
-    method = models.CharField("Оплата", max_length=10, choices=Method.choices, default=Method.CASH,
-                              help_text="Консигнация: магазин платит за проданное, непроданное оформляется возвратом")
-    note = models.CharField("Заметка", max_length=300, blank=True)
+                                related_name="shipments", verbose_name=_("Машина"))
+    paid = models.DecimalField(_("Оплачено при отгрузке"), default=0, **MONEY,
+                               help_text=_("Остаток уходит магазину в долг"))
+    method = models.CharField(_("Оплата"), max_length=10, choices=Method.choices, default=Method.CASH,
+                              help_text=_("Консигнация: магазин платит за проданное, непроданное оформляется возвратом"))
+    note = models.CharField(_("Заметка"), max_length=300, blank=True)
 
     class Meta:
-        verbose_name = "Отгрузка"
-        verbose_name_plural = "Отгрузки"
+        verbose_name = _("Отгрузка")
+        verbose_name_plural = _("Отгрузки")
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"Отгрузка №{self.pk} от {self.date:%d.%m.%Y}, {self.shop}"
+        return _("Отгрузка №%(pk)s от %(date)s, %(who)s") % {"pk": self.pk, "date": f"{self.date:%d.%m.%Y}", "who": self.shop}
 
     def total(self):
         return _sum(self.items.all(), F("qty") * F("price"))
@@ -541,15 +544,15 @@ class Shipment(models.Model):
 class ShipmentItem(models.Model):
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="shipment_items",
-                                verbose_name="Продукт")
-    qty = models.PositiveIntegerField("Количество, шт")
-    price = models.DecimalField("Цена", blank=True, **MONEY,
-                                help_text="Пусто = цена продукта")
-    unit_cost = models.DecimalField("Себестоимость 1 шт", default=0, editable=False, **MONEY)
+                                verbose_name=_("Продукт"))
+    qty = models.PositiveIntegerField(_("Количество, шт"))
+    price = models.DecimalField(_("Цена"), blank=True, **MONEY,
+                                help_text=_("Пусто = цена продукта"))
+    unit_cost = models.DecimalField(_("Себестоимость 1 шт"), default=0, editable=False, **MONEY)
 
     class Meta:
-        verbose_name = "Строка отгрузки"
-        verbose_name_plural = "Строки отгрузки"
+        verbose_name = _("Строка отгрузки")
+        verbose_name_plural = _("Строки отгрузки")
 
     def __str__(self):
         return f"{self.product}: {self.qty}"
@@ -565,30 +568,30 @@ class ShipmentItem(models.Model):
 
 class Return(models.Model):
     class Reason(models.TextChoices):
-        EXPIRED = "expired", "Просрочено"
-        DEFECT = "defect", "Брак"
-        UNSOLD = "unsold", "Не продалось"
-        OTHER = "other", "Другое"
+        EXPIRED = "expired", _("Просрочено")
+        DEFECT = "defect", _("Брак")
+        UNSOLD = "unsold", _("Не продалось")
+        OTHER = "other", _("Другое")
 
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="returns",
-                             verbose_name="Магазин")
-    date = models.DateField("Дата", default=timezone.localdate)
+                             verbose_name=_("Магазин"))
+    date = models.DateField(_("Дата"), default=timezone.localdate)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="returns",
-                                verbose_name="Продукт")
-    qty = models.PositiveIntegerField("Количество, шт")
-    price = models.DecimalField("Цена возврата", blank=True, **MONEY,
-                                help_text="На эту сумму уменьшится долг. Пусто = цена продукта")
-    reason = models.CharField("Причина", max_length=10, choices=Reason.choices, default=Reason.EXPIRED)
+                                verbose_name=_("Продукт"))
+    qty = models.PositiveIntegerField(_("Количество, шт"))
+    price = models.DecimalField(_("Цена возврата"), blank=True, **MONEY,
+                                help_text=_("На эту сумму уменьшится долг. Пусто = цена продукта"))
+    reason = models.CharField(_("Причина"), max_length=10, choices=Reason.choices, default=Reason.EXPIRED)
     worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="returns", verbose_name="Кто принял")
+                               related_name="returns", verbose_name=_("Кто принял"))
 
     class Meta:
-        verbose_name = "Возврат"
-        verbose_name_plural = "Возвраты"
+        verbose_name = _("Возврат")
+        verbose_name_plural = _("Возвраты")
         ordering = ["-date", "-id"]
 
     def __str__(self):
-        return f"Возврат {self.product} × {self.qty} от {self.shop}"
+        return _("Возврат %(product)s × %(qty)s от %(shop)s") % {"product": self.product, "qty": self.qty, "shop": self.shop}
 
     def total(self):
         return self.qty * self.price
@@ -603,26 +606,26 @@ class Order(models.Model):
     """Заказ магазина из Telegram-бота."""
 
     class Status(models.TextChoices):
-        NEW = "new", "Новый"
-        CONFIRMED = "confirmed", "Подтверждён"
-        REJECTED = "rejected", "Отклонён"
-        SHIPPED = "shipped", "Отгружен"
+        NEW = "new", _("Новый")
+        CONFIRMED = "confirmed", _("Подтверждён")
+        REJECTED = "rejected", _("Отклонён")
+        SHIPPED = "shipped", _("Отгружен")
 
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, related_name="orders",
-                             verbose_name="Магазин")
-    created_at = models.DateTimeField("Создан", default=timezone.now)
-    status = models.CharField("Статус", max_length=10, choices=Status.choices, default=Status.NEW)
-    note = models.CharField("Комментарий", max_length=300, blank=True)
+                             verbose_name=_("Магазин"))
+    created_at = models.DateTimeField(_("Создан"), default=timezone.now)
+    status = models.CharField(_("Статус"), max_length=10, choices=Status.choices, default=Status.NEW)
+    note = models.CharField(_("Комментарий"), max_length=300, blank=True)
     shipment = models.OneToOneField(Shipment, on_delete=models.SET_NULL, null=True, blank=True,
-                                    related_name="order", verbose_name="Отгрузка")
+                                    related_name="order", verbose_name=_("Отгрузка"))
 
     class Meta:
-        verbose_name = "Заказ из бота"
-        verbose_name_plural = "Заказы из бота"
+        verbose_name = _("Заказ из бота")
+        verbose_name_plural = _("Заказы из бота")
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"Заказ №{self.pk}, {self.shop}"
+        return _("Заказ №%(pk)s, %(shop)s") % {"pk": self.pk, "shop": self.shop}
 
     def total(self):
         return sum((i.qty * i.price for i in self.items.all()), ZERO)
@@ -639,7 +642,7 @@ class Order(models.Model):
         if self.shipment_id:
             return self.shipment
         if self.status not in (self.Status.NEW, self.Status.CONFIRMED):
-            raise ValidationError(f"Заказ №{self.pk} отклонён, отгрузить нельзя.")
+            raise ValidationError(_("Заказ №%(pk)s отклонён, отгрузить нельзя.") % {"pk": self.pk})
         shipment = Shipment.objects.create(shop=self.shop, note=f"По заказу №{self.pk} из бота")
         for item in self.items.all():
             ShipmentItem.objects.create(shipment=shipment, product=item.product,
@@ -653,13 +656,13 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items",
-                                verbose_name="Продукт")
-    qty = models.PositiveIntegerField("Количество, шт")
-    price = models.DecimalField("Цена", **MONEY)
+                                verbose_name=_("Продукт"))
+    qty = models.PositiveIntegerField(_("Количество, шт"))
+    price = models.DecimalField(_("Цена"), **MONEY)
 
     class Meta:
-        verbose_name = "Строка заказа"
-        verbose_name_plural = "Строки заказа"
+        verbose_name = _("Строка заказа")
+        verbose_name_plural = _("Строки заказа")
 
     def __str__(self):
         return f"{self.product}: {self.qty}"
@@ -667,56 +670,56 @@ class OrderItem(models.Model):
 
 class Payment(models.Model):
     class Method(models.TextChoices):
-        CASH = "cash", "Наличные"
-        CARD = "card", "Карта"
-        TRANSFER = "transfer", "Перечисление"
+        CASH = "cash", _("Наличные")
+        CARD = "card", _("Карта")
+        TRANSFER = "transfer", _("Перечисление")
 
-    date = models.DateField("Дата", default=timezone.localdate)
+    date = models.DateField(_("Дата"), default=timezone.localdate)
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT, null=True, blank=True,
-                             related_name="payments", verbose_name="От магазина")
+                             related_name="payments", verbose_name=_("От магазина"))
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, null=True, blank=True,
-                                 related_name="payments", verbose_name="Поставщику")
-    amount = models.DecimalField("Сумма", **MONEY)
-    method = models.CharField("Способ", max_length=10, choices=Method.choices, default=Method.CASH)
+                                 related_name="payments", verbose_name=_("Поставщику"))
+    amount = models.DecimalField(_("Сумма"), **MONEY)
+    method = models.CharField(_("Способ"), max_length=10, choices=Method.choices, default=Method.CASH)
     worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="payments", verbose_name="Кто принял")
-    note = models.CharField("Заметка", max_length=300, blank=True)
+                               related_name="payments", verbose_name=_("Кто принял"))
+    note = models.CharField(_("Заметка"), max_length=300, blank=True)
 
     class Meta:
-        verbose_name = "Оплата долга"
-        verbose_name_plural = "Оплаты долгов"
+        verbose_name = _("Оплата долга")
+        verbose_name_plural = _("Оплаты долгов")
         ordering = ["-date", "-id"]
 
     def __str__(self):
         who = self.shop or self.supplier
-        return f"{self.amount:,.0f} сум, {who}"
+        return _("%(amount)s сум, %(who)s") % {"amount": f"{self.amount:,.0f}", "who": who}
 
     def clean(self):
         if bool(self.shop_id) == bool(self.supplier_id):
-            raise ValidationError("Укажите либо магазин, либо поставщика.")
+            raise ValidationError(_("Укажите либо магазин, либо поставщика."))
 
 
 class Expense(models.Model):
     class Category(models.TextChoices):
-        SALARY = "salary", "Зарплата"
-        RENT = "rent", "Аренда"
-        UTILITIES = "utilities", "Свет, газ, вода"
-        FUEL = "fuel", "Бензин, солярка"
-        TAXI = "taxi", "Такси"
-        FOOD = "food", "Обед"
-        REPAIR = "repair", "Ремонт"
-        OTHER = "other", "Другое"
+        SALARY = "salary", _("Зарплата")
+        RENT = "rent", _("Аренда")
+        UTILITIES = "utilities", _("Свет, газ, вода")
+        FUEL = "fuel", _("Бензин, солярка")
+        TAXI = "taxi", _("Такси")
+        FOOD = "food", _("Обед")
+        REPAIR = "repair", _("Ремонт")
+        OTHER = "other", _("Другое")
 
-    date = models.DateField("Дата", default=timezone.localdate)
-    category = models.CharField("Статья", max_length=10, choices=Category.choices)
-    amount = models.DecimalField("Сумма", **MONEY)
-    note = models.CharField("Заметка", max_length=300, blank=True)
+    date = models.DateField(_("Дата"), default=timezone.localdate)
+    category = models.CharField(_("Статья"), max_length=10, choices=Category.choices)
+    amount = models.DecimalField(_("Сумма"), **MONEY)
+    note = models.CharField(_("Заметка"), max_length=300, blank=True)
     worker = models.ForeignKey("Worker", on_delete=models.SET_NULL, null=True, blank=True,
-                               related_name="expenses", verbose_name="Сотрудник")
+                               related_name="expenses", verbose_name=_("Сотрудник"))
 
     class Meta:
-        verbose_name = "Прочий расход"
-        verbose_name_plural = "Прочие расходы"
+        verbose_name = _("Прочий расход")
+        verbose_name_plural = _("Прочие расходы")
         ordering = ["-date", "-id"]
 
     def __str__(self):
@@ -724,13 +727,13 @@ class Expense(models.Model):
 
 
 class Vehicle(models.Model):
-    name = models.CharField("Машина", max_length=100, unique=True,
-                            help_text="Например: Damas 01 A 123 BC")
-    active = models.BooleanField("Работает", default=True)
+    name = models.CharField(_("Машина"), max_length=100, unique=True,
+                            help_text=_("Например: Damas 01 A 123 BC"))
+    active = models.BooleanField(_("Работает"), default=True)
 
     class Meta:
-        verbose_name = "Машина"
-        verbose_name_plural = "Машины"
+        verbose_name = _("Машина")
+        verbose_name_plural = _("Машины")
         ordering = ["name"]
 
     def __str__(self):
@@ -739,34 +742,34 @@ class Vehicle(models.Model):
 
 class Worker(models.Model):
     class Role(models.TextChoices):
-        BOSS = "boss", "Начальник"
-        AGENT = "agent", "Торговый агент"
-        VANSELLER = "van", "Ванселлер"
-        COOK = "cook", "Повар"
-        BAKER = "baker", "Пекарь"
-        WORKSHOP = "workshop", "Сотрудник цеха"
+        BOSS = "boss", _("Начальник")
+        AGENT = "agent", _("Торговый агент")
+        VANSELLER = "van", _("Ванселлер")
+        COOK = "cook", _("Повар")
+        BAKER = "baker", _("Пекарь")
+        WORKSHOP = "workshop", _("Сотрудник цеха")
 
     SELLERS = (Role.AGENT, Role.VANSELLER)
     WORKSHOP_ROLES = (Role.COOK, Role.BAKER, Role.WORKSHOP)
 
-    name = models.CharField("Имя", max_length=200)
-    role = models.CharField("Роль", max_length=10, choices=Role.choices, default=Role.AGENT)
-    phone = models.CharField("Телефон", max_length=50, blank=True)
-    districts = models.CharField("Районы", max_length=300, blank=True,
-                                 help_text="Для агентов. Через запятую. Его магазины и напоминания по ним")
-    shops = models.ManyToManyField("Shop", blank=True, related_name="agents", verbose_name="Магазины",
-                                   help_text="Для агентов. Если пусто, бот покажет все магазины его районов")
+    name = models.CharField(_("Имя"), max_length=200)
+    role = models.CharField(_("Роль"), max_length=10, choices=Role.choices, default=Role.AGENT)
+    phone = models.CharField(_("Телефон"), max_length=50, blank=True)
+    districts = models.CharField(_("Районы"), max_length=300, blank=True,
+                                 help_text=_("Для агентов. Через запятую. Его магазины и напоминания по ним"))
+    shops = models.ManyToManyField("Shop", blank=True, related_name="agents", verbose_name=_("Магазины"),
+                                   help_text=_("Для агентов. Если пусто, бот покажет все магазины его районов"))
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name="workers", verbose_name="Машина")
+                                related_name="workers", verbose_name=_("Машина"))
     telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True,
-                                         help_text="Заполнится сам, когда сотрудник откроет ссылку")
-    bot_code = models.CharField("Код для бота", max_length=16, unique=True, null=True, blank=True,
+                                         help_text=_("Заполнится сам, когда сотрудник откроет ссылку"))
+    bot_code = models.CharField(_("Код для бота"), max_length=16, unique=True, null=True, blank=True,
                                 editable=False)
-    active = models.BooleanField("Работает", default=True)
+    active = models.BooleanField(_("Работает"), default=True)
 
     class Meta:
-        verbose_name = "Сотрудник"
-        verbose_name_plural = "Сотрудники"
+        verbose_name = _("Сотрудник")
+        verbose_name_plural = _("Сотрудники")
         ordering = ["name"]
 
     def __str__(self):
@@ -809,21 +812,21 @@ class VanLoad(models.Model):
     """Цех передаёт товар агенту или агент сдаёт остаток обратно в цех."""
 
     class Kind(models.TextChoices):
-        LOAD = "load", "Передача агенту"
-        UNLOAD = "unload", "Сдача остатка в цех"
+        LOAD = "load", _("Передача агенту")
+        UNLOAD = "unload", _("Сдача остатка в цех")
 
     worker = models.ForeignKey(Worker, on_delete=models.PROTECT, null=True, related_name="loads",
-                               verbose_name="Агент")
+                               verbose_name=_("Агент"))
     given_by = models.ForeignKey(Worker, on_delete=models.SET_NULL, null=True, blank=True,
-                                 related_name="handovers", verbose_name="Кто передал")
+                                 related_name="handovers", verbose_name=_("Кто передал"))
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True,
-                                related_name="loads", verbose_name="Машина")
-    kind = models.CharField("Что", max_length=10, choices=Kind.choices, default=Kind.LOAD)
-    date = models.DateField("Дата", default=timezone.localdate)
+                                related_name="loads", verbose_name=_("Машина"))
+    kind = models.CharField(_("Что"), max_length=10, choices=Kind.choices, default=Kind.LOAD)
+    date = models.DateField(_("Дата"), default=timezone.localdate)
 
     class Meta:
-        verbose_name = "Передача агенту"
-        verbose_name_plural = "Передачи агентам"
+        verbose_name = _("Передача агенту")
+        verbose_name_plural = _("Передачи агентам")
         ordering = ["-date", "-id"]
 
     def __str__(self):
@@ -833,12 +836,12 @@ class VanLoad(models.Model):
 class VanLoadItem(models.Model):
     load = models.ForeignKey(VanLoad, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="van_items",
-                                verbose_name="Продукт")
-    qty = models.PositiveIntegerField("Количество, шт")
+                                verbose_name=_("Продукт"))
+    qty = models.PositiveIntegerField(_("Количество, шт"))
 
     class Meta:
-        verbose_name = "Строка передачи"
-        verbose_name_plural = "Продукты"
+        verbose_name = _("Строка передачи")
+        verbose_name_plural = _("Продукты")
 
     def __str__(self):
         return f"{self.product}: {self.qty}"
@@ -848,19 +851,19 @@ class WorkDay(models.Model):
     """Табель: вышел сотрудник на работу или нет."""
 
     class Status(models.TextChoices):
-        WORKED = "worked", "Работал"
-        OFF = "off", "Выходной"
-        SICK = "sick", "Болел"
-        ABSENT = "absent", "Не вышел"
+        WORKED = "worked", _("Работал")
+        OFF = "off", _("Выходной")
+        SICK = "sick", _("Болел")
+        ABSENT = "absent", _("Не вышел")
 
-    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="workdays", verbose_name="Сотрудник")
-    date = models.DateField("Дата", default=timezone.localdate)
-    status = models.CharField("Статус", max_length=10, choices=Status.choices, default=Status.WORKED)
-    note = models.CharField("Заметка", max_length=200, blank=True)
+    worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name="workdays", verbose_name=_("Сотрудник"))
+    date = models.DateField(_("Дата"), default=timezone.localdate)
+    status = models.CharField(_("Статус"), max_length=10, choices=Status.choices, default=Status.WORKED)
+    note = models.CharField(_("Заметка"), max_length=200, blank=True)
 
     class Meta:
-        verbose_name = "День в табеле"
-        verbose_name_plural = "Табель"
+        verbose_name = _("День в табеле")
+        verbose_name_plural = _("Табель")
         ordering = ["-date", "worker__name"]
         unique_together = [("worker", "date")]
 

@@ -667,3 +667,26 @@ class FeedbackTests(TestCase):
         self.assertNotIn("проверить</span>", entry)
         self.assertIn("Назад", entry)
         self.assertIn('action="/search/"', self.client.get("/admin/").content.decode())
+
+
+class LanguageTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.client.force_login(User.objects.create_superuser("owner", password="x"))
+
+    def test_switch_to_uzbek_and_back(self):
+        page = self.client.get("/").content.decode()
+        self.assertIn("DASTYOR", page)
+        self.assertIn("Обзор", page)
+        response = self.client.post("/i18n/setlang/", {"language": "uz", "next": "/entry/"})
+        self.assertRedirects(response, "/entry/", fetch_redirect_response=False)
+        for url in ["/", "/money/", "/shops/", "/products/", "/staff/", "/stock/", "/entry/", "/entry/recipes/",
+                    "/settings/", "/search/?q=x", "/admin/", "/admin/core/purchase/add/"]:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        entry = self.client.get("/entry/").content.decode()
+        self.assertIn("Maʼlumot kiritish", entry)
+        self.assertNotIn("Внести данные", entry)
+        self.assertIn("Saqlash", self.client.get("/admin/core/purchase/add/").content.decode())
+        self.client.post("/i18n/setlang/", {"language": "ru", "next": "/"})
+        self.assertIn("Внести данные", self.client.get("/entry/").content.decode())

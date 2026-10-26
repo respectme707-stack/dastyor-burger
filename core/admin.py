@@ -9,6 +9,7 @@ from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db import models
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from . import models as m
 
@@ -27,7 +28,7 @@ FORMFIELD_FOR_DBFIELD_DEFAULTS[models.DecimalField] = {"widget": PlainNumberInpu
 
 
 def money(value):
-    return f"{intcomma(round(value))} сум"
+    return _("%(amount)s сум") % {"amount": intcomma(round(value))}
 
 
 def qty(value):
@@ -39,7 +40,7 @@ class SupplierAdmin(admin.ModelAdmin):
     list_display = ["name", "phone", "debt_display"]
     search_fields = ["name", "phone"]
 
-    @admin.display(description="Мы должны")
+    @admin.display(description=_("Мы должны"))
     def debt_display(self, obj):
         return money(obj.debt())
 
@@ -62,7 +63,7 @@ class MaterialCategoryAdmin(admin.ModelAdmin):
     search_fields = ["name"]
     inlines = [RawMaterialInline]
 
-    @admin.display(description="Сырьё")
+    @admin.display(description=_("Сырьё"))
     def materials_display(self, obj):
         return ", ".join(x.name for x in obj.materials.all()) or "—"
 
@@ -86,18 +87,18 @@ class RawMaterialAdmin(admin.ModelAdmin):
     class Media:
         js = ["core/homemade.js"]
 
-    @admin.display(description="Себестоимость 1 ед. по рецепту")
+    @admin.display(description=_("Себестоимость 1 ед. по рецепту"))
     def recipe_cost_display(self, obj):
         return money(obj.recipe_cost()) if obj.pk and obj.homemade else "—"
 
-    @admin.display(description="Остаток")
+    @admin.display(description=_("Остаток"))
     def stock_display(self, obj):
         text = f"{qty(obj.stock())} {obj.unit}"
         if obj.is_low():
-            return format_html('<b style="color:#b4410c">{} (мало)</b>', text)
+            return format_html(_('<b style="color:#b4410c">{} (мало)</b>'), text)
         return text
 
-    @admin.display(description="Средняя цена")
+    @admin.display(description=_("Средняя цена"))
     def avg_price_display(self, obj):
         return money(obj.avg_price())
 
@@ -108,7 +109,7 @@ class PurchaseItemForm(forms.ModelForm):
     class Meta:
         model = m.PurchaseItem
         fields = ["material", "qty", "price"]
-        labels = {"qty": "Количество", "price": "Цена"}
+        labels = {"qty": _("Количество"), "price": _("Цена")}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -175,7 +176,7 @@ class PurchaseAdmin(admin.ModelAdmin):
             for x in m.RawMaterial.objects.select_related("unit")}
         return super().render_change_form(request, context, *args, **kwargs)
 
-    @admin.display(description="Сумма")
+    @admin.display(description=_("Сумма"))
     def total_display(self, obj):
         return money(obj.total())
 
@@ -202,7 +203,7 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = [RecipeItemInline]
     readonly_fields = ["unit_cost_display", "profit_display", "breakdown_display"]
 
-    @admin.display(description="Из чего складывается")
+    @admin.display(description=_("Из чего складывается"))
     def breakdown_display(self, obj):
         if not obj.pk:
             return "—"
@@ -212,17 +213,17 @@ class ProductAdmin(admin.ModelAdmin):
             cost = r.qty * price
             warn = cost > obj.price / 2
             lines.append(format_html(
-                '<div{}>{}: {} {} × {} за 1 {} = <b>{}</b>{}</div>',
+                _('<div{}>{}: {} {} × {} за 1 {} = <b>{}</b>{}</div>'),
                 format_html(' style="color:#f85149"') if warn else "", r.material.name, qty(r.qty),
                 r.material.unit, money(price), r.material.unit, money(cost),
-                " ← проверьте цену закупки и единицу" if warn else ""))
-        return mark_safe("".join(lines)) if lines else "Рецепт пуст"
+                _(" ← проверьте цену закупки и единицу") if warn else ""))
+        return mark_safe("".join(lines)) if lines else _("Рецепт пуст")
 
-    @admin.display(description="Себестоимость 1 шт")
+    @admin.display(description=_("Себестоимость 1 шт"))
     def unit_cost_display(self, obj):
         return money(obj.unit_cost()) if obj.pk else "—"
 
-    @admin.display(description="Прибыль с 1 шт")
+    @admin.display(description=_("Прибыль с 1 шт"))
     def profit_display(self, obj):
         if not obj.pk:
             return "—"
@@ -255,7 +256,7 @@ class MaterialBatchAdmin(admin.ModelAdmin):
     readonly_fields = ["unit_cost"]
     inlines = [BatchConsumptionInline]
 
-    @admin.display(description="Себестоимость партии")
+    @admin.display(description=_("Себестоимость партии"))
     def total_cost_display(self, obj):
         return money(obj.total_cost())
 
@@ -268,19 +269,19 @@ class ProductionAdmin(admin.ModelAdmin):
     readonly_fields = ["unit_cost"]
     inlines = [ConsumptionInline]
 
-    @admin.display(description="Себестоимость партии")
+    @admin.display(description=_("Себестоимость партии"))
     def total_cost_display(self, obj):
         return money(obj.total_cost())
 
 
 def bot_link(obj, whom):
     if not obj.bot_code:
-        return "Появится после сохранения"
+        return _("Появится после сохранения")
     username = os.environ.get("TELEGRAM_BOT_USERNAME")
     if not username:
-        return f"Код: {obj.bot_code} (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)"
+        return _("Код: %(code)s (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)") % {"code": obj.bot_code}
     url = f"https://t.me/{username}?start={obj.bot_code}"
-    return format_html('<a href="{0}">{0}</a><br>Отправьте эту ссылку {1}.', url, whom)
+    return format_html(_('<a href="{0}">{0}</a><br>Отправьте эту ссылку {1}.'), url, whom)
 
 
 @admin.register(m.Shop)
@@ -292,20 +293,20 @@ class ShopAdmin(admin.ModelAdmin):
               "active", "archived", "telegram_id", "bot_link"]
     readonly_fields = ["bot_link", "map_link"]
 
-    @admin.display(description="Бот", boolean=True)
+    @admin.display(description=_("Бот"), boolean=True)
     def bot_connected(self, obj):
         return bool(obj.telegram_id)
 
-    @admin.display(description="Ссылка для подключения бота")
+    @admin.display(description=_("Ссылка для подключения бота"))
     def bot_link(self, obj):
-        return bot_link(obj, "магазину")
+        return bot_link(obj, _("магазину"))
 
-    @admin.display(description="На карте")
+    @admin.display(description=_("На карте"))
     def map_link(self, obj):
         url = obj.map_url()
-        return format_html('<a href="{}" target="_blank">Открыть карту</a>', url) if url else "—"
+        return format_html(_('<a href="{}" target="_blank">Открыть карту</a>'), url) if url else "—"
 
-    @admin.display(description="Долг нам")
+    @admin.display(description=_("Долг нам"))
     def debt_display(self, obj):
         return money(obj.debt())
 
@@ -331,11 +332,11 @@ class ShipmentAdmin(admin.ModelAdmin):
         context["product_prices"] = {p.pk: float(p.price) for p in m.Product.objects.all()}
         return super().render_change_form(request, context, *args, **kwargs)
 
-    @admin.display(description="Сумма")
+    @admin.display(description=_("Сумма"))
     def total_display(self, obj):
         return money(obj.total())
 
-    @admin.display(description="В долг")
+    @admin.display(description=_("В долг"))
     def debt_display(self, obj):
         return money(obj.debt())
 
@@ -347,7 +348,7 @@ class ReturnAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
 
-    @admin.display(description="Сумма")
+    @admin.display(description=_("Сумма"))
     def total_display(self, obj):
         return money(obj.total())
 
@@ -381,11 +382,11 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline]
     actions = ["make_shipments"]
 
-    @admin.display(description="Сумма")
+    @admin.display(description=_("Сумма"))
     def total_display(self, obj):
         return money(obj.total())
 
-    @admin.action(description="Оформить отгрузку по выбранным заказам")
+    @admin.action(description=_("Оформить отгрузку по выбранным заказам"))
     def make_shipments(self, request, queryset):
         done = 0
         for order in queryset:
@@ -396,14 +397,14 @@ class OrderAdmin(admin.ModelAdmin):
             except ValidationError as e:
                 self.message_user(request, e.messages[0], messages.WARNING)
         if done:
-            self.message_user(request, f"Создано отгрузок: {done}. Оплату внесите в самой отгрузке.")
+            self.message_user(request, _("Создано отгрузок: %(n)s. Оплату внесите в самой отгрузке.") % {"n": done})
 
 
 @admin.register(m.Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
     list_display = ["name", "drivers_display", "active"]
 
-    @admin.display(description="Кто ездит")
+    @admin.display(description=_("Кто ездит"))
     def drivers_display(self, obj):
         return ", ".join(w.name for w in obj.workers.all()) or "—"
 
@@ -420,19 +421,19 @@ class WorkerAdmin(admin.ModelAdmin):
     class Media:
         js = ["core/worker_form.js"]
 
-    @admin.display(description="На руках")
+    @admin.display(description=_("На руках"))
     def stock_display(self, obj):
         if not obj.is_seller():
             return "—"
-        return ", ".join(f"{p.name} {n}" for p, n in obj.stock().items()) or "пусто"
+        return ", ".join(f"{p.name} {n}" for p, n in obj.stock().items()) or _("пусто")
 
-    @admin.display(description="Бот", boolean=True)
+    @admin.display(description=_("Бот"), boolean=True)
     def bot_connected(self, obj):
         return bool(obj.telegram_id)
 
-    @admin.display(description="Ссылка для подключения бота")
+    @admin.display(description=_("Ссылка для подключения бота"))
     def bot_link(self, obj):
-        return bot_link(obj, "сотруднику")
+        return bot_link(obj, _("сотруднику"))
 
 
 class VanLoadItemInline(admin.TabularInline):
@@ -456,10 +457,10 @@ class WorkDayAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     actions = ["mark_worked", "mark_absent"]
 
-    @admin.action(description="Отметить: работал")
+    @admin.action(description=_("Отметить: работал"))
     def mark_worked(self, request, queryset):
         queryset.update(status=m.WorkDay.Status.WORKED)
 
-    @admin.action(description="Отметить: не вышел")
+    @admin.action(description=_("Отметить: не вышел"))
     def mark_absent(self, request, queryset):
         queryset.update(status=m.WorkDay.Status.ABSENT)

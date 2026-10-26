@@ -1,0 +1,2156 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-26 21:50+0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: uz\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Все таблицы"
+msgstr "Barcha jadvallar"
+
+#, python-format
+msgid "%(amount)s сум"
+msgstr "%(amount)s soʻm"
+
+msgid "Мы должны"
+msgstr "Biz qarzmiz"
+
+msgid "Сырьё"
+msgstr "Xomashyo"
+
+msgid "Себестоимость 1 ед. по рецепту"
+msgstr "Retsept boʻyicha 1 birlik tannarxi"
+
+msgid "Остаток"
+msgstr "Qoldiq"
+
+msgid "<b style=\"color:#b4410c\">{} (мало)</b>"
+msgstr "<b style=\"color:#b4410c\">{} (kam)</b>"
+
+msgid "Средняя цена"
+msgstr "Oʻrtacha narx"
+
+msgid "Количество"
+msgstr "Miqdori"
+
+msgid "Цена"
+msgstr "Narxi"
+
+msgid "Сумма"
+msgstr "Summa"
+
+msgid "Из чего складывается"
+msgstr "Nimalardan iborat"
+
+msgid "<div{}>{}: {} {} × {} за 1 {} = <b>{}</b>{}</div>"
+msgstr "<div{}>{}: {} {} × {} 1 {} uchun = <b>{}</b>{}</div>"
+
+msgid " ← проверьте цену закупки и единицу"
+msgstr " ← xarid narxi va birligini tekshiring"
+
+msgid "Рецепт пуст"
+msgstr "Retsept boʻsh"
+
+msgid "Себестоимость 1 шт"
+msgstr "1 dona tannarxi"
+
+msgid "Прибыль с 1 шт"
+msgstr "1 donadan foyda"
+
+msgid "Себестоимость партии"
+msgstr "Partiya tannarxi"
+
+msgid "Появится после сохранения"
+msgstr "Saqlangandan keyin chiqadi"
+
+#, python-format
+msgid "Код: %(code)s (задайте TELEGRAM_BOT_USERNAME, чтобы здесь была ссылка)"
+msgstr "Kod: %(code)s (bu yerda havola chiqishi uchun TELEGRAM_BOT_USERNAME ni kiriting)"
+
+#, python-brace-format
+msgid "<a href=\"{0}\">{0}</a><br>Отправьте эту ссылку {1}."
+msgstr "<a href=\"{0}\">{0}</a><br>Bu havolani {1} yuboring."
+
+msgid "Бот"
+msgstr "Bot"
+
+msgid "Ссылка для подключения бота"
+msgstr "Botni ulash havolasi"
+
+msgid "магазину"
+msgstr "doʻkonga"
+
+msgid "На карте"
+msgstr "Xaritada"
+
+msgid "<a href=\"{}\" target=\"_blank\">Открыть карту</a>"
+msgstr "<a href=\"{}\" target=\"_blank\">Xaritani ochish</a>"
+
+msgid "Долг нам"
+msgstr "Bizga qarzi"
+
+msgid "В долг"
+msgstr "Qarzga"
+
+msgid "Оформить отгрузку по выбранным заказам"
+msgstr "Tanlangan buyurtmalar boʻyicha yetkazib berishni rasmiylashtirish"
+
+#, python-format
+msgid "Создано отгрузок: %(n)s. Оплату внесите в самой отгрузке."
+msgstr "Yetkazib berishlar yaratildi: %(n)s. Toʻlovni yetkazib berishning oʻzida kiriting."
+
+msgid "Кто ездит"
+msgstr "Kim haydaydi"
+
+msgid "На руках"
+msgstr "Qoʻlida"
+
+msgid "пусто"
+msgstr "boʻsh"
+
+msgid "сотруднику"
+msgstr "xodimga"
+
+msgid "Отметить: работал"
+msgstr "Belgilash: ishladi"
+
+msgid "Отметить: не вышел"
+msgstr "Belgilash: chiqmadi"
+
+msgid "Учёт"
+msgstr "Hisob"
+
+msgid "Название"
+msgstr "Nomi"
+
+msgid "Телефон"
+msgstr "Telefon"
+
+msgid "Заметка"
+msgstr "Izoh"
+
+msgid "Поставщик"
+msgstr "Taʼminotchi"
+
+msgid "Поставщики"
+msgstr "Taʼminotchilar"
+
+msgid "Например: Бургер, Булочки, Упаковка"
+msgstr "Masalan: Burger, Bulochkalar, Qadoq"
+
+msgid "Категория сырья"
+msgstr "Xomashyo turkumi"
+
+msgid "Категории сырья"
+msgstr "Xomashyo turkumlari"
+
+msgid "Единица"
+msgstr "Birlik"
+
+msgid "Например: шт, кг, гр, л, пачка"
+msgstr "Masalan: dona, kg, gr, l, pachka"
+
+msgid "Крупная единица"
+msgstr "Katta birlik"
+
+msgid "Для закупки. Например, для «гр» это «кг», для «мл» это «л»"
+msgstr "Xarid uchun. Masalan, «gr» uchun «kg», «ml» uchun «l»"
+
+msgid "Сколько в ней"
+msgstr "Unda qancha"
+
+msgid "Для «гр» → «кг» это 1000"
+msgstr "«gr» → «kg» uchun bu 1000"
+
+msgid "Единица измерения"
+msgstr "Oʻlchov birligi"
+
+msgid "Единицы измерения"
+msgstr "Oʻlchov birliklari"
+
+msgid "Категория"
+msgstr "Turkum"
+
+msgid "Мин. остаток"
+msgstr "Min. qoldiq"
+
+msgid "Необязательно. Если остаток станет меньше, сайт предупредит"
+msgstr "Majburiy emas. Qoldiq bundan kamaysa, sayt ogohlantiradi"
+
+msgid "Название упаковки"
+msgstr "Qadoq nomi"
+
+msgid "Необязательно, только слово: банка, пачка, ведро. Не число"
+msgstr "Majburiy emas, faqat soʻz: banka, pachka, chelak. Raqam emas"
+
+msgid "Сколько в 1 упаковке"
+msgstr "1 qadoqda qancha"
+
+msgid "В единицах этого сырья. Майонез в гр: 900. Колбаса в гр: 600. Если заполнено, закупка вводится упаковками"
+msgstr "Shu xomashyo birligida. Mayonez gr da: 900. Kolbasa gr da: 600. Toʻldirilsa, xarid qadoqlarda kiritiladi"
+
+msgid "Делаем сами"
+msgstr "Oʻzimiz qilamiz"
+
+msgid "Например, булочки: не покупаем, а печём в цеху по своему рецепту"
+msgstr "Masalan, bulochkalar: sotib olmaymiz, sexda oʻz retseptimiz boʻyicha pishiramiz"
+
+msgid "упак."
+msgstr "qadoq"
+
+#, python-format
+msgid "%(pack)s по %(size)s %(unit)s"
+msgstr "%(pack)s, %(size)s %(unit)s dan"
+
+msgid "Расход на 1 единицу"
+msgstr "1 birlikka sarf"
+
+msgid "В единицах этого сырья: 40 г муки = 0,040 кг"
+msgstr "Shu xomashyo birligida: 40 g un = 0,040 kg"
+
+msgid "Строка рецепта"
+msgstr "Retsept qatori"
+
+msgid "Рецепт (из чего делаем 1 единицу)"
+msgstr "Retsept (1 birlik nimadan qilinadi)"
+
+msgid "Сырьё не может быть в своём же рецепте."
+msgstr "Xomashyo oʻz retseptida boʻla olmaydi."
+
+#, python-format
+msgid "%(name)s: нужно %(need)s, есть %(have)s"
+msgstr "%(name)s: kerak %(need)s, bor %(have)s"
+
+msgid "Дата"
+msgstr "Sana"
+
+msgid "Что сделали"
+msgstr "Nima qilindi"
+
+msgid "Сколько сделали"
+msgstr "Qancha qilindi"
+
+msgid "Себестоимость 1 ед."
+msgstr "1 birlik tannarxi"
+
+msgid "Кто сделал"
+msgstr "Kim qildi"
+
+msgid "Выпечка / заготовка"
+msgstr "Pishirish / tayyorlash"
+
+msgid "Выпечка / заготовки"
+msgstr "Pishirish / tayyorlashlar"
+
+#, python-format
+msgid "У «%(name)s» нет рецепта. Заполните его в карточке сырья."
+msgstr "«%(name)s» retsepti yoʻq. Uni xomashyo kartasida toʻldiring."
+
+msgid "Не хватает сырья. "
+msgstr "Xomashyo yetmaydi. "
+
+msgid "Оплачено сразу"
+msgstr "Darhol toʻlandi"
+
+msgid "Закупка"
+msgstr "Xarid"
+
+msgid "Закупки"
+msgstr "Xaridlar"
+
+#, python-format
+msgid "Закупка №%(pk)s от %(date)s, %(who)s"
+msgstr "Xarid №%(pk)s, %(date)s, %(who)s"
+
+msgid "За то, как считаете: за 1 гр, за 1 кг или за 1 упаковку"
+msgstr "Qanday hisoblasangiz: 1 gr, 1 kg yoki 1 qadoq uchun"
+
+msgid "Строка закупки"
+msgstr "Xarid qatori"
+
+msgid "Строки закупки"
+msgstr "Xarid qatorlari"
+
+msgid "Причина"
+msgstr "Sabab"
+
+msgid "Испорчено, просрочено, инвентаризация"
+msgstr "Buzilgan, muddati oʻtgan, inventarizatsiya"
+
+msgid "Списание сырья"
+msgstr "Xomashyoni hisobdan chiqarish"
+
+msgid "Списания сырья"
+msgstr "Xomashyoni hisobdan chiqarishlar"
+
+#, python-format
+msgid "Списание %(name)s: %(qty)s"
+msgstr "Hisobdan chiqarish %(name)s: %(qty)s"
+
+msgid "Цена для магазинов"
+msgstr "Doʻkonlar uchun narx"
+
+msgid "Срок годности, дней"
+msgstr "Yaroqlilik muddati, kun"
+
+msgid "Летом можно уменьшить. По нему бот напоминает о магазинах без заказа"
+msgstr "Yozda kamaytirish mumkin. Shunga koʻra bot buyurtma bermagan doʻkonlarni eslatadi"
+
+msgid "Продаётся"
+msgstr "Sotuvda"
+
+msgid "Продукт"
+msgstr "Mahsulot"
+
+msgid "Продукты"
+msgstr "Mahsulotlar"
+
+msgid "Расход на 1 шт"
+msgstr "1 donaga sarf"
+
+msgid "В единицах сырья: шт, кг (20 г = 0,020) или л"
+msgstr "Xomashyo birligida: dona, kg (20 g = 0,020) yoki l"
+
+msgid "Рецепт"
+msgstr "Retsept"
+
+msgid "Количество, шт"
+msgstr "Miqdori, dona"
+
+msgid "Производство"
+msgstr "Ishlab chiqarish"
+
+msgid "У продукта нет рецепта. Сначала заполните рецепт."
+msgstr "Mahsulotning retsepti yoʻq. Avval retseptni toʻldiring."
+
+msgid "Стоимость"
+msgstr "Qiymati"
+
+msgid "Расход сырья"
+msgstr "Xomashyo sarfi"
+
+msgid "Фирма (юр. название)"
+msgstr "Firma (yuridik nomi)"
+
+msgid "Район"
+msgstr "Tuman"
+
+msgid "Адрес"
+msgstr "Manzil"
+
+msgid "Широта"
+msgstr "Kenglik"
+
+msgid "Долгота"
+msgstr "Uzunlik"
+
+msgid "Контакт"
+msgstr "Aloqa"
+
+msgid "Заполнится сам, когда магазин подключит бота"
+msgstr "Doʻkon botni ulaganda oʻzi toʻladi"
+
+msgid "Код для бота"
+msgstr "Bot uchun kod"
+
+msgid "Работаем"
+msgstr "Ishlaymiz"
+
+msgid "В архиве"
+msgstr "Arxivda"
+
+msgid "Бот не напоминает. Снимется сам, когда магазин закажет или получит товар"
+msgstr "Bot eslatmaydi. Doʻkon buyurtma bersa yoki tovar olsa, oʻzi olib tashlanadi"
+
+msgid "Магазин"
+msgstr "Doʻkon"
+
+msgid "Магазины"
+msgstr "Doʻkonlar"
+
+msgid "Наличные"
+msgstr "Naqd"
+
+msgid "Карта"
+msgstr "Karta"
+
+msgid "Консигнация"
+msgstr "Konsignatsiya"
+
+msgid "Агент"
+msgstr "Agent"
+
+msgid "Товар списывается с остатка этого агента. Пусто = прямо из цеха"
+msgstr "Tovar shu agentning qoldigʻidan chiqariladi. Boʻsh = toʻgʻridan-toʻgʻri sexdan"
+
+msgid "Машина"
+msgstr "Mashina"
+
+msgid "Оплачено при отгрузке"
+msgstr "Yetkazishda toʻlandi"
+
+msgid "Остаток уходит магазину в долг"
+msgstr "Qolgani doʻkonga qarzga yoziladi"
+
+msgid "Оплата"
+msgstr "Toʻlov"
+
+msgid "Консигнация: магазин платит за проданное, непроданное оформляется возвратом"
+msgstr "Konsignatsiya: doʻkon sotilgani uchun toʻlaydi, sotilmagani qaytarish sifatida rasmiylashtiriladi"
+
+msgid "Отгрузка"
+msgstr "Yetkazib berish"
+
+msgid "Отгрузки"
+msgstr "Yetkazib berishlar"
+
+#, python-format
+msgid "Отгрузка №%(pk)s от %(date)s, %(who)s"
+msgstr "Yetkazib berish №%(pk)s, %(date)s, %(who)s"
+
+msgid "Пусто = цена продукта"
+msgstr "Boʻsh = mahsulot narxi"
+
+msgid "Строка отгрузки"
+msgstr "Yetkazib berish qatori"
+
+msgid "Строки отгрузки"
+msgstr "Yetkazib berish qatorlari"
+
+msgid "Просрочено"
+msgstr "Muddati oʻtgan"
+
+msgid "Брак"
+msgstr "Brak"
+
+msgid "Не продалось"
+msgstr "Sotilmadi"
+
+msgid "Другое"
+msgstr "Boshqa"
+
+msgid "Цена возврата"
+msgstr "Qaytarish narxi"
+
+msgid "На эту сумму уменьшится долг. Пусто = цена продукта"
+msgstr "Qarz shu summaga kamayadi. Boʻsh = mahsulot narxi"
+
+msgid "Кто принял"
+msgstr "Kim qabul qildi"
+
+msgid "Возврат"
+msgstr "Qaytarish"
+
+msgid "Возвраты"
+msgstr "Qaytarishlar"
+
+#, python-format
+msgid "Возврат %(product)s × %(qty)s от %(shop)s"
+msgstr "Qaytarish %(product)s × %(qty)s, %(shop)s dan"
+
+msgid "Новый"
+msgstr "Yangi"
+
+msgid "Подтверждён"
+msgstr "Tasdiqlandi"
+
+msgid "Отклонён"
+msgstr "Rad etildi"
+
+msgid "Отгружен"
+msgstr "Yetkazildi"
+
+msgid "Создан"
+msgstr "Yaratildi"
+
+msgid "Статус"
+msgstr "Holati"
+
+msgid "Комментарий"
+msgstr "Izoh"
+
+msgid "Заказ из бота"
+msgstr "Botdan buyurtma"
+
+msgid "Заказы из бота"
+msgstr "Botdan buyurtmalar"
+
+#, python-format
+msgid "Заказ №%(pk)s, %(shop)s"
+msgstr "Buyurtma №%(pk)s, %(shop)s"
+
+#, python-format
+msgid "Заказ №%(pk)s отклонён, отгрузить нельзя."
+msgstr "Buyurtma №%(pk)s rad etilgan, yetkazib boʻlmaydi."
+
+msgid "Строка заказа"
+msgstr "Buyurtma qatori"
+
+msgid "Строки заказа"
+msgstr "Buyurtma qatorlari"
+
+msgid "Перечисление"
+msgstr "Oʻtkazma"
+
+msgid "От магазина"
+msgstr "Doʻkondan"
+
+msgid "Поставщику"
+msgstr "Taʼminotchiga"
+
+msgid "Способ"
+msgstr "Usul"
+
+msgid "Оплата долга"
+msgstr "Qarz toʻlovi"
+
+msgid "Оплаты долгов"
+msgstr "Qarz toʻlovlari"
+
+#, python-format
+msgid "%(amount)s сум, %(who)s"
+msgstr "%(amount)s soʻm, %(who)s"
+
+msgid "Укажите либо магазин, либо поставщика."
+msgstr "Doʻkonni yoki taʼminotchini koʻrsating."
+
+msgid "Зарплата"
+msgstr "Ish haqi"
+
+msgid "Аренда"
+msgstr "Ijara"
+
+msgid "Свет, газ, вода"
+msgstr "Svet, gaz, suv"
+
+msgid "Бензин, солярка"
+msgstr "Benzin, solyarka"
+
+msgid "Такси"
+msgstr "Taksi"
+
+msgid "Обед"
+msgstr "Tushlik"
+
+msgid "Ремонт"
+msgstr "Taʼmirlash"
+
+msgid "Статья"
+msgstr "Modda"
+
+msgid "Сотрудник"
+msgstr "Xodim"
+
+msgid "Прочий расход"
+msgstr "Boshqa xarajat"
+
+msgid "Прочие расходы"
+msgstr "Boshqa xarajatlar"
+
+msgid "Например: Damas 01 A 123 BC"
+msgstr "Masalan: Damas 01 A 123 BC"
+
+msgid "Работает"
+msgstr "Ishlaydi"
+
+msgid "Машины"
+msgstr "Mashinalar"
+
+msgid "Начальник"
+msgstr "Boshliq"
+
+msgid "Торговый агент"
+msgstr "Savdo agenti"
+
+msgid "Ванселлер"
+msgstr "Vanseller"
+
+msgid "Повар"
+msgstr "Oshpaz"
+
+msgid "Пекарь"
+msgstr "Novvoy"
+
+msgid "Сотрудник цеха"
+msgstr "Sex xodimi"
+
+msgid "Имя"
+msgstr "Ism"
+
+msgid "Роль"
+msgstr "Lavozim"
+
+msgid "Районы"
+msgstr "Tumanlar"
+
+msgid "Для агентов. Через запятую. Его магазины и напоминания по ним"
+msgstr "Agentlar uchun. Vergul bilan. Uning doʻkonlari va ular boʻyicha eslatmalar"
+
+msgid "Для агентов. Если пусто, бот покажет все магазины его районов"
+msgstr "Agentlar uchun. Boʻsh boʻlsa, bot uning tumanlaridagi barcha doʻkonlarni koʻrsatadi"
+
+msgid "Заполнится сам, когда сотрудник откроет ссылку"
+msgstr "Xodim havolani ochganda oʻzi toʻladi"
+
+msgid "Сотрудники"
+msgstr "Xodimlar"
+
+msgid "Передача агенту"
+msgstr "Agentga berish"
+
+msgid "Сдача остатка в цех"
+msgstr "Qoldiqni sexga topshirish"
+
+msgid "Кто передал"
+msgstr "Kim berdi"
+
+msgid "Что"
+msgstr "Nima"
+
+msgid "Передачи агентам"
+msgstr "Agentlarga berishlar"
+
+msgid "Строка передачи"
+msgstr "Berish qatori"
+
+msgid "Работал"
+msgstr "Ishladi"
+
+msgid "Выходной"
+msgstr "Dam olish kuni"
+
+msgid "Болел"
+msgstr "Kasal edi"
+
+msgid "Не вышел"
+msgstr "Chiqmadi"
+
+msgid "День в табеле"
+msgstr "Tabeldagi kun"
+
+msgid "Табель"
+msgstr "Tabel"
+
+msgid "Сегодня"
+msgstr "Bugun"
+
+msgid "7 дней"
+msgstr "7 kun"
+
+msgid "30 дней"
+msgstr "30 kun"
+
+msgid "Всё время"
+msgstr "Butun vaqt"
+
+msgid "Приход сырья"
+msgstr "Xomashyo kirimi"
+
+msgid " сдал остаток в цех"
+msgstr " qoldiqni sexga topshirdi"
+
+#, python-format
+msgid "от %(name)s"
+msgstr "%(name)s dan"
+
+#, python-format
+msgid "поставщику %(name)s"
+msgstr "taʼminotchiga: %(name)s"
+
+msgid "Расход"
+msgstr "Xarajat"
+
+msgid "Товары"
+msgstr "Tovarlar"
+
+msgid "Django site admin"
+msgstr "DASTYOR"
+
+msgid "Период"
+msgstr "Davr"
+
+msgid "Расход на 1"
+msgstr "1 taga sarf"
+
+msgid "Рецепт не заполнен."
+msgstr "Retsept toʻldirilmagan."
+
+msgid "Заполнить"
+msgstr "Toʻldirish"
+
+msgid "Рейтинг сотрудников"
+msgstr "Xodimlar reytingi"
+
+msgid "все →"
+msgstr "hammasi →"
+
+msgid "Больше продал"
+msgstr "Koʻp sotgan"
+
+msgid "нет продаж"
+msgstr "sotuv yoʻq"
+
+msgid "Больше убытка от возвратов"
+msgstr "Qaytarishdan koʻp zarar"
+
+msgid "возвратов нет"
+msgstr "qaytarish yoʻq"
+
+msgid "Больше магазинов посетил"
+msgstr "Koʻp doʻkonga borgan"
+
+msgid "нет посещений"
+msgstr "tashrif yoʻq"
+
+msgid "Больше дней работал"
+msgstr "Koʻp kun ishlagan"
+
+msgid "дн."
+msgstr "kun"
+
+msgid "табель пуст"
+msgstr "tabel boʻsh"
+
+msgid "Назад"
+msgstr "Orqaga"
+
+msgid "/ учёт"
+msgstr "/ hisob"
+
+msgid "Поиск: магазин, товар, сырьё, сотрудник…"
+msgstr "Qidirish: doʻkon, tovar, xomashyo, xodim…"
+
+msgid "Поиск"
+msgstr "Qidirish"
+
+msgid "Выйти"
+msgstr "Chiqish"
+
+msgid "Разделы"
+msgstr "Boʻlimlar"
+
+msgid "Обзор"
+msgstr "Umumiy"
+
+msgid "Деньги"
+msgstr "Pul"
+
+msgid "Склад"
+msgstr "Ombor"
+
+msgid "Внести данные"
+msgstr "Maʼlumot kiritish"
+
+msgid "Настройки"
+msgstr "Sozlamalar"
+
+msgid "Выберите, что записать. Откроется форма, после сохранения запись сразу попадёт в отчёты."
+msgstr "Nimani yozishni tanlang. Shakl ochiladi, saqlangandan keyin yozuv darhol hisobotlarga tushadi."
+
+msgid "Цех"
+msgstr "Sex"
+
+msgid "Купили у поставщика"
+msgstr "Taʼminotchidan sotib oldik"
+
+msgid "Испекли булочки"
+msgstr "Bulochka pishirdik"
+
+msgid "Свои полуфабрикаты: списывает муку и т.д."
+msgstr "Oʻz yarim tayyor mahsulotlarimiz: un va h.k. hisobdan chiqadi"
+
+msgid "Сколько хот-догов, бургеров сделали"
+msgstr "Qancha xot-dog, burger qildik"
+
+msgid "Передать агенту"
+msgstr "Agentga berish"
+
+msgid "Товар из цеха агенту"
+msgstr "Tovar sexdan agentga"
+
+msgid "Списать сырьё"
+msgstr "Xomashyoni hisobdan chiqarish"
+
+msgid "Испортилось, пропало"
+msgstr "Buzildi, yoʻqoldi"
+
+msgid "Закупки и рецепты"
+msgstr "Xaridlar va retseptlar"
+
+msgid "Все закупки"
+msgstr "Barcha xaridlar"
+
+msgid "Что купили, у кого, по какой цене"
+msgstr "Nima, kimdan, qanday narxda sotib olindi"
+
+msgid "Рецепты"
+msgstr "Retseptlar"
+
+msgid "Все рецепты товаров и булочек"
+msgstr "Tovarlar va bulochkalarning barcha retseptlari"
+
+msgid "Новый рецепт товара"
+msgstr "Yangi tovar retsepti"
+
+msgid "Хот-дог, бургер: из чего 1 шт"
+msgstr "Xot-dog, burger: 1 dona nimadan"
+
+msgid "Новый полуфабрикат"
+msgstr "Yangi yarim tayyor mahsulot"
+
+msgid "Булочка и т.п.: из чего 1 шт"
+msgstr "Bulochka va h.k.: 1 dona nimadan"
+
+msgid "Привезли товар в магазин"
+msgstr "Doʻkonga tovar olib bordik"
+
+msgid "Магазин вернул товар"
+msgstr "Doʻkon tovarni qaytardi"
+
+msgid "Магазин заплатил или мы поставщику"
+msgstr "Doʻkon toʻladi yoki biz taʼminotchiga"
+
+msgid "Подтвердить и отгрузить"
+msgstr "Tasdiqlash va yetkazish"
+
+msgid "Расходы"
+msgstr "Xarajatlar"
+
+msgid "Бензин, зарплата, аренда, такси…"
+msgstr "Benzin, ish haqi, ijara, taksi…"
+
+msgid "Выдали сотруднику"
+msgstr "Xodimga berildi"
+
+msgid "Бензин"
+msgstr "Benzin"
+
+msgid "Заправка машины"
+msgstr "Mashinaga yoqilgʻi"
+
+msgid "Вышел на работу, выходной, болел"
+msgstr "Ishga chiqdi, dam oldi, kasal boʻldi"
+
+msgid "Добавить в справочник"
+msgstr "Maʼlumotnomaga qoʻshish"
+
+msgid "Новый магазин"
+msgstr "Yangi doʻkon"
+
+msgid "Новый товар"
+msgstr "Yangi tovar"
+
+msgid "Цена и рецепт"
+msgstr "Narx va retsept"
+
+msgid "Новое сырьё"
+msgstr "Yangi xomashyo"
+
+msgid "Новый поставщик"
+msgstr "Yangi taʼminotchi"
+
+msgid "Новый сотрудник"
+msgstr "Yangi xodim"
+
+msgid "Что купили"
+msgstr "Nima sotib olindi"
+
+msgid "все закупки →"
+msgstr "barcha xaridlar →"
+
+msgid "Сколько"
+msgstr "Qancha"
+
+msgid "Записано до упаковок: откройте закупку и нажмите «Сохранить»"
+msgstr "Qadoqlardan oldin yozilgan: xaridni oching va «Saqlash»ni bosing"
+
+msgid "проверить"
+msgstr "tekshirish"
+
+msgid "открыть"
+msgstr "ochish"
+
+msgid "Закупок пока нет."
+msgstr "Hali xarid yoʻq."
+
+msgid "Последние записи"
+msgstr "Oxirgi yozuvlar"
+
+msgid "Подробно"
+msgstr "Batafsil"
+
+msgid "Пока ничего не внесено. Начните с «Приход сырья»."
+msgstr "Hali hech narsa kiritilmagan. «Xomashyo kirimi»dan boshlang."
+
+msgid "Сколько пришло, сколько ушло и кто кому должен."
+msgstr "Qancha keldi, qancha ketdi va kim kimga qarz."
+
+msgid "Получили денег"
+msgstr "Olingan pul"
+
+msgid "наличные"
+msgstr "naqd"
+
+msgid "карта"
+msgstr "karta"
+
+msgid "На консигнации"
+msgstr "Konsignatsiyada"
+
+msgid "ещё не оплачено"
+msgstr "hali toʻlanmagan"
+
+msgid "Купили сырья"
+msgstr "Xomashyo sotib olindi"
+
+msgid "по закупкам"
+msgstr "xaridlar boʻyicha"
+
+msgid "бензин, зарплата и т.д."
+msgstr "benzin, ish haqi va h.k."
+
+msgid "Нам должны"
+msgstr "Bizga qarz"
+
+msgid "магазины, всего"
+msgstr "doʻkonlar, jami"
+
+msgid "поставщикам, всего"
+msgstr "taʼminotchilarga, jami"
+
+msgid "Расходы по статьям"
+msgstr "Moddalar boʻyicha xarajatlar"
+
+msgid "Всего"
+msgstr "Jami"
+
+msgid "Расходов за этот период нет."
+msgstr "Bu davrda xarajat yoʻq."
+
+msgid "Отгрузки по способу оплаты"
+msgstr "Toʻlov usuli boʻyicha yetkazishlar"
+
+msgid "Отгрузок"
+msgstr "Yetkazishlar"
+
+msgid "На сумму"
+msgstr "Summaga"
+
+msgid "Отгрузок за этот период нет."
+msgstr "Bu davrda yetkazish yoʻq."
+
+msgid "Должники (магазины)"
+msgstr "Qarzdorlar (doʻkonlar)"
+
+msgid "Никто не должен."
+msgstr "Hech kim qarz emas."
+
+msgid "Мы должны поставщикам"
+msgstr "Taʼminotchilarga qarzimiz"
+
+msgid "Оплатить"
+msgstr "Toʻlash"
+
+msgid "Долгов нет."
+msgstr "Qarz yoʻq."
+
+msgid "Кто / кому"
+msgstr "Kim / kimga"
+
+msgid "от"
+msgstr "dan"
+
+msgid "Оплат за этот период нет."
+msgstr "Bu davrda toʻlov yoʻq."
+
+msgid "Последние расходы"
+msgstr "Oxirgi xarajatlar"
+
+msgid "Кто"
+msgstr "Kim"
+
+msgid "Главные цифры за период. Подробности во вкладках выше."
+msgstr "Davr boʻyicha asosiy raqamlar. Batafsil yuqoridagi boʻlimlarda."
+
+msgid "Заканчивается сырьё"
+msgstr "Xomashyo tugayapti"
+
+msgid "Склад →"
+msgstr "Ombor →"
+
+msgid "Срок товара кончается или прошёл"
+msgstr "Tovar muddati tugayapti yoki oʻtdi"
+
+msgid "(до"
+msgstr "(gacha"
+
+msgid "Выручка"
+msgstr "Tushum"
+
+msgid "шт отгружено"
+msgstr "dona yetkazildi"
+
+msgid "Прибыль"
+msgstr "Foyda"
+
+msgid "маржа"
+msgstr "marja"
+
+msgid "шт"
+msgstr "dona"
+
+msgid "от отгрузок"
+msgstr "yetkazishlardan"
+
+msgid "магазинов"
+msgstr "doʻkon"
+
+msgid "поставщикам"
+msgstr "taʼminotchilarga"
+
+msgid "Продажи по дням, сум"
+msgstr "Kunlar boʻyicha sotuv, soʻm"
+
+msgid "Продажи по дням"
+msgstr "Kunlar boʻyicha sotuv"
+
+msgid "Нет отгрузок за этот период."
+msgstr "Bu davrda yetkazish yoʻq."
+
+msgid "Как считается прибыль"
+msgstr "Foyda qanday hisoblanadi"
+
+msgid "Выручка от отгрузок"
+msgstr "Yetkazishdan tushum"
+
+msgid "Себестоимость (сырьё)"
+msgstr "Tannarx (xomashyo)"
+
+msgid "Сколько магазинов получили товар"
+msgstr "Nechta doʻkon tovar oldi"
+
+msgid "Сколько магазинов получили товар в каждый день"
+msgstr "Har kuni nechta doʻkon tovar oldi"
+
+msgid "Лучшие за период"
+msgstr "Davrning eng yaxshilari"
+
+msgid "Продажи"
+msgstr "Sotuv"
+
+msgid "Товар"
+msgstr "Tovar"
+
+msgid "Продано, шт"
+msgstr "Sotildi, dona"
+
+msgid "Нет продаж за этот период."
+msgstr "Bu davrda sotuv yoʻq."
+
+msgid "не продаётся"
+msgstr "sotuvda emas"
+
+msgid "сум · годен"
+msgstr "soʻm · yaroqli"
+
+msgid "Изменить цену и рецепт"
+msgstr "Narx va retseptni oʻzgartirish"
+
+msgid "Продано"
+msgstr "Sotildi"
+
+msgid "на"
+msgstr "ga"
+
+msgid "сум"
+msgstr "soʻm"
+
+msgid "от проданного"
+msgstr "sotilgandan"
+
+msgid "Сделано"
+msgstr "Qilindi"
+
+msgid "за период"
+msgstr "davr ichida"
+
+msgid "в цеху · у агентов"
+msgstr "sexda · agentlarda"
+
+msgid "себестоимость"
+msgstr "tannarx"
+
+msgid "Рецепт на 1 шт"
+msgstr "1 dona uchun retsept"
+
+msgid "изменить"
+msgstr "oʻzgartirish"
+
+msgid "Цена ед."
+msgstr "Birlik narxi"
+
+msgid "Себестоимость"
+msgstr "Tannarx"
+
+msgid "Рецепт не заполнен, себестоимость не считается."
+msgstr "Retsept toʻldirilmagan, tannarx hisoblanmaydi."
+
+msgid "Какие магазины берут"
+msgstr "Qaysi doʻkonlar oladi"
+
+msgid "Шт"
+msgstr "Dona"
+
+msgid "Сделали"
+msgstr "Qildik"
+
+msgid "Себест. 1 шт"
+msgstr "1 dona tannarxi"
+
+msgid "За этот период не производили."
+msgstr "Bu davrda ishlab chiqarilmagan."
+
+msgid "Нажмите на товар, чтобы увидеть рецепт, себестоимость и кто его берёт."
+msgstr "Retsept, tannarx va kim olishini koʻrish uchun tovarni bosing."
+
+msgid "Продажи и прибыль по товарам"
+msgstr "Tovarlar boʻyicha sotuv va foyda"
+
+msgid "Себест."
+msgstr "Tannarx"
+
+msgid "Прибыль/шт"
+msgstr "Foyda/dona"
+
+msgid "Убыток от возвр."
+msgstr "Qaytarish zarari"
+
+msgid "В цеху"
+msgstr "Sexda"
+
+msgid "У агентов"
+msgstr "Agentlarda"
+
+msgid "Товаров ещё нет."
+msgstr "Hali tovar yoʻq."
+
+msgid "Добавить"
+msgstr "Qoʻshish"
+
+msgid "Из чего делаем товары и свои полуфабрикаты. Себестоимость по текущим ценам сырья."
+msgstr "Tovarlar va oʻz yarim tayyor mahsulotlarimiz nimadan qilinadi. Tannarx xomashyoning hozirgi narxida."
+
+msgid "Полуфабрикат"
+msgstr "Yarim tayyor mahsulot"
+
+msgid "Товар с рецептом"
+msgstr "Retseptli tovar"
+
+msgid "себест."
+msgstr "tannarx"
+
+msgid "цена"
+msgstr "narx"
+
+msgid "Свои полуфабрикаты"
+msgstr "Oʻz yarim tayyor mahsulotlarimiz"
+
+msgid "себест. 1"
+msgstr "tannarx, 1"
+
+msgid "Своих полуфабрикатов (например, булочки) пока нет."
+msgstr "Oʻz yarim tayyor mahsulotlarimiz (masalan, bulochka) hali yoʻq."
+
+msgid "Ищет по магазинам, товарам, сырью, сотрудникам и поставщикам: по названию, адресу, телефону."
+msgstr "Doʻkonlar, tovarlar, xomashyo, xodimlar va taʼminotchilar boʻyicha qidiradi: nomi, manzili, telefoni."
+
+msgid "Введите слово в строку поиска сверху."
+msgstr "Yuqoridagi qidiruv qatoriga soʻz kiriting."
+
+#, python-format
+msgid "Ничего не нашлось по «%(q)s»."
+msgstr "«%(q)s» boʻyicha hech narsa topilmadi."
+
+msgid "Справочники: товары, цены, сырьё, магазины, сотрудники и всё остальное."
+msgstr "Maʼlumotnomalar: tovarlar, narxlar, xomashyo, doʻkonlar, xodimlar va boshqalar."
+
+msgid "Товары и сырьё"
+msgstr "Tovarlar va xomashyo"
+
+msgid "Товары, цены, рецепты"
+msgstr "Tovarlar, narxlar, retseptlar"
+
+msgid "Цена для магазинов, срок годности"
+msgstr "Doʻkonlar uchun narx, yaroqlilik muddati"
+
+msgid "Мин. остаток для предупреждения"
+msgstr "Ogohlantirish uchun min. qoldiq"
+
+msgid "Бургер, булочки, упаковка…"
+msgstr "Burger, bulochka, qadoq…"
+
+msgid "шт, кг, гр, л…"
+msgstr "dona, kg, gr, l…"
+
+msgid "Люди и места"
+msgstr "Odamlar va joylar"
+
+msgid "Адрес, район, ссылка для бота"
+msgstr "Manzil, tuman, bot havolasi"
+
+msgid "Роль, магазины агента, ссылка для бота"
+msgstr "Lavozim, agent doʻkonlari, bot havolasi"
+
+msgid "Доступ к сайту"
+msgstr "Saytga kirish"
+
+msgid "Пользователи сайта"
+msgstr "Sayt foydalanuvchilari"
+
+msgid "Кто может входить на сайт"
+msgstr "Saytga kim kira oladi"
+
+msgid "Сменить пароль"
+msgstr "Parolni oʻzgartirish"
+
+msgid "Полный список записей"
+msgstr "Yozuvlarning toʻliq roʻyxati"
+
+msgid "Telegram-бот"
+msgstr "Telegram-bot"
+
+msgid "не указан"
+msgstr "koʻrsatilmagan"
+
+msgid "Владельцев в боте"
+msgstr "Botdagi egalar"
+
+msgid "Напоминания о магазинах"
+msgstr "Doʻkonlar haqida eslatmalar"
+
+msgid "каждый день в"
+msgstr "har kuni soat"
+
+msgid "Итоги дня начальнику"
+msgstr "Boshliqqa kun yakunlari"
+
+msgid "Эти настройки меняются в файле .env на сервере."
+msgstr "Bu sozlamalar serverdagi .env faylida oʻzgartiriladi."
+
+msgid "не работаем"
+msgstr "ishlamaymiz"
+
+msgid "архив"
+msgstr "arxiv"
+
+msgid "на карте"
+msgstr "xaritada"
+
+msgid "Изменить"
+msgstr "Oʻzgartirish"
+
+msgid "Долг сейчас"
+msgstr "Hozirgi qarz"
+
+msgid "принять оплату"
+msgstr "toʻlovni qabul qilish"
+
+msgid "Последняя поставка"
+msgstr "Oxirgi yetkazish"
+
+msgid "годен до"
+msgstr "yaroqlilik muddati"
+
+msgid "ещё не возили"
+msgstr "hali olib borilmagan"
+
+msgid "По товарам"
+msgstr "Tovarlar boʻyicha"
+
+msgid "Оплачено"
+msgstr "Toʻlandi"
+
+msgid "цех"
+msgstr "sex"
+
+msgid "Возвратов нет."
+msgstr "Qaytarish yoʻq."
+
+msgid "Оплаты долга"
+msgstr "Qarz toʻlovlari"
+
+msgid "Принял"
+msgstr "Qabul qildi"
+
+msgid "Оплат нет."
+msgstr "Toʻlov yoʻq."
+
+msgid "Данные магазина"
+msgstr "Doʻkon maʼlumotlari"
+
+msgid "Фирма"
+msgstr "Firma"
+
+msgid "Агенты"
+msgstr "Agentlar"
+
+msgid "подключён"
+msgstr "ulangan"
+
+msgid "не подключён"
+msgstr "ulanmagan"
+
+msgid "Нажмите на магазин, чтобы открыть подробный отчёт."
+msgstr "Batafsil hisobotni ochish uchun doʻkonni bosing."
+
+msgid "Продажи по магазинам"
+msgstr "Doʻkonlar boʻyicha sotuv"
+
+msgid "Долг"
+msgstr "Qarz"
+
+msgid "За этот период продаж не было."
+msgstr "Bu davrda sotuv boʻlmadi."
+
+msgid "Без продаж за период ("
+msgstr "Davr ichida sotuvsiz ("
+
+msgid "Продажи по районам, сум"
+msgstr "Tumanlar boʻyicha sotuv, soʻm"
+
+msgid "Продажи по районам"
+msgstr "Tumanlar boʻyicha sotuv"
+
+msgid "Кто больше возвращает"
+msgstr "Kim koʻproq qaytaradi"
+
+msgid "Наш убыток"
+msgstr "Bizning zarar"
+
+msgid "Возвратов за этот период нет."
+msgstr "Bu davrda qaytarish yoʻq."
+
+msgid "Последняя поставка и срок годности"
+msgstr "Oxirgi yetkazish va yaroqlilik muddati"
+
+msgid "Привезли"
+msgstr "Olib bordik"
+
+msgid "Дней назад"
+msgstr "Necha kun oldin"
+
+msgid "Годен до"
+msgstr "Yaroqli"
+
+msgid "Визитов за период"
+msgstr "Davrdagi tashriflar"
+
+msgid "просрочено"
+msgstr "muddati oʻtgan"
+
+msgid "сегодня"
+msgstr "bugun"
+
+msgid "Ещё никому не возили товар."
+msgstr "Hali hech kimga tovar olib borilmagan."
+
+msgid "Кто сколько продал, собрал денег, сделал и потратил. Нажмите на имя для подробностей."
+msgstr "Kim qancha sotdi, pul yigʻdi, qildi va sarfladi. Batafsil uchun ismni bosing."
+
+msgid "Поиск по имени или телефону"
+msgstr "Ism yoki telefon boʻyicha qidirish"
+
+msgid "Все роли"
+msgstr "Barcha lavozimlar"
+
+msgid "показать уволенных"
+msgstr "boʻshaganlarni koʻrsatish"
+
+msgid "Найти"
+msgstr "Topish"
+
+msgid "сбросить"
+msgstr "tozalash"
+
+msgid "Сводка по сотрудникам"
+msgstr "Xodimlar boʻyicha xulosa"
+
+msgid "табель →"
+msgstr "tabel →"
+
+msgid "Продал, сум"
+msgstr "Sotdi, soʻm"
+
+msgid "Магазинов"
+msgstr "Doʻkonlar"
+
+msgid "Собрал денег"
+msgstr "Pul yigʻdi"
+
+msgid "Возвраты принял"
+msgstr "Qaytarish qabul qildi"
+
+msgid "Сделал, шт"
+msgstr "Qildi, dona"
+
+msgid "Получил товара"
+msgstr "Tovar oldi"
+
+msgid "Передал агентам"
+msgstr "Agentlarga berdi"
+
+msgid "Сейчас на руках"
+msgstr "Hozir qoʻlida"
+
+msgid "Дней работал"
+msgstr "Ishlagan kunlar"
+
+msgid "не работает"
+msgstr "ishlamaydi"
+
+msgid "Никого не нашли."
+msgstr "Hech kim topilmadi."
+
+msgid "Сотрудников ещё нет."
+msgstr "Hali xodim yoʻq."
+
+msgid "бот"
+msgstr "bot"
+
+msgid "Продал"
+msgstr "Sotdi"
+
+msgid "при отгрузке и за долги"
+msgstr "yetkazishda va qarzlar uchun"
+
+msgid "расход"
+msgstr "xarajat"
+
+msgid "Сделал в цеху"
+msgstr "Sexda qildi"
+
+msgid "Передать товар"
+msgstr "Tovar berish"
+
+msgid "Пусто."
+msgstr "Boʻsh."
+
+msgid "Продаж за этот период нет."
+msgstr "Bu davrda sotuv yoʻq."
+
+msgid "Что продал"
+msgstr "Nima sotdi"
+
+msgid "Получил / сдал товар"
+msgstr "Tovar oldi / topshirdi"
+
+msgid "Расходов нет."
+msgstr "Xarajat yoʻq."
+
+msgid "Принял возвраты"
+msgstr "Qaytarish qabul qildi"
+
+msgid "отметить день"
+msgstr "kunni belgilash"
+
+msgid "Отметок нет. Дни, когда он что-то вносил, считаются рабочими сами."
+msgstr "Belgilar yoʻq. U biror narsa kiritgan kunlar oʻzi ish kuni hisoblanadi."
+
+msgid "Его магазины"
+msgstr "Uning doʻkonlari"
+
+msgid "Что есть сейчас: сырьё, готовые товары в цеху и у агентов."
+msgstr "Hozir nima bor: xomashyo, sexdagi va agentlardagi tayyor tovarlar."
+
+msgid "Заканчивается"
+msgstr "Tugayapti"
+
+msgid ". Пора закупить."
+msgstr ". Sotib olish vaqti keldi."
+
+msgid "Мин."
+msgstr "Min."
+
+msgid "делаем сами"
+msgstr "oʻzimiz qilamiz"
+
+msgid "Сырья нет."
+msgstr "Xomashyo yoʻq."
+
+msgid "Всего сырья на сумму"
+msgstr "Jami xomashyo summasi"
+
+msgid "Готовые товары"
+msgstr "Tayyor tovarlar"
+
+msgid "Товаров нет."
+msgstr "Tovar yoʻq."
+
+msgid "У агентов на руках"
+msgstr "Agentlar qoʻlida"
+
+msgid "Передать"
+msgstr "Berish"
+
+msgid "Агентов нет."
+msgstr "Agent yoʻq."
+
+msgid "Delete multiple objects"
+msgstr "Bir nechta obyektni oʻchirish"
+
+msgid "LogEntry Object"
+msgstr "LogEntry obyekti"
+
+msgid "Added {name} “{object}”."
+msgstr "{name} «{object}» qoʻshildi."
+
+msgid "Added."
+msgstr "Qoʻshildi."
+
+msgid "Changed {fields} for {name} “{object}”."
+msgstr "{name} «{object}» uchun {fields} oʻzgartirildi."
+
+msgid "Changed {fields}."
+msgstr "{fields} oʻzgartirildi."
+
+msgid "Deleted {name} “{object}”."
+msgstr "{name} «{object}» oʻchirildi."
+
+msgid "No fields changed."
+msgstr "Hech bir maydon oʻzgarmadi."
+
+msgid "Hold down “Control”, or “Command” on a Mac, to select more than one."
+msgstr "Bir nechtasini tanlash uchun «Control» (Mac da «Command») tugmasini bosib turing."
+
+msgid "Select this object for an action - {}"
+msgstr "Amal uchun shu obyektni tanlash - {}"
+
+msgid "The {name} “{obj}” was added successfully."
+msgstr "{name} «{obj}» muvaffaqiyatli qoʻshildi."
+
+msgid "You may edit it again below."
+msgstr "Quyida yana tahrirlashingiz mumkin."
+
+msgid "The {name} “{obj}” was added successfully. You may add another {name} below."
+msgstr "{name} «{obj}» muvaffaqiyatli qoʻshildi. Quyida yana {name} qoʻshishingiz mumkin."
+
+msgid "The {name} “{obj}” was changed successfully. You may edit it again below."
+msgstr "{name} «{obj}» muvaffaqiyatli oʻzgartirildi. Quyida yana tahrirlashingiz mumkin."
+
+msgid "The {name} “{obj}” was changed successfully. You may add another {name} below."
+msgstr "{name} «{obj}» muvaffaqiyatli oʻzgartirildi. Quyida yana {name} qoʻshishingiz mumkin."
+
+msgid "Items must be selected in order to perform actions on them. No items have been changed."
+msgstr "Amal bajarish uchun yozuvlarni tanlash kerak. Hech narsa oʻzgarmadi."
+
+msgid "No action selected."
+msgstr "Amal tanlanmadi."
+
+msgid "%(name)s with ID “%(key)s” doesn’t exist. Perhaps it was deleted?"
+msgstr "ID si «%(key)s» boʻlgan %(name)s topilmadi. Balki oʻchirilgandir?"
+
+msgid "%(count)s %(name)s was changed successfully."
+msgid_plural "%(count)s %(name)s were changed successfully."
+msgstr[0] "%(count)s %(name)s muvaffaqiyatli oʻzgartirildi."
+
+msgid "%(total_count)s selected"
+msgid_plural "All %(total_count)s selected"
+msgstr[0] "%(total_count)s tanlandi"
+
+msgid "0 of %(cnt)s selected"
+msgstr "%(cnt)s dan 0 tasi tanlandi"
+
+msgid "Change history: %s"
+msgstr "Oʻzgarishlar tarixi: %s"
+
+msgid "%(class_name)s %(instance)s"
+msgstr "%(class_name)s %(instance)s"
+
+msgid "Deleting %(class_name)s %(instance)s would require deleting the following protected related objects: %(related_objects)s"
+msgstr "%(class_name)s %(instance)s ni oʻchirish uchun quyidagi himoyalangan bogʻliq obyektlarni ham oʻchirish kerak: %(related_objects)s"
+
+msgid "Django administration"
+msgstr "DASTYOR boshqaruvi"
+
+msgid "Site administration"
+msgstr "Sayt boshqaruvi"
+
+msgid "Log in"
+msgstr "Kirish"
+
+msgid "%(app)s administration"
+msgstr "%(app)s boshqaruvi"
+
+msgid "Page not found"
+msgstr "Sahifa topilmadi"
+
+msgid "We’re sorry, but the requested page could not be found."
+msgstr "Kechirasiz, soʻralgan sahifa topilmadi."
+
+msgid "Home"
+msgstr "Bosh sahifa"
+
+msgid "There’s been an error. It’s been reported to the site administrators via email and should be fixed shortly. Thanks for your patience."
+msgstr "Xatolik yuz berdi. Tez orada tuzatiladi. Sabr qilganingiz uchun rahmat."
+
+msgid "Go"
+msgstr "Bajarish"
+
+msgid "Click here to select the objects across all pages"
+msgstr "Barcha sahifalardagi obyektlarni tanlash uchun shu yerni bosing"
+
+msgid "Select all %(total_count)s %(module_name)s"
+msgstr "Barcha %(total_count)s %(module_name)s ni tanlash"
+
+msgid "Clear selection"
+msgstr "Tanlovni tozalash"
+
+msgid "Breadcrumbs"
+msgstr "Navigatsiya"
+
+msgid "Models in the %(name)s application"
+msgstr "%(name)s ilovasidagi modellar"
+
+msgid "Model name"
+msgstr "Model nomi"
+
+msgid "Add link"
+msgstr "Qoʻshish havolasi"
+
+msgid "Change or view list link"
+msgstr "Oʻzgartirish yoki roʻyxat havolasi"
+
+msgid "You don’t have permission to view or edit anything."
+msgstr "Sizda hech narsani koʻrish yoki tahrirlash huquqi yoʻq."
+
+msgid "After you’ve created a user, you’ll be able to edit more user options."
+msgstr "Foydalanuvchi yaratilgandan keyin boshqa sozlamalarini tahrirlay olasiz."
+
+msgid "Error:"
+msgstr "Xato:"
+
+msgid "Please correct the error below."
+msgid_plural "Please correct the errors below."
+msgstr[0] "Iltimos, quyidagi xatolarni tuzating."
+
+msgid "Enter a new password for the user <strong>%(username)s</strong>."
+msgstr "<strong>%(username)s</strong> foydalanuvchisi uchun yangi parol kiriting."
+
+msgid "This action will <strong>enable</strong> password-based authentication for this user."
+msgstr "Bu amal shu foydalanuvchi uchun parol bilan kirishni <strong>yoqadi</strong>."
+
+msgid "Disable password-based authentication"
+msgstr "Parol bilan kirishni oʻchirish"
+
+msgid "Enable password-based authentication"
+msgstr "Parol bilan kirishni yoqish"
+
+msgid "Skip to main content"
+msgstr "Asosiy qismga oʻtish"
+
+msgid "History"
+msgstr "Tarix"
+
+msgid "Hide counts"
+msgstr "Sonlarni yashirish"
+
+msgid "Show counts"
+msgstr "Sonlarni koʻrsatish"
+
+msgid "Clear all filters"
+msgstr "Barcha filtrlarni tozalash"
+
+msgid "Sorting priority: %(priority_number)s"
+msgstr "Saralash tartibi: %(priority_number)s"
+
+msgid "Toggle sorting"
+msgstr "Saralashni almashtirish"
+
+msgid "Toggle theme (current theme: auto)"
+msgstr "Mavzuni almashtirish (hozirgi: avto)"
+
+msgid "Toggle theme (current theme: light)"
+msgstr "Mavzuni almashtirish (hozirgi: yorugʻ)"
+
+msgid "Toggle theme (current theme: dark)"
+msgstr "Mavzuni almashtirish (hozirgi: qorongʻi)"
+
+msgid "Deleting the %(object_name)s '%(escaped_object)s' would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:"
+msgstr "%(object_name)s «%(escaped_object)s» ni oʻchirish bogʻliq obyektlarni ham oʻchiradi, lekin sizda quyidagi turdagi obyektlarni oʻchirish huquqi yoʻq:"
+
+msgid "Deleting the %(object_name)s '%(escaped_object)s' would require deleting the following protected related objects:"
+msgstr "%(object_name)s «%(escaped_object)s» ni oʻchirish uchun quyidagi himoyalangan bogʻliq obyektlarni ham oʻchirish kerak:"
+
+msgid "Are you sure you want to delete the %(object_name)s \"%(escaped_object)s\"? All of the following related items will be deleted:"
+msgstr "%(object_name)s «%(escaped_object)s» ni oʻchirishga ishonchingiz komilmi? Quyidagi barcha bogʻliq yozuvlar ham oʻchiriladi:"
+
+msgid "Objects"
+msgstr "Obyektlar"
+
+msgid "Yes, I’m sure"
+msgstr "Ha, ishonchim komil"
+
+msgid "No, take me back"
+msgstr "Yoʻq, orqaga qaytish"
+
+msgid "Deleting the selected %(objects_name)s would result in deleting related objects, but your account doesn't have permission to delete the following types of objects:"
+msgstr "Tanlangan %(objects_name)s ni oʻchirish bogʻliq obyektlarni ham oʻchiradi, lekin sizda quyidagi turdagi obyektlarni oʻchirish huquqi yoʻq:"
+
+msgid "Deleting the selected %(objects_name)s would require deleting the following protected related objects:"
+msgstr "Tanlangan %(objects_name)s ni oʻchirish uchun quyidagi himoyalangan bogʻliq obyektlarni ham oʻchirish kerak:"
+
+msgid "Are you sure you want to delete the selected %(objects_name)s? All of the following objects and their related items will be deleted:"
+msgstr "Tanlangan %(objects_name)s ni oʻchirishga ishonchingiz komilmi? Quyidagi barcha obyektlar va ularning bogʻliq yozuvlari oʻchiriladi:"
+
+msgid " By %(filter_title)s "
+msgstr " %(filter_title)s boʻyicha "
+
+msgid "None available"
+msgstr "Hech narsa yoʻq"
+
+msgid "Added:"
+msgstr "Qoʻshildi:"
+
+msgid "Changed:"
+msgstr "Oʻzgartirildi:"
+
+msgid "Deleted:"
+msgstr "Oʻchirildi:"
+
+msgid "Unknown content"
+msgstr "Nomaʼlum tarkib"
+
+msgid "Something’s wrong with your database installation. Make sure the appropriate database tables have been created, and make sure the database is readable by the appropriate user."
+msgstr "Maʼlumotlar bazasida muammo bor. Kerakli jadvallar yaratilganini va bazani oʻqish mumkinligini tekshiring."
+
+msgid "You are authenticated as %(username)s, but are not authorized to access this page. Would you like to login to a different account?"
+msgstr "Siz %(username)s sifatida kirgansiz, lekin bu sahifaga ruxsatingiz yoʻq. Boshqa hisob bilan kirmoqchimisiz?"
+
+msgid "Forgotten your login credentials?"
+msgstr "Login yoki parolni unutdingizmi?"
+
+msgid "Sidebar"
+msgstr "Yon panel"
+
+msgid "Start typing to filter…"
+msgstr "Filtrlash uchun yozishni boshlang…"
+
+msgid "Filter navigation items"
+msgstr "Menyu boʻlimlarini filtrlash"
+
+msgid "Date/time"
+msgstr "Sana/vaqt"
+
+msgid "User"
+msgstr "Foydalanuvchi"
+
+msgid "Action"
+msgstr "Amal"
+
+msgid "entry"
+msgid_plural "entries"
+msgstr[0] "yozuv"
+
+msgid "This object doesn’t have a change history. It probably wasn’t added via this admin site."
+msgstr "Bu obyektning oʻzgarishlar tarixi yoʻq. Ehtimol, u bu boshqaruv sahifasi orqali qoʻshilmagan."
+
+msgid "Show all"
+msgstr "Hammasini koʻrsatish"
+
+msgid "Popup closing…"
+msgstr "Oyna yopilmoqda…"
+
+msgid "%(counter)s result"
+msgid_plural "%(counter)s results"
+msgstr[0] "%(counter)s ta natija"
+
+msgid "%(full_result_count)s total"
+msgstr "jami %(full_result_count)s"
+
+msgid "Save as new"
+msgstr "Yangi sifatida saqlash"
+
+msgid "Save and add another"
+msgstr "Saqlash va yana qoʻshish"
+
+msgid "Save and continue editing"
+msgstr "Saqlash va tahrirlashni davom ettirish"
+
+msgid "Save and view"
+msgstr "Saqlash va koʻrish"
+
+msgid "Close"
+msgstr "Yopish"
+
+msgid "Change selected %(model)s"
+msgstr "Tanlangan %(model)s ni oʻzgartirish"
+
+msgid "Add another %(model)s"
+msgstr "Yana %(model)s qoʻshish"
+
+msgid "Delete selected %(model)s"
+msgstr "Tanlangan %(model)s ni oʻchirish"
+
+msgid "View selected %(model)s"
+msgstr "Tanlangan %(model)s ni koʻrish"
+
+msgid "Thanks for spending some quality time with the web site today."
+msgstr "Bugun saytda vaqt ajratganingiz uchun rahmat."
+
+msgid "Log in again"
+msgstr "Qaytadan kirish"
+
+msgid "Your password was changed."
+msgstr "Parolingiz oʻzgartirildi."
+
+msgid "Please enter your old password, for security’s sake, and then enter your new password twice so we can verify you typed it in correctly."
+msgstr "Xavfsizlik uchun eski parolni, keyin yangi parolni ikki marta kiriting."
+
+msgid "Change my password"
+msgstr "Parolimni oʻzgartirish"
+
+msgid "Your password has been set.  You may go ahead and log in now."
+msgstr "Parolingiz oʻrnatildi. Endi kirishingiz mumkin."
+
+msgid "Password reset confirmation"
+msgstr "Parolni tiklashni tasdiqlash"
+
+msgid "Please enter your new password twice so we can verify you typed it in correctly."
+msgstr "Yangi parolni toʻgʻri yozganingizni tekshirish uchun uni ikki marta kiriting."
+
+msgid "New password:"
+msgstr "Yangi parol:"
+
+msgid "Confirm password:"
+msgstr "Parolni tasdiqlang:"
+
+msgid "The password reset link was invalid, possibly because it has already been used.  Please request a new password reset."
+msgstr "Parolni tiklash havolasi yaroqsiz, ehtimol u allaqachon ishlatilgan. Iltimos, parolni qayta tiklashni soʻrang."
+
+msgid "We’ve emailed you instructions for setting your password, if an account exists with the email you entered. You should receive them shortly."
+msgstr "Agar shu email bilan hisob boʻlsa, parol oʻrnatish boʻyicha koʻrsatmalarni yubordik. Tez orada olasiz."
+
+msgid "If you don’t receive an email, please make sure you’ve entered the address you registered with, and check your spam folder."
+msgstr "Email kelmasa, roʻyxatdan oʻtgan manzilni kiritganingizni tekshiring va spam papkasini koʻring."
+
+msgid "You're receiving this email because you requested a password reset for your user account at %(site_name)s."
+msgstr "Siz %(site_name)s saytidagi hisobingiz uchun parolni tiklashni soʻraganingiz sababli bu xatni olyapsiz."
+
+msgid "Please go to the following page and choose a new password:"
+msgstr "Quyidagi sahifaga oʻting va yangi parol tanlang:"
+
+msgid "In case you’ve forgotten, you are:"
+msgstr "Agar unutgan boʻlsangiz, siz:"
+
+msgid "Thanks for using our site!"
+msgstr "Saytimizdan foydalanganingiz uchun rahmat!"
+
+msgid "The %(site_name)s team"
+msgstr "%(site_name)s jamoasi"
+
+msgid "Forgotten your password? Enter your email address below, and we’ll email instructions for setting a new one."
+msgstr "Parolni unutdingizmi? Email manzilingizni kiriting, yangi parol oʻrnatish boʻyicha koʻrsatma yuboramiz."
+
+msgid "Email address:"
+msgstr "Email manzil:"
+
+msgid "Select all objects on this page for an action"
+msgstr "Amal uchun shu sahifadagi barcha obyektlarni tanlash"
+
+msgid "Select %s to change"
+msgstr "Oʻzgartirish uchun %s ni tanlang"
+
+msgid "Select %s to view"
+msgstr "Koʻrish uchun %s ni tanlang"
+
+msgid "Conflicting form data submitted. Please try again."
+msgstr "Shakl maʼlumotlari bir-biriga zid. Qaytadan urinib koʻring."
+
+msgid "Password-based authentication was disabled."
+msgstr "Parol bilan kirish oʻchirilgan."
+
+msgid "Set password: %s"
+msgstr "Parol oʻrnatish: %s"
+
+msgid "Reset password"
+msgstr "Parolni tiklash"
+
+msgid "Set password"
+msgstr "Parol oʻrnatish"
+
+msgid "Whether the user will be able to authenticate using a password or not. If disabled, they may still be able to authenticate using other backends, such as Single Sign-On or LDAP."
+msgstr "Foydalanuvchi parol bilan kira oladimi yoki yoʻq. Oʻchirilgan boʻlsa ham, boshqa usullar (masalan, Single Sign-On yoki LDAP) orqali kirishi mumkin."
+
+msgid "Password-based authentication"
+msgstr "Parol bilan kirish"
+
+msgid "Enabled"
+msgstr "Yoqilgan"
+
+msgid "Disabled"
+msgstr "Oʻchirilgan"
+
+msgid "Raw passwords are not stored, so there is no way to see the user’s password."
+msgstr "Parollar ochiq saqlanmaydi, shuning uchun foydalanuvchi parolini koʻrib boʻlmaydi."
+
+msgid "Enable password-based authentication for this user by setting a password."
+msgstr "Parol oʻrnatib, shu foydalanuvchi uchun parol bilan kirishni yoqing."
+
+msgid "Old password"
+msgstr "Eski parol"
+
+msgid "algorithm"
+msgstr "algoritm"
+
+msgid "iterations"
+msgstr "iteratsiyalar"
+
+msgid "salt"
+msgstr "tuz"
+
+msgid "hash"
+msgstr "xesh"
+
+msgid "variety"
+msgstr "turi"
+
+msgid "version"
+msgstr "versiya"
+
+msgid "memory cost"
+msgstr "xotira narxi"
+
+msgid "time cost"
+msgstr "vaqt narxi"
+
+msgid "parallelism"
+msgstr "parallellik"
+
+msgid "work factor"
+msgstr "ish omili"
+
+msgid "checksum"
+msgstr "nazorat yigʻindisi"
+
+msgid "block size"
+msgstr "blok hajmi"
+
+msgid "name"
+msgstr "nomi"
+
+msgid "codename"
+msgstr "kod nomi"
+
+msgid "permission"
+msgstr "ruxsat"
+
+msgid "permissions"
+msgstr "ruxsatlar"
+
+msgid "group"
+msgstr "guruh"
+
+msgid "groups"
+msgstr "guruhlar"
+
+msgid "superuser status"
+msgstr "superfoydalanuvchi"
+
+msgid "Designates that this user has all permissions without explicitly assigning them."
+msgstr "Foydalanuvchi alohida berilmasa ham barcha ruxsatlarga ega boʻladi."
+
+msgid "The groups this user belongs to. A user will get all permissions granted to each of their groups."
+msgstr "Foydalanuvchi aʼzo boʻlgan guruhlar. U har bir guruhning barcha ruxsatlarini oladi."
+
+msgid "user permissions"
+msgstr "foydalanuvchi ruxsatlari"
+
+msgid "Specific permissions for this user."
+msgstr "Shu foydalanuvchi uchun alohida ruxsatlar."
+
+msgid "username"
+msgstr "login"
+
+msgid "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+msgstr "Majburiy. 150 belgidan oshmasin. Faqat harflar, raqamlar va @/./+/-/_."
+
+msgid "A user with that username already exists."
+msgstr "Bunday loginli foydalanuvchi allaqachon bor."
+
+msgid "first name"
+msgstr "ism"
+
+msgid "last name"
+msgstr "familiya"
+
+msgid "email address"
+msgstr "email manzil"
+
+msgid "staff status"
+msgstr "xodim holati"
+
+msgid "Designates whether the user can log into this admin site."
+msgstr "Foydalanuvchi boshqaruv saytiga kira oladimi."
+
+msgid "active"
+msgstr "faol"
+
+msgid "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
+msgstr "Foydalanuvchi faolmi. Hisobni oʻchirish oʻrniga shu belgini olib tashlang."
+
+msgid "date joined"
+msgstr "qoʻshilgan sana"
+
+msgid "user"
+msgstr "foydalanuvchi"
+
+msgid "users"
+msgstr "foydalanuvchilar"
+
+msgid "This password is too short. It must contain at least %d character."
+msgid_plural "This password is too short. It must contain at least %d characters."
+msgstr[0] "Parol juda qisqa. Kamida %d ta belgi boʻlishi kerak."
+
+msgid "Your password must contain at least %(min_length)d character."
+msgid_plural "Your password must contain at least %(min_length)d characters."
+msgstr[0] "Parolingiz kamida %(min_length)d ta belgidan iborat boʻlishi kerak."
+
+msgid "The password is too similar to the %(verbose_name)s."
+msgstr "Parol %(verbose_name)s ga juda oʻxshash."
+
+msgid "Your password can’t be too similar to your other personal information."
+msgstr "Parolingiz boshqa shaxsiy maʼlumotlaringizga juda oʻxshash boʻlmasligi kerak."
+
+msgid "This password is too common."
+msgstr "Bu parol juda oddiy."
+
+msgid "Your password can’t be a commonly used password."
+msgstr "Parolingiz koʻp ishlatiladigan parol boʻlmasligi kerak."
+
+msgid "This password is entirely numeric."
+msgstr "Parol faqat raqamlardan iborat."
+
+msgid "Your password can’t be entirely numeric."
+msgstr "Parolingiz faqat raqamlardan iborat boʻlmasligi kerak."
+
+msgid "Password reset on %(site_name)s"
+msgstr "%(site_name)s saytida parolni tiklash"
+
+msgid "Enter a valid username. This value may contain only unaccented lowercase a-z and uppercase A-Z letters, numbers, and @/./+/-/_ characters."
+msgstr "Toʻgʻri login kiriting. U faqat lotin harflari a-z va A-Z, raqamlar va @/./+/-/_ belgilaridan iborat boʻlishi mumkin."
+
+msgid "Enter a valid username. This value may contain only letters, numbers, and @/./+/-/_ characters."
+msgstr "Toʻgʻri login kiriting. U faqat harflar, raqamlar va @/./+/-/_ belgilaridan iborat boʻlishi mumkin."
+
+msgid "Logged out"
+msgstr "Chiqdingiz"
+
+msgid "Password reset"
+msgstr "Parolni tiklash"
+
+msgid "Password reset sent"
+msgstr "Parolni tiklash yuborildi"
+
+msgid "Enter new password"
+msgstr "Yangi parolni kiriting"
+
+msgid "Password reset unsuccessful"
+msgstr "Parolni tiklab boʻlmadi"
+
+msgid "Password reset complete"
+msgstr "Parol tiklandi"
+
+msgid "Password change"
+msgstr "Parolni oʻzgartirish"
+
+msgid "Password change successful"
+msgstr "Parol muvaffaqiyatli oʻzgartirildi"
+
+msgid "Central Kurdish (Sorani)"
+msgstr "Markaziy kurd (sorani)"
+
+msgid "Malay"
+msgstr "Malay"
+
+msgid "Uyghur"
+msgstr "Uygʻur"
+
+msgid "…"
+msgstr "…"
+
+msgid "Enter a valid domain name."
+msgstr "Toʻgʻri domen nomini kiriting."
+
+msgid "Enter a valid %(protocol)s address."
+msgstr "Toʻgʻri %(protocol)s manzil kiriting."
+
+msgid "IPv4"
+msgstr "IPv4"
+
+msgid "IPv6"
+msgstr "IPv6"
+
+msgid "IPv4 or IPv6"
+msgstr "IPv4 yoki IPv6"
+
+msgid "Ensure this value is a multiple of step size %(limit_value)s."
+msgstr "Qiymat %(limit_value)s qadamiga karrali boʻlsin."
+
+msgid "Ensure this value is a multiple of step size %(limit_value)s, starting from %(offset)s, e.g. %(offset)s, %(valid_value1)s, %(valid_value2)s, and so on."
+msgstr "Qiymat %(offset)s dan boshlab %(limit_value)s qadamiga karrali boʻlsin, masalan %(offset)s, %(valid_value1)s, %(valid_value2)s va h.k."
+
+msgid "Constraint “%(name)s” is violated."
+msgstr "«%(name)s» cheklovi buzildi."
+
+msgid "String (unlimited)"
+msgstr "Matn (cheksiz)"
+
+msgid "%(model)s instance with %(field)s %(value)r is not a valid choice."
+msgstr "%(field)s %(value)r boʻlgan %(model)s mavjud tanlov emas."
+
+msgid "ManagementForm data is missing or has been tampered with. Missing fields: %(field_names)s. You may need to file a bug report if the issue persists."
+msgstr "ManagementForm maʼlumotlari yoʻq yoki buzilgan. Yetishmayotgan maydonlar: %(field_names)s."
+
+msgid "Please submit at most %(num)d form."
+msgid_plural "Please submit at most %(num)d forms."
+msgstr[0] "Koʻpi bilan %(num)d ta shakl yuboring."
+
+msgid "Please submit at least %(num)d form."
+msgid_plural "Please submit at least %(num)d forms."
+msgstr[0] "Kamida %(num)d ta shakl yuboring."
+
+msgid "You are seeing this message because this HTTPS site requires a “Referer header” to be sent by your web browser, but none was sent. This header is required for security reasons, to ensure that your browser is not being hijacked by third parties."
+msgstr "Bu HTTPS sayt brauzeringizdan «Referer» sarlavhasini talab qiladi, lekin u yuborilmadi. Bu sarlavha brauzeringizni begonalar boshqarmayotganini tekshirish uchun kerak."
+
+msgid "Content Types"
+msgstr "Kontent turlari"
+
+msgid "python model class name"
+msgstr "python model klassi nomi"
+
+msgid "content type"
+msgstr "kontent turi"
+
+msgid "content types"
+msgstr "kontent turlari"
+
+msgid "Content type %(ct_id)s object has no associated model"
+msgstr "%(ct_id)s kontent turi obyektining modeli yoʻq"
+
+msgid "Content type %(ct_id)s object %(obj_id)s doesn’t exist"
+msgstr "%(ct_id)s kontent turining %(obj_id)s obyekti mavjud emas"
+
+msgid "%(ct_name)s objects don’t have a get_absolute_url() method"
+msgstr "%(ct_name)s obyektlarida get_absolute_url() metodi yoʻq"

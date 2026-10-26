@@ -100,7 +100,7 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
     if shop:
         await message.answer(f"Здравствуйте, «{shop.name}»! Что хотите заказать?", reply_markup=shop_menu)
     else:
-        await message.answer("Этот бот для магазинов-партнёров Dastyor Burger. "
+        await message.answer("Этот бот для магазинов-партнёров DASTYOR. "
                              "Попросите у поставщика ссылку для подключения.")
 
 
