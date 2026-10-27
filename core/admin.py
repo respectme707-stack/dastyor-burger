@@ -421,6 +421,7 @@ class ShipmentItemInline(admin.TabularInline):
 @admin.register(m.Shipment)
 class ShipmentAdmin(admin.ModelAdmin):
     list_display = ["__str__", "date", "shop", "worker", "total_display", "method", "paid", "debt_display"]
+    exclude = ["vehicle"]
     list_filter = ["method", "worker", "shop__district", "shop", "date"]
     date_hierarchy = "date"
     autocomplete_fields = ["shop"]
@@ -501,21 +502,27 @@ class OrderAdmin(admin.ModelAdmin):
             self.message_user(request, _("Создано отгрузок: %(n)s. Оплату внесите в самой отгрузке.") % {"n": done})
 
 
-@admin.register(m.Vehicle)
-class VehicleAdmin(admin.ModelAdmin):
-    list_display = ["name", "drivers_display", "active"]
+class WorkerForm(forms.ModelForm):
+    """Машины и ванселлеры больше не используются: роль «ванселлер» видна только у тех, у кого она уже стоит."""
 
-    @admin.display(description=_("Кто ездит"))
-    def drivers_display(self, obj):
-        return ", ".join(w.name for w in obj.workers.all()) or "—"
+    class Meta:
+        model = m.Worker
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.role != m.Worker.Role.VANSELLER and "role" in self.fields:
+            self.fields["role"].choices = [c for c in self.fields["role"].choices
+                                           if c[0] != m.Worker.Role.VANSELLER]
 
 
 @admin.register(m.Worker)
 class WorkerAdmin(admin.ModelAdmin):
-    list_display = ["name", "role", "phone", "vehicle", "districts", "stock_display", "bot_connected", "active"]
+    form = WorkerForm
+    list_display = ["name", "role", "phone", "salary", "districts", "stock_display", "bot_connected", "active"]
     list_filter = ["role", "active"]
     search_fields = ["name", "phone"]
-    fields = ["name", "role", "phone", "districts", "shops", "vehicle", "active", "telegram_id", "bot_link"]
+    fields = ["name", "role", "phone", "salary", "districts", "shops", "active", "telegram_id", "bot_link"]
     filter_horizontal = ["shops"]
     readonly_fields = ["bot_link"]
 
@@ -545,6 +552,7 @@ class VanLoadItemInline(admin.TabularInline):
 @admin.register(m.VanLoad)
 class VanLoadAdmin(admin.ModelAdmin):
     list_display = ["__str__", "date", "kind", "worker", "given_by"]
+    exclude = ["vehicle"]
     list_filter = ["kind", "worker", "date"]
     date_hierarchy = "date"
     inlines = [VanLoadItemInline]

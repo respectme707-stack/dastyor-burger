@@ -24,5 +24,6 @@ urlpatterns = [
     path("entry/", views.entry, name="entry"),
     path("entry/recipes/", views.recipes, name="recipes"),
     path("search/", views.search, name="search"),
+    path("export.xlsx", views.export_excel, name="export_excel"),
     path("settings/", views.settings_page, name="settings"),
 ]

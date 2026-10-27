@@ -36,7 +36,7 @@ def link_semifinished(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("core", "0009_pack_labels"),
+        ("core", "0011_bot_language"),
     ]
 
     operations = [
