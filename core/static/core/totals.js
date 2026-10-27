@@ -49,13 +49,22 @@ document.addEventListener("DOMContentLoaded", function () {
       qtyInput.closest("td").appendChild(hint);
     }
     if (!u) { hint.textContent = ""; return; }
+    // Прошлая цена: подставляем, когда сырьё только выбрали и цену ещё не вводили.
+    if (material.dataset.priced !== material.value) {
+      material.dataset.priced = material.value;
+      if (!priceInput.value || priceInput.dataset.auto === priceInput.value) {
+        priceInput.value = u.last_price || "";
+        priceInput.dataset.auto = priceInput.value;
+      }
+    }
     const size = u.pack_size;
     const packs = [u.pack, t("по"), (size || 0).toLocaleString("ru-RU"), u.unit].filter(Boolean).join(" ");
     qtyInput.placeholder = size ? t("сколько упаковок") : t("сколько") + " " + u.unit;
     priceInput.placeholder = size ? t("цена за 1 упаковку") : t("цена за 1") + " " + u.unit;
-    hint.textContent = size
+    hint.textContent = (size
       ? packs + (qty ? " " + t("→ на склад") + " " + (qty * size).toLocaleString("ru-RU") + " " + u.unit : "")
-      : (t("в") + " " + u.unit).trim();
+      : (t("в") + " " + u.unit).trim()) +
+      (u.last_price ? " · " + t("прошлая цена") + " " + u.last_price.toLocaleString("ru-RU") : "");
   }
 
   function update() {

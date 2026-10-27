@@ -116,7 +116,7 @@ class DashboardTests(TestCase):
         m.VanLoadItem.objects.create(load=load, product=m.Product.objects.first(), qty=5)
         m.Expense.objects.create(category=m.Expense.Category.FUEL, amount=1000, worker=agent)
         pages = ["/money/", "/shops/", "/products/", "/staff/", "/stock/", "/entry/", "/settings/",
-                 "/admin/core/shipment/add/", "/admin/core/materialbatch/add/", "/admin/core/rawmaterial/add/",
+                 "/admin/core/shipment/add/", "/admin/core/rawmaterial/add/",
                  "/admin/core/materialcategory/add/"]
         pages += [f"/shops/{s.pk}/" for s in m.Shop.objects.all()]
         pages += [f"/products/{p.pk}/" for p in m.Product.objects.all()]
@@ -552,7 +552,7 @@ class FeedbackTests(TestCase):
 
     def test_purchase_without_pack_is_in_material_units(self):
         data = {
-            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "20000", "note": "",
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "20000", "method": "cash", "note": "",
             "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
             "items-MAX_NUM_FORMS": "1000",
             "items-0-material": self.mayo.pk, "items-0-qty": "2000", "items-0-price": "36",
@@ -581,7 +581,7 @@ class FeedbackTests(TestCase):
         self.mayo.pack_name, self.mayo.pack_size = "банка", 900
         self.mayo.save()
         data = {
-            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "note": "",
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "method": "cash", "note": "",
             "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0", "items-MIN_NUM_FORMS": "0",
             "items-MAX_NUM_FORMS": "1000",
             "items-0-material": self.mayo.pk, "items-0-qty": "2", "items-0-price": "16800",
@@ -606,7 +606,7 @@ class FeedbackTests(TestCase):
 
     def _resave(self, purchase, item, qty, price):
         data = {
-            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "note": "",
+            "supplier": self.supplier.pk, "date": "25.10.2026", "paid": "0", "method": "cash", "note": "",
             "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "1", "items-MIN_NUM_FORMS": "0",
             "items-MAX_NUM_FORMS": "1000", "items-0-id": item.pk, "items-0-purchase": purchase.pk,
             "items-0-material": self.mayo.pk, "items-0-qty": qty, "items-0-price": price,
@@ -690,3 +690,96 @@ class LanguageTests(TestCase):
         self.assertIn("Saqlash", self.client.get("/admin/core/purchase/add/").content.decode())
         self.client.post("/i18n/setlang/", {"language": "ru", "next": "/"})
         self.assertIn("Внести данные", self.client.get("/entry/").content.decode())
+
+
+class SemiFinishedTests(TestCase):
+    """Котлеты делаем сами по рецепту продукта, потом они идут в бургер со склада сырья."""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.client.force_login(User.objects.create_superuser("owner", password="x"))
+        kg = m.Unit.objects.get_or_create(name="кг")[0]
+        self.supplier = m.Supplier.objects.create(name="Мясо-опт")
+        self.meat = m.RawMaterial.objects.create(name="Мясо", unit=kg)
+        self.bun = m.RawMaterial.objects.create(name="Булочка Гамбургер")
+        for price in (100000, 120000):
+            purchase = m.Purchase.objects.create(supplier=self.supplier)
+            m.PurchaseItem.objects.create(purchase=purchase, material=self.meat, qty=1, price=price)
+        purchase = m.Purchase.objects.create(supplier=self.supplier)
+        m.PurchaseItem.objects.create(purchase=purchase, material=self.bun, qty=50, price=1500)
+        self.patty = m.RawMaterial.objects.create(name="Котлет Фирменный", homemade=True)
+        self.burger = m.Product.objects.create(name="Гамбургер", price=20000)
+        m.RecipeItem.objects.create(product=self.burger, material=self.patty, qty=1)
+        m.RecipeItem.objects.create(product=self.burger, material=self.bun, qty=1)
+
+    def _patty_product(self, **extra):
+        data = {"name": "котлет фирменный ", "price": "", "shelf_life_days": "5", "active": "on",
+                "recipe-TOTAL_FORMS": "1", "recipe-INITIAL_FORMS": "0",
+                "recipe-0-material": self.meat.pk, "recipe-0-qty": "0.1", **extra}
+        response = self.client.post("/admin/core/product/add/", data)
+        self.assertEqual(response.status_code, 302, response.content.decode()[-3000:])
+        return m.Product.objects.exclude(pk=self.burger.pk).get()
+
+    def test_recipe_name_links_to_homemade_material(self):
+        page = self.client.get("/admin/core/product/add/").content.decode()
+        self.assertIn('<option value="Котлет Фирменный">', page)
+        product = self._patty_product()
+        self.assertEqual(product.material, self.patty)
+        self.assertEqual(product.price, 0)
+        self.assertEqual(product.name, "Котлет Фирменный")
+        self.assertEqual(m.RawMaterial.objects.filter(homemade=True).count(), 1)
+
+    def test_made_patties_go_into_burger(self):
+        patty = self._patty_product()
+        made = m.Production(product=patty, qty=15)
+        made.full_clean()
+        made.save()
+        self.assertEqual(self.patty.stock(), 15)
+        self.assertEqual(patty.stock(), 15)
+        # FIFO: 10 котлет из первого кило мяса (100 000), ещё 5 — из второго (120 000).
+        self.assertEqual(made.unit_cost, D("10666.67"))
+
+        burgers = m.Production(product=self.burger, qty=12)
+        burgers.full_clean()
+        burgers.save()
+        self.assertEqual(self.patty.stock(), 3)
+        self.assertEqual(self.bun.stock(), 38)
+        with self.assertRaisesMessage(ValidationError, "Котлет Фирменный: нужно 4.000, есть 3"):
+            m.Production(product=self.burger, qty=4).full_clean()
+
+    def test_new_semi_finished_appears_in_materials(self):
+        product = self._patty_product(name="Котлет Острый", as_material="on")
+        self.assertTrue(product.material.homemade)
+        self.assertEqual(product.material.name, "Котлет Острый")
+
+    def test_products_without_price_are_not_for_shops(self):
+        from . import botlogic
+
+        patty = self._patty_product()
+        self.assertNotIn(patty, botlogic.sale_products())
+        self.assertIn(patty, botlogic.products())
+        self.assertIn(self.burger, botlogic.sale_products())
+
+    def test_production_form_shows_stock(self):
+        page = self.client.get("/admin/core/production/add/").content.decode()
+        self.assertIn('id="recipe-stock"', page)
+        self.assertIn(f'{{"{self.burger.pk}": [{{"name":', page)
+        self.assertIn('"stock": 50.0', page)
+        self.assertIn("production.js", page)
+
+    def test_purchase_form_knows_last_price(self):
+        page = self.client.get("/admin/core/purchase/add/").content.decode()
+        self.assertIn('"last_price": 120000', page)
+        self.assertIn('name="method"', page)
+
+    def test_stock_filters(self):
+        cat = m.MaterialCategory.objects.create(name="Мясные")
+        self.meat.category = cat
+        self.meat.save()
+        page = self.client.get("/stock/", {"category": cat.pk}).content.decode()
+        self.assertIn(">Мясо<", page.replace(" <", "<"))
+        self.assertNotIn("Булочка Гамбургер</td>", page)
+        page = self.client.get("/stock/", {"q": "булоч"}).content.decode()
+        self.assertIn("Булочка Гамбургер", page)
+        self.assertNotIn("Испекли булочки", page)

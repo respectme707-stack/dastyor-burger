@@ -86,14 +86,17 @@ class RawMaterial(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT, default=default_unit, related_name="materials",
                              verbose_name=_("Единица"))
     min_stock = models.DecimalField(_("Мин. остаток"), default=0, blank=True, **QTY,
-                                    help_text=_("Необязательно. Если остаток станет меньше, сайт предупредит"))
+                                    help_text=_("Это не начальный остаток. Порог для напоминания: когда на складе "
+                                                "станет меньше этого числа, сайт напишет «пора закупить». "
+                                                "0 = не напоминать. Остаток появляется сам после закупки"))
     pack_name = models.CharField(_("Название упаковки"), max_length=30, blank=True,
                                  help_text=_("Необязательно, только слово: банка, пачка, ведро. Не число"))
     pack_size = models.DecimalField(_("Сколько в 1 упаковке"), null=True, blank=True, **QTY,
                                     help_text=_("В единицах этого сырья. Майонез в гр: 900. Колбаса в гр: 600. "
                                               "Если заполнено, закупка вводится упаковками"))
     homemade = models.BooleanField(_("Делаем сами"), default=False,
-                                   help_text=_("Например, булочки: не покупаем, а печём в цеху по своему рецепту"))
+                                   help_text=_("Например, булочки или котлеты: не покупаем, а делаем в цеху. "
+                                               "Рецепт заполняется в «Рецепты», делаем через «Производство»"))
 
     class Meta:
         verbose_name = _("Сырьё")
@@ -123,8 +126,24 @@ class RawMaterial(models.Model):
     def purchased_qty(self):
         return self.purchase_items.aggregate(s=Sum("qty"))["s"] or ZERO
 
+    def linked_product(self):
+        """Продукт с тем же рецептом: когда его производят, этот полуфабрикат приходит на склад."""
+        try:
+            return self.product
+        except Product.DoesNotExist:
+            return None
+
     def made_qty(self):
-        return self.batches.aggregate(s=Sum("qty"))["s"] or ZERO
+        made = self.batches.aggregate(s=Sum("qty"))["s"] or ZERO
+        product = self.linked_product()
+        if product:
+            made += product.produced_qty()
+        return made
+
+    def sold_qty(self):
+        """Полуфабрикат, который продали магазинам или передали агентам как товар."""
+        product = self.linked_product()
+        return Decimal(product.shipped_qty() + product.loaded_qty()) if product else ZERO
 
     def used_qty(self):
         return self.consumptions.aggregate(s=Sum("qty"))["s"] or ZERO
@@ -132,23 +151,56 @@ class RawMaterial(models.Model):
     def written_off_qty(self):
         return self.writeoffs.aggregate(s=Sum("qty"))["s"] or ZERO
 
+    def out_qty(self):
+        return self.used_qty() + self.written_off_qty() + self.sold_qty()
+
     def stock(self):
-        return self.purchased_qty() + self.made_qty() - self.used_qty() - self.written_off_qty()
+        return self.purchased_qty() + self.made_qty() - self.out_qty()
+
+    def lots(self):
+        """Всё, что приходило на склад, от старого к новому: [(дата, количество, цена за единицу)]."""
+        rows = [(i.purchase.date, i.qty, i.price) for i in self.purchase_items.select_related("purchase")]
+        rows += [(b.date, b.qty, b.unit_cost) for b in self.batches.all()]
+        product = self.linked_product()
+        if product:
+            rows += [(p.date, Decimal(p.qty), p.unit_cost) for p in product.productions.all()]
+        return sorted(rows, key=lambda r: r[0])
 
     def avg_price(self):
         """Средневзвешенная цена за единицу: по закупкам и по тому, что сделали сами."""
-        qty = self.purchased_qty() + self.made_qty()
+        rows = self.lots()
+        qty = sum((r[1] for r in rows), ZERO)
         if not qty:
             return self.recipe_cost() if self.homemade else ZERO
-        cost = _sum(self.purchase_items.all(), F("qty") * F("price")) + _sum(self.batches.all(),
-                                                                              F("qty") * F("unit_cost"))
-        return cost / qty
+        return sum((r[1] * r[2] for r in rows), ZERO) / qty
+
+    def fifo_price(self, need):
+        """Цена за единицу, если взять `need` по FIFO: сначала то, что пришло раньше."""
+        rows = self.lots()
+        if not rows or need <= 0:
+            return self.avg_price()
+        skip, left, cost = self.out_qty(), need, ZERO
+        for _date, qty, price in rows:
+            if skip >= qty:
+                skip -= qty
+                continue
+            take = min(qty - skip, left)
+            skip = ZERO
+            cost += take * price
+            left -= take
+            if not left:
+                break
+        cost += left * rows[-1][2]  # не хватило приходов: по последней цене
+        return cost / need
 
     def recipe_cost(self, _seen=()):
         """Себестоимость 1 единицы своего полуфабриката по рецепту и текущим ценам."""
         if self.pk in _seen:  # рецепт по кругу: дальше не считаем
             return ZERO
         seen = (*_seen, self.pk)
+        product = self.linked_product()
+        if product and product.recipe.exists():
+            return product.unit_cost()
         total = ZERO
         for r in self.ingredients.select_related("ingredient"):
             x = r.ingredient
@@ -239,7 +291,7 @@ class MaterialBatch(models.Model):
         self.consumptions.all().delete()
         unit_cost = ZERO
         for r in self.material.ingredients.select_related("ingredient"):
-            price = r.ingredient.avg_price()
+            price = r.ingredient.fifo_price(r.qty * self.qty)
             unit_cost += r.qty * price
             Consumption.objects.create(batch=self, material=r.ingredient, qty=r.qty * self.qty,
                                        cost=(r.qty * self.qty * price).quantize(CENT))
@@ -252,7 +304,12 @@ class Purchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="purchases",
                                  verbose_name=_("Поставщик"))
     date = models.DateField(_("Дата"), default=timezone.localdate)
+    class Method(models.TextChoices):
+        CASH = "cash", _("Наличные")
+        CARD = "card", _("Карта")
+
     paid = models.DecimalField(_("Оплачено сразу"), default=0, **MONEY)
+    method = models.CharField(_("Чем оплатили"), max_length=10, choices=Method.choices, default=Method.CASH)
     note = models.CharField(_("Заметка"), max_length=300, blank=True)
 
     class Meta:
@@ -299,7 +356,7 @@ class MaterialWriteOff(models.Model):
     date = models.DateField(_("Дата"), default=timezone.localdate)
     qty = models.DecimalField(_("Количество"), **QTY)
     reason = models.CharField(_("Причина"), max_length=300, blank=True,
-                              help_text=_("Испорчено, просрочено, инвентаризация"))
+                              help_text=_("Испортилось, просрочилось, выбросили, или при пересчёте оказалось меньше"))
 
     class Meta:
         verbose_name = _("Списание сырья")
@@ -312,7 +369,12 @@ class MaterialWriteOff(models.Model):
 
 class Product(models.Model):
     name = models.CharField(_("Название"), max_length=200, unique=True)
-    price = models.DecimalField(_("Цена для магазинов"), **MONEY)
+    price = models.DecimalField(_("Цена для магазинов"), default=0, blank=True, **MONEY,
+                                help_text=_("Пусто или 0 = магазинам не продаём (например, котлеты только для бургеров)"))
+    material = models.OneToOneField(
+        RawMaterial, on_delete=models.SET_NULL, null=True, blank=True, related_name="product",
+        limit_choices_to={"homemade": True}, verbose_name=_("Полуфабрикат из списка сырья"),
+        help_text=_("Котлеты, булочки: что сделали, приходит на склад сырья и идёт в другие рецепты"))
     shelf_life_days = models.PositiveSmallIntegerField(
         _("Срок годности, дней"), default=5,
         help_text=_("Летом можно уменьшить. По нему бот напоминает о магазинах без заказа"))
@@ -325,6 +387,14 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.price is None:
+            self.price = 0
+        super().save(*args, **kwargs)
+
+    def for_sale(self):
+        return self.active and self.price > 0
 
     def unit_cost(self):
         """Себестоимость 1 шт по рецепту и текущим средним ценам сырья."""
@@ -345,6 +415,10 @@ class Product(models.Model):
 
     def stock(self):
         """Готовая продукция в цеху. Возвраты обратно не приходуются: это еда."""
+        if self.material_id:
+            # Полуфабрикат: один остаток со складом сырья, там же его тратят рецепты.
+            left = self.material.stock()
+            return int(left) if left == left.to_integral() else left
         return self.produced_qty() - self.shipped_qty() - self.loaded_qty()
 
 
@@ -362,6 +436,10 @@ class RecipeItem(models.Model):
 
     def __str__(self):
         return f"{self.material.name}: {self.qty}"
+
+    def clean(self):
+        if self.product_id and self.material_id and self.product.material_id == self.material_id:
+            raise ValidationError(_("Продукт не может быть в своём же рецепте."))
 
 
 class Production(models.Model):
@@ -401,7 +479,7 @@ class Production(models.Model):
         self.consumptions.all().delete()
         unit_cost = ZERO
         for r in self.product.recipe.select_related("material"):
-            price = r.material.avg_price()
+            price = r.material.fifo_price(r.qty * self.qty)
             unit_cost += r.qty * price
             Consumption.objects.create(production=self, material=r.material,
                                        qty=r.qty * self.qty,

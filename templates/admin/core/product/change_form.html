@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}{% load i18n %}
+{% block form_top %}<p class="help">{% translate "Начните писать название: подскажем то, что вы отметили «делаем сами» в сырье (котлеты, булочки). Выберите из списка, чтобы не создать дубль. Новое название тоже можно." %}</p>{% endblock %}
+{% block admin_change_form_document_ready %}{{ block.super }}<datalist id="homemade-names">{% for name in homemade_names %}<option value="{{ name }}">{% endfor %}</datalist>
+<script>
+// Выбрали название из подсказки: сразу отмечаем это сырьё как полуфабрикат продукта.
+document.getElementById("id_name").addEventListener("input", function () {
+  const name = this.value.trim().toLowerCase();
+  const select = document.getElementById("id_material");
+  if (!select || !name) return;
+  const option = Array.from(select.options).find((o) => o.text.split(" (")[0].trim().toLowerCase() === name);
+  if (option) select.value = option.value;
+});
+</script>{% endblock %}

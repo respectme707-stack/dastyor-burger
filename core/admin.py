@@ -7,7 +7,9 @@ from django.contrib.admin.options import FORMFIELD_FOR_DBFIELD_DEFAULTS
 from django.core.exceptions import ValidationError
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db import models
+from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -68,28 +70,25 @@ class MaterialCategoryAdmin(admin.ModelAdmin):
         return ", ".join(x.name for x in obj.materials.all()) or "—"
 
 
-class MaterialRecipeInline(admin.TabularInline):
-    model = m.MaterialRecipeItem
-    fk_name = "material"
-    extra = 3
-    autocomplete_fields = ["ingredient"]
-
-
 @admin.register(m.RawMaterial)
 class RawMaterialAdmin(admin.ModelAdmin):
     list_display = ["name", "category", "unit", "homemade", "stock_display", "avg_price_display", "min_stock"]
     list_filter = ["homemade", "category", "unit"]
     search_fields = ["name"]
-    fields = ["name", "category", "unit", "pack_name", "pack_size", "homemade", "min_stock", "recipe_cost_display"]
-    readonly_fields = ["recipe_cost_display"]
-    inlines = [MaterialRecipeInline]
+    fields = ["name", "category", "unit", "pack_name", "pack_size", "homemade", "min_stock", "recipe_display"]
+    readonly_fields = ["recipe_display"]
 
-    class Media:
-        js = ["core/homemade.js"]
-
-    @admin.display(description=_("Себестоимость 1 ед. по рецепту"))
-    def recipe_cost_display(self, obj):
-        return money(obj.recipe_cost()) if obj.pk and obj.homemade else "—"
+    @admin.display(description=_("Рецепт"))
+    def recipe_display(self, obj):
+        if not obj.pk or not obj.homemade:
+            return _("Только для того, что делаем сами")
+        product = obj.linked_product()
+        if product:
+            return format_html(_('<a href="{}">{}</a> · себестоимость 1 {}: {}'),
+                               reverse("admin:core_product_change", args=[product.pk]), product.name, obj.unit,
+                               money(obj.recipe_cost()))
+        url = reverse("admin:core_product_add") + "?" + urlencode({"name": obj.name, "material": obj.pk})
+        return format_html(_('Рецепта ещё нет. <a href="{}">Создать рецепт «{}»</a>'), url, obj.name)
 
     @admin.display(description=_("Остаток"))
     def stock_display(self, obj):
@@ -160,19 +159,32 @@ class PurchaseItemInline(admin.TabularInline):
     autocomplete_fields = ["material"]
 
 
+def last_prices():
+    """{сырьё: цена последней закупки} — как вводят: за упаковку, если она есть, иначе за единицу."""
+    result = {}
+    for item in m.PurchaseItem.objects.select_related("material").order_by("purchase__date", "purchase_id", "id"):
+        size = item.material.pack_size
+        price = item.price * size if size and not item.before_packs() else item.price
+        result[item.material_id] = float(_plain(price, "0.01"))
+    return result
+
+
 @admin.register(m.Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "date", "supplier", "total_display", "paid"]
-    list_filter = ["supplier", "date"]
+    list_display = ["__str__", "date", "supplier", "total_display", "paid", "method"]
+    list_filter = ["method", "supplier", "date"]
     date_hierarchy = "date"
+    fields = ["supplier", "date", "paid", "method", "note"]
     inlines = [PurchaseItemInline]
 
     class Media:
         js = ["core/totals.js"]
 
     def render_change_form(self, request, context, *args, **kwargs):
+        prices = last_prices()
         context["material_units"] = {
-            x.pk: {"unit": x.unit.name, "pack": x.pack_word(), "pack_size": float(x.pack_size or 0)}
+            x.pk: {"unit": x.unit.name, "pack": x.pack_word(), "pack_size": float(x.pack_size or 0),
+                   "last_price": prices.get(x.pk)}
             for x in m.RawMaterial.objects.select_related("unit")}
         return super().render_change_form(request, context, *args, **kwargs)
 
@@ -183,6 +195,8 @@ class PurchaseAdmin(admin.ModelAdmin):
 
 @admin.register(m.MaterialWriteOff)
 class MaterialWriteOffAdmin(admin.ModelAdmin):
+    """Сырьё испортилось или выбросили: убираем со склада, деньги за него уже потрачены."""
+
     list_display = ["material", "date", "qty", "reason"]
     list_filter = ["material", "date"]
     autocomplete_fields = ["material"]
@@ -194,14 +208,80 @@ class RecipeItemInline(admin.TabularInline):
     autocomplete_fields = ["material"]
 
 
+class ProductForm(forms.ModelForm):
+    """Название подсказывается из сырья «делаем сами»: выбрали — продукт связывается с ним, дубля нет."""
+
+    as_material = forms.BooleanField(
+        label=_("Идёт в другие рецепты"), required=False,
+        help_text=_("Поставьте, если это полуфабрикат (котлеты, булочки), которого ещё нет в списке сырья: "
+                    "он появится там с пометкой «делаем сами»"))
+
+    class Meta:
+        model = m.Product
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        taken = m.Product.objects.exclude(material=None)
+        if self.instance.pk:
+            taken = taken.exclude(pk=self.instance.pk)
+        free = m.RawMaterial.objects.filter(homemade=True).exclude(pk__in=taken.values("material"))
+        self.fields["material"].queryset = free
+        self.fields["name"].widget.attrs.update(list="homemade-names", autocomplete="off")
+        self.homemade_names = list(free.values_list("name", flat=True))
+        if self.instance.material_id:
+            self.fields.pop("as_material", None)
+
+    def clean(self):
+        data = super().clean()
+        name = (data.get("name") or "").strip()
+        if not data.get("material") and name:
+            data["material"] = next((x for x in self.fields["material"].queryset
+                                     if x.name.strip().casefold() == name.casefold()), None)
+        if data.get("material") and name.casefold() == data["material"].name.strip().casefold():
+            data["name"] = data["material"].name
+        return data
+
+    def save(self, commit=True):
+        product = super().save(commit=False)
+        if not product.material_id and self.cleaned_data.get("as_material"):
+            # Сырьё с таким же названием (например, покупное) не трогаем: называем полуфабрикат иначе.
+            name = product.name
+            names = {x.casefold() for x in m.RawMaterial.objects.values_list("name", flat=True)}
+            if name.casefold() in names:
+                name = f"{name} (свой)"
+            material = m.RawMaterial.objects.create(name=name, homemade=True)
+            product.material = material
+        if commit:
+            product.save()
+            self.save_m2m()
+        return product
+
+
 @admin.register(m.Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ["name", "price", "shelf_life_days", "unit_cost_display", "profit_display", "stock", "active"]
+    form = ProductForm
+    list_display = ["name", "price_display", "shelf_life_days", "unit_cost_display", "profit_display", "stock",
+                    "active"]
     list_editable = ["shelf_life_days"]
     list_filter = ["active"]
     search_fields = ["name"]
     inlines = [RecipeItemInline]
     readonly_fields = ["unit_cost_display", "profit_display", "breakdown_display"]
+
+    def get_fields(self, request, obj=None):
+        fields = ["name", "price", "material", "as_material", "shelf_life_days", "active"]
+        if obj is not None and obj.material_id:
+            fields.remove("as_material")
+        return fields + list(self.readonly_fields)
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["homemade_names"] = context["adminform"].form.homemade_names
+        return super().render_change_form(request, context, *args, **kwargs)
+
+    @admin.display(description=_("Цена для магазинов"))
+    def price_display(self, obj):
+        return money(obj.price) if obj.price else _("не продаём")
 
     @admin.display(description=_("Из чего складывается"))
     def breakdown_display(self, obj):
@@ -211,7 +291,7 @@ class ProductAdmin(admin.ModelAdmin):
         for r in obj.recipe.select_related("material__unit"):
             price = r.material.avg_price()
             cost = r.qty * price
-            warn = cost > obj.price / 2
+            warn = obj.price > 0 and cost > obj.price / 2
             lines.append(format_html(
                 _('<div{}>{}: {} {} × {} за 1 {} = <b>{}</b>{}</div>'),
                 format_html(' style="color:#f85149"') if warn else "", r.material.name, qty(r.qty),
@@ -225,7 +305,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Прибыль с 1 шт"))
     def profit_display(self, obj):
-        if not obj.pk:
+        if not obj.pk or not obj.price:
             return "—"
         cost = obj.unit_cost()
         profit = obj.price - cost
@@ -250,15 +330,29 @@ class BatchConsumptionInline(ConsumptionInline):
 
 @admin.register(m.MaterialBatch)
 class MaterialBatchAdmin(admin.ModelAdmin):
+    """Старые записи «Испекли булочки». Новые булочки и котлеты записываются через «Производство»."""
+
     list_display = ["material", "date", "qty", "worker", "unit_cost", "total_cost_display"]
     list_filter = ["material", "worker", "date"]
     date_hierarchy = "date"
     readonly_fields = ["unit_cost"]
     inlines = [BatchConsumptionInline]
 
+    def has_add_permission(self, request):
+        return False
+
     @admin.display(description=_("Себестоимость партии"))
     def total_cost_display(self, obj):
         return money(obj.total_cost())
+
+
+def recipe_stock():
+    """Для формы производства: по каждому продукту — что нужно на 1 шт и сколько этого на складе."""
+    result = {}
+    for p in m.Product.objects.prefetch_related("recipe__material__unit"):
+        result[p.pk] = [{"name": r.material.name, "unit": r.material.unit.name, "per": float(r.qty),
+                         "stock": float(r.material.stock())} for r in p.recipe.all()]
+    return result
 
 
 @admin.register(m.Production)
@@ -268,6 +362,13 @@ class ProductionAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     readonly_fields = ["unit_cost"]
     inlines = [ConsumptionInline]
+
+    class Media:
+        js = ["core/production.js"]
+
+    def render_change_form(self, request, context, *args, **kwargs):
+        context["recipe_stock"] = recipe_stock()
+        return super().render_change_form(request, context, *args, **kwargs)
 
     @admin.display(description=_("Себестоимость партии"))
     def total_cost_display(self, obj):
