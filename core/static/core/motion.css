@@ -1,0 +1,79 @@
+/* Плавные переходы и три вида оформления. Вид выбирается в «Настройках» и запоминается в браузере. */
+
+/* Переход между страницами: старая тает, новая проявляется (Chrome, Edge, Safari 18+). */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: vt-out .18s ease-in both; }
+::view-transition-new(root) { animation: vt-in .28s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes vt-out { to { opacity: 0; transform: scale(.985); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* Блоки страницы появляются по очереди. */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+main > *, #content-main > *, .actions > .action, .tiles > .box { animation: rise .4s cubic-bezier(.2, .7, .2, 1) both; }
+main > :nth-child(2), .actions > :nth-child(2), .tiles > :nth-child(2) { animation-delay: .04s; }
+main > :nth-child(3), .actions > :nth-child(3), .tiles > :nth-child(3) { animation-delay: .08s; }
+main > :nth-child(4), .actions > :nth-child(4), .tiles > :nth-child(4) { animation-delay: .12s; }
+main > :nth-child(5), .actions > :nth-child(5), .tiles > :nth-child(5) { animation-delay: .16s; }
+main > :nth-child(n+6), .actions > :nth-child(n+6), .tiles > :nth-child(n+6) { animation-delay: .2s; }
+
+/* Отклик на наведение и нажатие. */
+.action, .box, .btn, .periods a, .gh-tabs a, tbody td, .gh-back, .gh-user button { transition: background-color .15s, border-color .15s, transform .15s, box-shadow .2s; }
+.action:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -12px rgba(0, 0, 0, .7); }
+.action:active, .btn:active { transform: scale(.97); }
+.action:hover .ic { transform: scale(1.08) rotate(-4deg); }
+.action .ic { transition: transform .2s; }
+.gh-tabs a.on { animation: tab-on .3s ease; }
+@keyframes tab-on { from { border-bottom-color: transparent; } }
+.tile .value { animation: rise .5s .1s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Вид «Стекло»: мягкое цветное сияние за полупрозрачными карточками ---------- */
+html[data-style="glass"] body {
+  background:
+    radial-gradient(900px 600px at 8% -10%, rgba(247, 129, 102, .20), transparent 60%),
+    radial-gradient(800px 600px at 100% 10%, rgba(68, 147, 248, .18), transparent 60%),
+    radial-gradient(900px 700px at 50% 120%, rgba(163, 113, 247, .16), transparent 60%),
+    #0b0f17 fixed;
+}
+html[data-style="glass"] .gh-top { background: rgba(1, 4, 9, .55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20; }
+html[data-style="glass"] .box, html[data-style="glass"] .action, html[data-style="glass"] #content-main .module,
+html[data-style="glass"] .inline-group, html[data-style="glass"] .submit-row {
+  background: rgba(22, 28, 38, .55) !important; border-color: rgba(255, 255, 255, .09) !important;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 14px;
+}
+html[data-style="glass"] .box > h2 { background: rgba(255, 255, 255, .03); border-color: rgba(255, 255, 255, .07); border-radius: 14px 14px 0 0; }
+html[data-style="glass"] .action:hover { border-color: rgba(247, 129, 102, .6) !important; box-shadow: 0 10px 30px -10px rgba(247, 129, 102, .35); }
+html[data-style="glass"] .btn.primary { background: linear-gradient(135deg, #2ea043, #1f883d); }
+html[data-style="glass"] .periods a.on { background: linear-gradient(135deg, #4493f8, #a371f7); }
+
+/* ---------- Вид «Бенто»: крупные плитки, больше воздуха, тёплый акцент цвета логотипа ---------- */
+html[data-style="bento"] { --gh-bg: #0e0f13; --gh-card: #17191f; --gh-subtle: #1f2229; --gh-line: #2a2e37; --gh-line-soft: #22252c; --gh-link: #ff9b7a; }
+html[data-style="bento"] body { background: var(--gh-bg); }
+html[data-style="bento"] main { gap: 20px; }
+html[data-style="bento"] .box, html[data-style="bento"] .action { border-radius: 18px; border-color: transparent; box-shadow: inset 0 0 0 1px var(--gh-line); }
+html[data-style="bento"] .box > h2 { background: transparent; border-bottom-color: var(--gh-line-soft); border-radius: 18px 18px 0 0; font-size: 15px; padding: 16px 20px; }
+html[data-style="bento"] .action { padding: 18px 20px; }
+html[data-style="bento"] .action .ic { border-radius: 12px; background: linear-gradient(135deg, rgba(247, 129, 102, .22), rgba(247, 129, 102, .06)); border-color: rgba(247, 129, 102, .3); }
+html[data-style="bento"] .action:hover { box-shadow: inset 0 0 0 1px #f78166, 0 12px 30px -14px rgba(247, 129, 102, .5); }
+html[data-style="bento"] .tile .value { font-size: 30px; letter-spacing: -.02em; }
+html[data-style="bento"] .head h1 { font-size: 26px; letter-spacing: -.02em; background: linear-gradient(90deg, #fff, #ffb59e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html[data-style="bento"] .btn { border-radius: 999px; padding: 6px 16px; }
+html[data-style="bento"] .btn.primary { background: #f78166; color: #1a0f0b; border-color: transparent; }
+html[data-style="bento"] .btn.primary:hover { background: #ff9b7a; }
+html[data-style="bento"] .periods { border-radius: 999px; }
+html[data-style="bento"] .periods a.on { background: #f78166; color: #1a0f0b; }
+html[data-style="bento"] .gh-tabs a.on { border-bottom-color: #f78166; }
+html[data-style="bento"] #content-main .module, html[data-style="bento"] .inline-group, html[data-style="bento"] .submit-row { border-radius: 18px; }
+
+/* Выбор вида в «Настройках». */
+.styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.styles button { text-align: left; font: inherit; color: var(--gh-fg); cursor: pointer; padding: 0; border-radius: 12px; border: 2px solid var(--gh-line); background: var(--gh-card); overflow: hidden; transition: border-color .15s, transform .15s; }
+.styles button:hover { transform: translateY(-2px); }
+.styles button.on { border-color: #f78166; }
+.styles .sw { height: 70px; }
+.styles b, .styles small { display: block; padding: 0 12px; }
+.styles b { padding-top: 10px; }
+.styles small { color: var(--gh-muted); font-size: 12px; padding-bottom: 12px; }

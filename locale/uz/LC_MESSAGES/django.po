@@ -3509,3 +3509,39 @@ msgstr ""
 
 msgid "Тот же остаток, что в таблице сырья"
 msgstr "Xomashyo jadvalidagi qoldiq bilan bir xil"
+
+msgid "%(name)s · в цеху %(n)s шт"
+msgstr "%(name)s · sexda %(n)s dona"
+
+msgid "%(name)s: в цеху %(have)s, а передаёте %(n)s"
+msgstr "%(name)s: sexda %(have)s, berilmoqda %(n)s"
+
+msgid "Не хватает в цеху. "
+msgstr "Sexda yetmaydi. "
+
+msgid "Оформление"
+msgstr "Koʻrinish"
+
+msgid "Классика"
+msgstr "Klassika"
+
+msgid "Строгий тёмный, как сейчас"
+msgstr "Qatʼiy qorongʻi, hozirgidek"
+
+msgid "Стекло"
+msgstr "Shisha"
+
+msgid "Цветное сияние за прозрачными карточками"
+msgstr "Shaffof kartochkalar ortida rangli nur"
+
+msgid "Бенто"
+msgstr "Bento"
+
+msgid "Крупные плитки, тёплый оранжевый акцент"
+msgstr "Katta plitkalar, iliq toʻq sariq urgʻu"
+
+msgid ""
+"Запоминается на этом устройстве: на телефоне и компьютере можно выбрать "
+"разное."
+msgstr ""
+"Shu qurilmada eslab qolinadi: telefon va kompyuterda har xil tanlash mumkin."
