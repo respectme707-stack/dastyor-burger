@@ -4,7 +4,7 @@
 <div class="crumbs"><a href="{% url 'staff' %}?period={{ period }}">{% translate "Сотрудники" %}</a> / {{ worker.name }}</div>
 <div class="head">
   <div><h1>{{ worker.name }} {% if not worker.active %}<span class="tag">{% translate "не работает" %}</span>{% endif %}</h1>
-    <div class="sub">{{ worker.get_role_display }}{% if worker.phone %} · {{ worker.phone }}{% endif %}{% if worker.vehicle %} · {{ worker.vehicle.name }}{% endif %}{% if worker.districts %} · {{ worker.districts }}{% endif %} · {% translate "бот" %} {% if worker.telegram_id %}<span class="tag green">{% translate "подключён" %}</span>{% else %}<span class="tag">{% translate "не подключён" %}</span>{% endif %}</div></div>
+    <div class="sub">{{ worker.get_role_display }}{% if worker.phone %} · {{ worker.phone }}{% endif %}{% if worker.districts %} · {{ worker.districts }}{% endif %} · {% translate "бот" %} {% if worker.telegram_id %}<span class="tag green">{% translate "подключён" %}</span>{% else %}<span class="tag">{% translate "не подключён" %}</span>{% endif %}</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn" href="{% url 'admin:core_worker_change' worker.pk %}">{% translate "Изменить" %}</a></div>
 </div>
 
@@ -12,6 +12,7 @@
   <div class="box tile"><div class="label">{% translate "Продал" %}</div><div class="value">{{ sales|money }}</div><div class="sub">{{ qty|money }} {% translate "шт" %}</div></div>
   <div class="box tile"><div class="label">{% translate "Собрал денег" %}</div><div class="value good">{{ cash|money }}</div><div class="sub">{% translate "при отгрузке и за долги" %}</div></div>
   <div class="box tile"><div class="label">{% translate "Расходы" %}</div><div class="value">{{ expense_total|money }}</div><div class="sub"><a href="{% url 'admin:core_expense_add' %}?worker={{ worker.pk }}">+ {% translate "расход" %}</a></div></div>
+  <div class="box tile"><div class="label">{% translate "Зарплата за" %} {{ month|date:"F"|lower }}</div><div class="value">{{ salary_paid|money }} <span class="muted" style="font-size:14px">/ {{ worker.salary|money }}</span></div><div class="sub">{% if salary_left %}{% translate "осталось выдать" %} {{ salary_left|money }} · {% endif %}<a href="{% url 'admin:core_expense_add' %}?category=salary&amp;worker={{ worker.pk }}">+ {% translate "выдать" %}</a></div></div>
   <div class="box tile"><div class="label">{% translate "Сделал в цеху" %}</div><div class="value">{{ produced|money }} {% translate "шт" %}</div><div class="sub">{% translate "за период" %}</div></div>
 </section>
 

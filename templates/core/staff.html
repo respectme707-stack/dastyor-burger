@@ -21,7 +21,7 @@
   <h2>{% translate "Сводка по сотрудникам" %} <a href="{% url 'admin:core_workday_changelist' %}">{% translate "табель →" %}</a></h2>
   {% if rows %}
   <div class="scroll"><table>
-    <thead><tr><th>{% translate "Сотрудник" %}</th><th>{% translate "Роль" %}</th><th class="num">{% translate "Продал, сум" %}</th><th class="num">{% translate "Шт" %}</th><th class="num">{% translate "Магазинов" %}</th><th class="num">{% translate "Собрал денег" %}</th><th class="num">{% translate "Расходы" %}</th><th class="num">{% translate "Возвраты принял" %}</th><th class="num">{% translate "Убыток от возвр." %}</th><th class="num">{% translate "Сделал, шт" %}</th><th class="num">{% translate "Получил товара" %}</th><th class="num">{% translate "Передал агентам" %}</th><th class="num">{% translate "Сейчас на руках" %}</th><th class="num">{% translate "Дней работал" %}</th><th class="num">{% translate "Не вышел" %}</th></tr></thead>
+    <thead><tr><th>{% translate "Сотрудник" %}</th><th>{% translate "Роль" %}</th><th class="num">{% translate "Продал, сум" %}</th><th class="num">{% translate "Шт" %}</th><th class="num">{% translate "Магазинов" %}</th><th class="num">{% translate "Собрал денег" %}</th><th class="num">{% translate "Расходы" %}</th><th class="num">{% translate "Возвраты принял" %}</th><th class="num">{% translate "Убыток от возвр." %}</th><th class="num">{% translate "Сделал, шт" %}</th><th class="num">{% translate "Получил товара" %}</th><th class="num">{% translate "Передал агентам" %}</th><th class="num">{% translate "Сейчас на руках" %}</th><th class="num">{% translate "Дней работал" %}</th><th class="num">{% translate "Не вышел" %}</th><th class="num">{% translate "Оклад" %}</th><th class="num">{% translate "Выдано за месяц" %}</th></tr></thead>
     <tbody>
     {% for r in rows %}
     <tr>
@@ -40,6 +40,8 @@
       <td class="num">{{ r.on_hand|money }}</td>
       <td class="num">{{ r.days }}</td>
       <td class="num {% if r.absent %}bad{% endif %}">{{ r.absent }}</td>
+      <td class="num">{{ r.salary|money }}</td>
+      <td class="num {% if r.salary and r.salary_paid < r.salary %}muted{% endif %}">{{ r.salary_paid|money }}</td>
     </tr>
     {% endfor %}
     </tbody>

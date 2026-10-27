@@ -98,11 +98,15 @@ bash dastyor-burger/install.sh
 
 Скрипт поставит Docker, откроет порт 80, спросит токен бота и ваш Telegram ID, сам придумает пароли, запустит сайт и бота и попросит создать логин владельца. В Oracle Cloud порт 80 нужно ещё открыть в панели: Networking → Virtual Cloud Networks → ваша сеть → Security Lists → Default → Add Ingress Rule (Source CIDR `0.0.0.0/0`, порт `80`).
 
-Обновить до новой версии:
+Один раз, чтобы сервер мог скачивать обновления из закрытого репозитория: `bash ~/dastyor-burger/deploy_key.sh`. Скрипт покажет ключ; добавьте его в GitHub → Settings → Deploy keys (без галочки «write»).
+
+Обновить до новой версии одной командой с компьютера:
 
 ```bash
-cd ~/dastyor-burger && git pull && bash install.sh
+ssh -i КЛЮЧ ubuntu@IP "bash ~/dastyor-burger/update.sh"
 ```
+
+Резервная копия базы приходит владельцу в Telegram каждую ночь (и по команде `/backup`). Восстановить на сервере: `gunzip -c dastyor-ДАТА.json.gz | sudo docker compose exec -T web python manage.py loaddata --format=json -`.
 
 ### Вручную (Docker)
 

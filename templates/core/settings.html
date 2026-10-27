@@ -18,7 +18,6 @@
   <a class="action" href="{% url 'admin:core_shop_changelist' %}"><span class="ic">🏪</span><span><b>{% translate "Магазины" %}</b><small>{% translate "Адрес, район, ссылка для бота" %}</small></span><span class="list tag">{{ counts.shops }}</span></a>
   <a class="action" href="{% url 'admin:core_worker_changelist' %}"><span class="ic">🧑</span><span><b>{% translate "Сотрудники" %}</b><small>{% translate "Роль, магазины агента, ссылка для бота" %}</small></span><span class="list tag">{{ counts.workers }}</span></a>
   <a class="action" href="{% url 'admin:core_supplier_changelist' %}"><span class="ic">🏭</span><span><b>{% translate "Поставщики" %}</b></span><span class="list tag">{{ counts.suppliers }}</span></a>
-  <a class="action" href="{% url 'admin:core_vehicle_changelist' %}"><span class="ic">🚐</span><span><b>{% translate "Машины" %}</b></span><span class="list tag">{{ counts.vehicles }}</span></a>
 </div>
 
 <h2 class="section-title">{% translate "Доступ к сайту" %}</h2>

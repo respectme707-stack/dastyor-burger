@@ -1,10 +1,11 @@
 import os
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 
 from . import models as m
-from . import reports
+from . import excel, reports
 
 
 def _period(request):
@@ -114,7 +115,6 @@ def settings_page(request):
         "suppliers": m.Supplier.objects.count(),
         "shops": m.Shop.objects.count(),
         "workers": m.Worker.objects.count(),
-        "vehicles": m.Vehicle.objects.count(),
     }
     bot = {
         "username": os.environ.get("TELEGRAM_BOT_USERNAME", ""),
@@ -123,3 +123,11 @@ def settings_page(request):
         "owners": len([x for x in os.environ.get("OWNER_TELEGRAM_IDS", "").replace(",", " ").split() if x]),
     }
     return _render(request, "core/settings.html", "settings", {"counts": counts, "bot": bot})
+
+
+@staff_member_required
+def export_excel(request):
+    name, data = excel.build(_period(request))
+    response = HttpResponse(data, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="{name}"'
+    return response
