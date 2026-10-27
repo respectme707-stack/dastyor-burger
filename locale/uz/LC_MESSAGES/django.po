@@ -3545,3 +3545,15 @@ msgid ""
 "разное."
 msgstr ""
 "Shu qurilmada eslab qolinadi: telefon va kompyuterda har xil tanlash mumkin."
+
+msgid "Неоклассика"
+msgstr "Neoklassika"
+
+msgid "Глубокий синий, золото, заголовки с засечками"
+msgstr "Toʻq koʻk, oltin, serif sarlavhalar"
+
+msgid "Аврора"
+msgstr "Avrora"
+
+msgid "Прозрачная рабочая зона, за ней плывёт цветной фон"
+msgstr "Shaffof ish maydoni, ortida rangli fon suzadi"

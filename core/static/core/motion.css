@@ -27,7 +27,7 @@ main > :nth-child(n+6), .actions > :nth-child(n+6), .tiles > :nth-child(n+6) { a
 .tile .value { animation: rise .5s .1s both; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; transition: none !important; }
+  *, *::before, *::after, ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; transition: none !important; }
 }
 
 /* ---------- Вид «Стекло»: мягкое цветное сияние за полупрозрачными карточками ---------- */
@@ -68,6 +68,55 @@ html[data-style="bento"] .periods a.on { background: #f78166; color: #1a0f0b; }
 html[data-style="bento"] .gh-tabs a.on { border-bottom-color: #f78166; }
 html[data-style="bento"] #content-main .module, html[data-style="bento"] .inline-group, html[data-style="bento"] .submit-row { border-radius: 18px; }
 
+/* ---------- Вид «Неоклассика»: глубокий синий, золото, заголовки с засечками ---------- */
+html[data-style="neo"] { --gh-bg: #0c1120; --gh-top: #080c18; --gh-card: #121a2e; --gh-subtle: #18213a; --gh-line: #2b3654; --gh-line-soft: #1e2742; --gh-fg: #efe9dc; --gh-muted: #9a9fb0; --gh-link: #d8b56a; --gh-active: #c9a45c; }
+html[data-style="neo"] body { background: radial-gradient(1200px 500px at 50% -200px, #1a2443, transparent 70%), var(--gh-bg); }
+html[data-style="neo"] .head h1, html[data-style="neo"] .section-title, html[data-style="neo"] .box > h2, html[data-style="neo"] #content h1, html[data-style="neo"] .gh-brand {
+  font-family: "Playfair Display", "Cormorant Garamond", Georgia, "Times New Roman", serif; letter-spacing: .01em; }
+html[data-style="neo"] .head h1 { font-size: 28px; font-weight: 600; }
+html[data-style="neo"] .section-title { font-size: 19px; font-weight: 600; color: #e6d3a3; }
+html[data-style="neo"] .section-title::after { content: ""; display: block; width: 48px; height: 1px; margin-top: 6px; background: linear-gradient(90deg, #c9a45c, transparent); }
+html[data-style="neo"] .gh-logo { background: linear-gradient(135deg, #e6c983, #a9853f); color: #0c1120; }
+html[data-style="neo"] .box, html[data-style="neo"] .action, html[data-style="neo"] #content-main .module, html[data-style="neo"] .inline-group, html[data-style="neo"] .submit-row {
+  background: #121a2e !important; border-color: #2b3654 !important; border-radius: 4px; box-shadow: 0 1px 0 rgba(201, 164, 92, .08) inset; }
+html[data-style="neo"] .box > h2, html[data-style="neo"] .module h2, html[data-style="neo"] .inline-group h2 { background: transparent !important; border-bottom: 1px solid rgba(201, 164, 92, .35); color: #e6d3a3 !important; font-size: 16px; }
+html[data-style="neo"] .action .ic { background: transparent; border-color: rgba(201, 164, 92, .5); color: #e6c983; border-radius: 50%; }
+html[data-style="neo"] .action:hover { border-color: #c9a45c !important; box-shadow: 0 10px 28px -16px rgba(201, 164, 92, .55); }
+html[data-style="neo"] .btn.primary, html[data-style="neo"] .periods a.on, html[data-style="neo"] .submit-row input[type=submit] { background: linear-gradient(135deg, #e6c983, #b08b43) !important; color: #0c1120 !important; border-color: transparent; }
+html[data-style="neo"] .gh-tabs a.on { border-bottom-color: #c9a45c; }
+html[data-style="neo"] .gh-tabs a.cta span { color: #e6c983; }
+html[data-style="neo"] .gh-tabs a.cta svg { stroke: #e6c983; }
+html[data-style="neo"] .tile .value { font-family: Georgia, serif; font-weight: 500; }
+
+/* ---------- Вид «Аврора»: полупрозрачная рабочая зона, за ней медленно плывёт цветной фон ---------- */
+html[data-style="aurora"] body { background: #070a12; }
+html[data-style="aurora"] body::before, html[data-style="aurora"] body::after {
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(60px); opacity: .55; }
+html[data-style="aurora"] body::before {
+  background:
+    radial-gradient(35% 40% at 20% 30%, #f78166, transparent 70%),
+    radial-gradient(30% 35% at 75% 20%, #4493f8, transparent 70%),
+    radial-gradient(35% 40% at 60% 80%, #a371f7, transparent 70%);
+  animation: aurora-a 28s ease-in-out infinite alternate; }
+html[data-style="aurora"] body::after {
+  background:
+    radial-gradient(25% 30% at 80% 70%, #3fb950, transparent 70%),
+    radial-gradient(25% 30% at 30% 85%, #d29922, transparent 70%);
+  opacity: .35; animation: aurora-b 36s ease-in-out infinite alternate; }
+@keyframes aurora-a { 0% { transform: translate(0, 0) rotate(0) scale(1); } 50% { transform: translate(6%, -4%) rotate(20deg) scale(1.1); } 100% { transform: translate(-5%, 5%) rotate(-15deg) scale(1.05); } }
+@keyframes aurora-b { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-8%, -6%) scale(1.2); } }
+html[data-style="aurora"] .gh-top { background: rgba(5, 8, 15, .45); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); position: sticky; top: 0; z-index: 20; border-bottom-color: rgba(255, 255, 255, .08); }
+html[data-style="aurora"] #container, html[data-style="aurora"] .main, html[data-style="aurora"] #content, html[data-style="aurora"] #nav-sidebar { background: transparent !important; }
+html[data-style="aurora"] .box, html[data-style="aurora"] .action, html[data-style="aurora"] #content-main .module, html[data-style="aurora"] .inline-group,
+html[data-style="aurora"] .submit-row, html[data-style="aurora"] #nav-sidebar .module, html[data-style="aurora"] #changelist-filter {
+  background: rgba(13, 17, 26, .42) !important; border-color: rgba(255, 255, 255, .10) !important;
+  backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); border-radius: 16px; }
+html[data-style="aurora"] .box > h2, html[data-style="aurora"] .module h2, html[data-style="aurora"] .inline-group h2 { background: rgba(255, 255, 255, .04) !important; border-color: rgba(255, 255, 255, .08); }
+html[data-style="aurora"] tbody tr:hover td { background: rgba(255, 255, 255, .05); }
+html[data-style="aurora"] .action:hover { border-color: rgba(255, 255, 255, .35) !important; box-shadow: 0 12px 34px -14px rgba(68, 147, 248, .5); }
+html[data-style="aurora"] .periods a { background: rgba(255, 255, 255, .04); }
+html[data-style="aurora"] .periods a.on, html[data-style="aurora"] .btn.primary { background: linear-gradient(135deg, #f78166, #a371f7); border-color: transparent; color: #fff; }
+
 /* Выбор вида в «Настройках». */
 .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .styles button { text-align: left; font: inherit; color: var(--gh-fg); cursor: pointer; padding: 0; border-radius: 12px; border: 2px solid var(--gh-line); background: var(--gh-card); overflow: hidden; transition: border-color .15s, transform .15s; }
@@ -77,3 +126,5 @@ html[data-style="bento"] #content-main .module, html[data-style="bento"] .inline
 .styles b, .styles small { display: block; padding: 0 12px; }
 .styles b { padding-top: 10px; }
 .styles small { color: var(--gh-muted); font-size: 12px; padding-bottom: 12px; }
+.styles .sw-aurora { background: radial-gradient(circle at 25% 35%, #f78166aa, transparent 50%), radial-gradient(circle at 75% 30%, #4493f8aa, transparent 50%), radial-gradient(circle at 55% 90%, #a371f7aa, transparent 55%), #070a12; background-size: 160% 160%; animation: sw-move 6s ease-in-out infinite alternate; }
+@keyframes sw-move { to { background-position: 100% 100%; } }
