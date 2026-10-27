@@ -544,9 +544,45 @@ class WorkerAdmin(admin.ModelAdmin):
         return bot_link(obj, _("сотруднику"))
 
 
+class ProductStockChoice(forms.ModelChoiceField):
+    """В списке продуктов сразу видно, сколько их в цеху."""
+
+    def label_from_instance(self, obj):
+        return _("%(name)s · в цеху %(n)s шт") % {"name": obj.name, "n": qty(Decimal(obj.stock()))}
+
+
+class VanLoadItemFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        load = self.instance
+        if load.kind != m.VanLoad.Kind.LOAD:
+            return
+        need = {}
+        for form in self.forms:
+            data = getattr(form, "cleaned_data", None) or {}
+            if data.get("product") and data.get("qty") and not data.get("DELETE"):
+                need[data["product"]] = need.get(data["product"], 0) + data["qty"]
+        short = []
+        for product, n in need.items():
+            have = product.stock()
+            if load.pk:  # эту передачу уже вычли из цеха
+                have += sum(i.qty for i in load.items.filter(product=product))
+            if n > have:
+                short.append(_("%(name)s: в цеху %(have)s, а передаёте %(n)s") % {
+                    "name": product.name, "have": qty(Decimal(have)), "n": n})
+        if short:
+            raise ValidationError(_("Не хватает в цеху. ") + "; ".join(short))
+
+
 class VanLoadItemInline(admin.TabularInline):
     model = m.VanLoadItem
+    formset = VanLoadItemFormSet
     extra = 2
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "product":
+            kwargs.update(form_class=ProductStockChoice, queryset=m.Product.objects.filter(active=True))
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 @admin.register(m.VanLoad)

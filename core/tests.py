@@ -894,3 +894,26 @@ class BotLanguageTests(TestCase):
         from . import bot_staff
         markup = bot_staff.kb([[(label, value)] for value, label in m.Expense.Category.choices])
         self.assertEqual(markup.inline_keyboard[0][0].text, "Зарплата")
+
+
+class HandoverFormTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.client.force_login(User.objects.create_superuser("owner", password="x"))
+        self.hotdog = m.Product.objects.create(name="Хот-дог", price=12000)
+        m.Production.objects.create(product=self.hotdog, qty=10)
+        self.agent = m.Worker.objects.create(name="Шер", role=m.Worker.Role.VANSELLER)
+
+    def _post(self, n):
+        return self.client.post("/admin/core/vanload/add/", {
+            "worker": self.agent.pk, "kind": "load", "date": "27.10.2026",
+            "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0",
+            "items-0-product": self.hotdog.pk, "items-0-qty": str(n)})
+
+    def test_shows_workshop_stock_and_blocks_shortage(self):
+        self.assertIn("Хот-дог · в цеху 10 шт", self.client.get("/admin/core/vanload/add/").content.decode())
+        page = self._post(11).content.decode()
+        self.assertIn("в цеху 10, а передаёте 11", page)
+        self.assertEqual(self._post(10).status_code, 302)
+        self.assertEqual(self.agent.stock(), {self.hotdog: 10})

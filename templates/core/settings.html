@@ -1,9 +1,18 @@
 {% extends "core/base.html" %}{% load i18n %}
 {% block title %}{% translate "Настройки" %}{% endblock %}
+
 {% block content %}
 <div class="head">
   <div><h1>{% translate "Настройки" %}</h1><div class="sub">{% translate "Справочники: товары, цены, сырьё, магазины, сотрудники и всё остальное." %}</div></div>
 </div>
+
+<h2 class="section-title">{% translate "Оформление" %}</h2>
+<div class="styles" id="styles">
+  <button type="button" data-style=""><div class="sw" style="background:#0d1117;box-shadow:inset 0 -18px 0 #151b23"></div><b>{% translate "Классика" %}</b><small>{% translate "Строгий тёмный, как сейчас" %}</small></button>
+  <button type="button" data-style="glass"><div class="sw" style="background:radial-gradient(circle at 15% 20%,#f7816655,transparent 55%),radial-gradient(circle at 85% 30%,#4493f855,transparent 55%),radial-gradient(circle at 50% 110%,#a371f755,transparent 60%),#0b0f17"></div><b>{% translate "Стекло" %}</b><small>{% translate "Цветное сияние за прозрачными карточками" %}</small></button>
+  <button type="button" data-style="bento"><div class="sw" style="background:#0e0f13;display:grid;grid-template-columns:2fr 1fr;gap:6px;padding:8px"><i style="background:#17191f;border-radius:8px"></i><i style="background:#f78166;border-radius:8px"></i></div><b>{% translate "Бенто" %}</b><small>{% translate "Крупные плитки, тёплый оранжевый акцент" %}</small></button>
+</div>
+<p class="muted" style="margin:-4px 0 0;font-size:13px">{% translate "Запоминается на этом устройстве: на телефоне и компьютере можно выбрать разное." %}</p>
 
 <h2 class="section-title">{% translate "Товары и сырьё" %}</h2>
 <div class="actions">
@@ -38,3 +47,20 @@
   <p class="empty" style="padding-top:0">{% translate "Эти настройки меняются в файле .env на сервере." %}</p>
 </section>
 {% endblock %}
+{% block scripts %}<script>
+(function () {
+  const box = document.getElementById("styles");
+  const mark = () => box.querySelectorAll("button").forEach((b) => b.classList.toggle("on", (document.documentElement.dataset.style || "") === b.dataset.style));
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const apply = () => {
+      if (b.dataset.style) document.documentElement.dataset.style = b.dataset.style; else delete document.documentElement.dataset.style;
+      try { localStorage.setItem("dastyor-style", b.dataset.style); } catch (err) {}
+      mark();
+    };
+    document.startViewTransition ? document.startViewTransition(apply) : apply();
+  });
+  mark();
+})();
+</script>{% endblock %}

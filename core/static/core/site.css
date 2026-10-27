@@ -2,7 +2,7 @@
 body { margin: 0; background: var(--gh-bg); color: var(--gh-fg); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
 a { color: var(--gh-link); text-decoration: none; }
 a:hover { text-decoration: underline; }
-main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+main { margin: 0 auto; padding: 20px clamp(16px, 2.5vw, 32px) 48px; display: flex; flex-direction: column; gap: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .head h1 { font-size: 20px; margin: 0; font-weight: 600; }
 .head .sub { color: var(--gh-muted); font-size: 13px; }
@@ -26,8 +26,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; display: flex
 @media (max-width: 400px) { .grid2 { grid-template-columns: 1fr; } }
 .scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 8px 16px; border-top: 1px solid var(--gh-line-soft); white-space: nowrap; }
-thead th { color: var(--gh-muted); font-weight: 500; font-size: 12px; border-top: none; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--gh-line-soft); white-space: nowrap; }
+thead th { color: var(--gh-muted); font-weight: 500; font-size: 12px; border-top: none; white-space: normal; vertical-align: bottom; }
 tbody tr:hover td { background: #1b222b; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.wrap { white-space: normal; }
