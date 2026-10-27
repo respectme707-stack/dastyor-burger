@@ -6,14 +6,15 @@ from decimal import Decimal
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from . import models as m
 
 PERIODS = {
-    "today": "Сегодня",
-    "week": "7 дней",
-    "month": "30 дней",
-    "all": "Всё время",
+    "today": _("Сегодня"),
+    "week": _("7 дней"),
+    "month": _("30 дней"),
+    "all": _("Всё время"),
 }
 
 
@@ -514,23 +515,23 @@ def recent(limit=15):
             rows.append({"date": obj.date, "id": obj.pk, "kind": kind, "text": text(obj),
                          "amount": amount(obj), "url": f"admin:core_{url_name}_change"})
 
-    add(m.Purchase.objects.select_related("supplier"), "Приход сырья", lambda o: o.supplier.name,
+    add(m.Purchase.objects.select_related("supplier"), _("Приход сырья"), lambda o: o.supplier.name,
         lambda o: o.total(), "purchase")
-    add(m.Production.objects.select_related("product"), "Производство", lambda o: f"{o.product.name} × {o.qty}",
+    add(m.Production.objects.select_related("product"), _("Производство"), lambda o: f"{o.product.name} × {o.qty}",
         lambda o: None, "production")
-    add(m.MaterialBatch.objects.select_related("material"), "Выпечка / заготовка",
+    add(m.MaterialBatch.objects.select_related("material"), _("Выпечка / заготовка"),
         lambda o: f"{o.material.name} × {o.qty:g}", lambda o: o.total_cost(), "materialbatch")
-    add(m.VanLoad.objects.select_related("worker"), "Передача агенту",
-        lambda o: f"{o.worker or ''}" + (" сдал остаток в цех" if o.kind == m.VanLoad.Kind.UNLOAD else ""),
+    add(m.VanLoad.objects.select_related("worker"), _("Передача агенту"),
+        lambda o: f"{o.worker or ''}" + (_(" сдал остаток в цех") if o.kind == m.VanLoad.Kind.UNLOAD else ""),
         lambda o: None, "vanload")
-    add(m.Shipment.objects.select_related("shop"), "Отгрузка", lambda o: o.shop.name, lambda o: o.total(), "shipment")
-    add(m.Return.objects.select_related("shop", "product"), "Возврат",
+    add(m.Shipment.objects.select_related("shop"), _("Отгрузка"), lambda o: o.shop.name, lambda o: o.total(), "shipment")
+    add(m.Return.objects.select_related("shop", "product"), _("Возврат"),
         lambda o: f"{o.shop.name}: {o.product.name} × {o.qty}", lambda o: o.total(), "return")
-    add(m.Payment.objects.select_related("shop", "supplier"), "Оплата",
-        lambda o: f"от {o.shop.name}" if o.shop else f"поставщику {o.supplier.name}", lambda o: o.amount, "payment")
-    add(m.Expense.objects.all(), "Расход", lambda o: o.get_category_display() + (f" · {o.note}" if o.note else ""),
+    add(m.Payment.objects.select_related("shop", "supplier"), _("Оплата"),
+        lambda o: _("от %(name)s") % {"name": o.shop.name} if o.shop else _("поставщику %(name)s") % {"name": o.supplier.name}, lambda o: o.amount, "payment")
+    add(m.Expense.objects.all(), _("Расход"), lambda o: o.get_category_display() + (f" · {o.note}" if o.note else ""),
         lambda o: o.amount, "expense")
-    add(m.MaterialWriteOff.objects.select_related("material"), "Списание сырья",
+    add(m.MaterialWriteOff.objects.select_related("material"), _("Списание сырья"),
         lambda o: f"{o.material.name}: {o.qty:g}", lambda o: None, "materialwriteoff")
     rows.sort(key=lambda r: (r["date"], r["id"]), reverse=True)
     return rows[:limit]
@@ -547,18 +548,18 @@ def search(query):
     if not query:
         return []
     groups = [
-        ("Магазины", [(s.name, " · ".join(x for x in (s.district, s.address, s.phone) if x),
+        (_("Магазины"), [(s.name, " · ".join(x for x in (s.district, s.address, s.phone) if x),
                        reverse("shop_detail", args=[s.pk]))
                       for s in m.Shop.objects.all() if _match(query, s.name, s.firm, s.address, s.district,
                                                                s.phone, s.contact)]),
-        ("Товары", [(p.name, f"{p.price:,.0f} сум".replace(",", " "), reverse("product_detail", args=[p.pk]))
+        (_("Товары"), [(p.name, _("%(amount)s сум") % {"amount": f"{p.price:,.0f}".replace(",", " ")}, reverse("product_detail", args=[p.pk]))
                     for p in m.Product.objects.all() if _match(query, p.name)]),
-        ("Сырьё", [(r.name, r.pack_label(), reverse("admin:core_rawmaterial_change", args=[r.pk]))
+        (_("Сырьё"), [(r.name, r.pack_label(), reverse("admin:core_rawmaterial_change", args=[r.pk]))
                    for r in m.RawMaterial.objects.select_related("unit") if _match(query, r.name)]),
-        ("Сотрудники", [(w.name, " · ".join(x for x in (w.get_role_display(), w.phone) if x),
+        (_("Сотрудники"), [(w.name, " · ".join(x for x in (w.get_role_display(), w.phone) if x),
                          reverse("staff_detail", args=[w.pk]))
                         for w in m.Worker.objects.all() if _match(query, w.name, w.phone)]),
-        ("Поставщики", [(s.name, s.phone, reverse("admin:core_supplier_change", args=[s.pk]))
+        (_("Поставщики"), [(s.name, s.phone, reverse("admin:core_supplier_change", args=[s.pk]))
                         for s in m.Supplier.objects.all() if _match(query, s.name, s.phone)]),
     ]
     return [(title, rows) for title, rows in groups if rows]

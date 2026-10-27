@@ -1,1 +1,1 @@
-<nav class="periods" aria-label="Период">{% for key, label in periods %}<a href="?period={{ key }}{% if keep %}&amp;{{ keep }}{% endif %}" class="{% if key == period %}on{% endif %}">{{ label }}</a>{% endfor %}</nav>
+{% load i18n %}<nav class="periods" aria-label="{% translate "Период" %}">{% for key, label in periods %}<a href="?period={{ key }}{% if keep %}&amp;{{ keep }}{% endif %}" class="{% if key == period %}on{% endif %}">{{ label }}</a>{% endfor %}</nav>

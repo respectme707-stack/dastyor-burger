@@ -1,46 +1,46 @@
-{% extends "core/base.html" %}{% load fmt %}
+{% extends "core/base.html" %}{% load fmt i18n %}
 {% block title %}{{ worker.name }}{% endblock %}
 {% block content %}
-<div class="crumbs"><a href="{% url 'staff' %}?period={{ period }}">Сотрудники</a> / {{ worker.name }}</div>
+<div class="crumbs"><a href="{% url 'staff' %}?period={{ period }}">{% translate "Сотрудники" %}</a> / {{ worker.name }}</div>
 <div class="head">
-  <div><h1>{{ worker.name }} {% if not worker.active %}<span class="tag">не работает</span>{% endif %}</h1>
-    <div class="sub">{{ worker.get_role_display }}{% if worker.phone %} · {{ worker.phone }}{% endif %}{% if worker.vehicle %} · {{ worker.vehicle.name }}{% endif %}{% if worker.districts %} · {{ worker.districts }}{% endif %} · бот {% if worker.telegram_id %}<span class="tag green">подключён</span>{% else %}<span class="tag">не подключён</span>{% endif %}</div></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn" href="{% url 'admin:core_worker_change' worker.pk %}">Изменить</a></div>
+  <div><h1>{{ worker.name }} {% if not worker.active %}<span class="tag">{% translate "не работает" %}</span>{% endif %}</h1>
+    <div class="sub">{{ worker.get_role_display }}{% if worker.phone %} · {{ worker.phone }}{% endif %}{% if worker.vehicle %} · {{ worker.vehicle.name }}{% endif %}{% if worker.districts %} · {{ worker.districts }}{% endif %} · {% translate "бот" %} {% if worker.telegram_id %}<span class="tag green">{% translate "подключён" %}</span>{% else %}<span class="tag">{% translate "не подключён" %}</span>{% endif %}</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">{% include "core/_periods.html" %}<a class="btn" href="{% url 'admin:core_worker_change' worker.pk %}">{% translate "Изменить" %}</a></div>
 </div>
 
 <section class="tiles">
-  <div class="box tile"><div class="label">Продал</div><div class="value">{{ sales|money }}</div><div class="sub">{{ qty|money }} шт</div></div>
-  <div class="box tile"><div class="label">Собрал денег</div><div class="value good">{{ cash|money }}</div><div class="sub">при отгрузке и за долги</div></div>
-  <div class="box tile"><div class="label">Расходы</div><div class="value">{{ expense_total|money }}</div><div class="sub"><a href="{% url 'admin:core_expense_add' %}?worker={{ worker.pk }}">+ расход</a></div></div>
-  <div class="box tile"><div class="label">Сделал в цеху</div><div class="value">{{ produced|money }} шт</div><div class="sub">за период</div></div>
+  <div class="box tile"><div class="label">{% translate "Продал" %}</div><div class="value">{{ sales|money }}</div><div class="sub">{{ qty|money }} {% translate "шт" %}</div></div>
+  <div class="box tile"><div class="label">{% translate "Собрал денег" %}</div><div class="value good">{{ cash|money }}</div><div class="sub">{% translate "при отгрузке и за долги" %}</div></div>
+  <div class="box tile"><div class="label">{% translate "Расходы" %}</div><div class="value">{{ expense_total|money }}</div><div class="sub"><a href="{% url 'admin:core_expense_add' %}?worker={{ worker.pk }}">+ {% translate "расход" %}</a></div></div>
+  <div class="box tile"><div class="label">{% translate "Сделал в цеху" %}</div><div class="value">{{ produced|money }} {% translate "шт" %}</div><div class="sub">{% translate "за период" %}</div></div>
 </section>
 
 {% if worker.is_seller %}
 <section class="box">
-  <h2>Сейчас на руках <a href="{% url 'admin:core_vanload_add' %}?worker={{ worker.pk }}">+ Передать товар</a></h2>
-  {% if stock %}<table>{% for p, n in stock %}<tr><td>{{ p.name }}</td><td class="num">{{ n }} шт</td></tr>{% endfor %}</table>
-  {% else %}<p class="empty">Пусто.</p>{% endif %}
+  <h2>{% translate "Сейчас на руках" %} <a href="{% url 'admin:core_vanload_add' %}?worker={{ worker.pk }}">+ {% translate "Передать товар" %}</a></h2>
+  {% if stock %}<table>{% for p, n in stock %}<tr><td>{{ p.name }}</td><td class="num">{{ n }} {% translate "шт" %}</td></tr>{% endfor %}</table>
+  {% else %}<p class="empty">{% translate "Пусто." %}</p>{% endif %}
 </section>
 {% endif %}
 
 <div class="grid2">
   <section class="box">
-    <h2>Продажи по дням, сум</h2>
-    {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="Продажи по дням"></canvas></div>{% else %}<p class="empty">Продаж за этот период нет.</p>{% endif %}
+    <h2>{% translate "Продажи по дням, сум" %}</h2>
+    {% if chart_days %}<div class="chart"><canvas id="byDay" role="img" aria-label="{% translate "Продажи по дням" %}"></canvas></div>{% else %}<p class="empty">{% translate "Продаж за этот период нет." %}</p>{% endif %}
   </section>
   <section class="box">
-    <h2>Что продал</h2>
+    <h2>{% translate "Что продал" %}</h2>
     {% if by_product %}
-    <table>{% for p in by_product %}<tr><td>{{ p.product__name }}</td><td class="num">{{ p.q|money }} шт</td><td class="num">{{ p.s|money }}</td></tr>{% endfor %}</table>
-    {% else %}<p class="empty">Продаж за этот период нет.</p>{% endif %}
+    <table>{% for p in by_product %}<tr><td>{{ p.product__name }}</td><td class="num">{{ p.q|money }} {% translate "шт" %}</td><td class="num">{{ p.s|money }}</td></tr>{% endfor %}</table>
+    {% else %}<p class="empty">{% translate "Продаж за этот период нет." %}</p>{% endif %}
   </section>
 </div>
 
 {% if shipments %}
 <section class="box">
-  <h2>Отгрузки</h2>
+  <h2>{% translate "Отгрузки" %}</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Дата</th><th>Магазин</th><th>Оплата</th><th class="num">Сумма</th><th class="num">Оплачено</th></tr></thead>
+    <thead><tr><th>{% translate "Дата" %}</th><th>{% translate "Магазин" %}</th><th>{% translate "Оплата" %}</th><th class="num">{% translate "Сумма" %}</th><th class="num">{% translate "Оплачено" %}</th></tr></thead>
     {% for s in shipments %}<tr><td><a href="{% url 'admin:core_shipment_change' s.pk %}">{{ s.date|date:"d.m.Y" }}</a></td><td><a href="{% url 'shop_detail' s.shop.pk %}">{{ s.shop.name }}</a></td><td>{{ s.get_method_display }}</td><td class="num">{{ s.total|money }}</td><td class="num">{{ s.paid|money }}</td></tr>{% endfor %}
   </table></div>
 </section>
@@ -49,7 +49,7 @@
 <div class="grid2">
   {% if loads %}
   <section class="box">
-    <h2>Получил / сдал товар</h2>
+    <h2>{% translate "Получил / сдал товар" %}</h2>
     <div class="scroll"><table>
       {% for l in loads %}<tr><td>{{ l.date|date:"d.m.Y" }}</td><td>{{ l.get_kind_display }}</td><td class="wrap">{% for i in l.items.all %}{{ i.product.name }} {{ i.qty }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}
     </table></div>
@@ -57,39 +57,39 @@
   {% endif %}
   {% if productions %}
   <section class="box">
-    <h2>Производство</h2>
+    <h2>{% translate "Производство" %}</h2>
     <div class="scroll"><table>
-      {% for p in productions %}<tr><td>{{ p.date|date:"d.m.Y" }}</td><td>{{ p.product.name }}</td><td class="num">{{ p.qty|money }} шт</td></tr>{% endfor %}
+      {% for p in productions %}<tr><td>{{ p.date|date:"d.m.Y" }}</td><td>{{ p.product.name }}</td><td class="num">{{ p.qty|money }} {% translate "шт" %}</td></tr>{% endfor %}
     </table></div>
   </section>
   {% endif %}
   <section class="box">
-    <h2>Расходы</h2>
+    <h2>{% translate "Расходы" %}</h2>
     {% if expenses %}
     <div class="scroll"><table>
       {% for e in expenses %}<tr><td>{{ e.date|date:"d.m.Y" }}</td><td>{{ e.get_category_display }}{% if e.note %} <span class="muted">· {{ e.note }}</span>{% endif %}</td><td class="num">{{ e.amount|money }}</td></tr>{% endfor %}
     </table></div>
-    {% else %}<p class="empty">Расходов нет.</p>{% endif %}
+    {% else %}<p class="empty">{% translate "Расходов нет." %}</p>{% endif %}
   </section>
   {% if returns %}
   <section class="box">
-    <h2>Принял возвраты</h2>
+    <h2>{% translate "Принял возвраты" %}</h2>
     <div class="scroll"><table>
       {% for r in returns %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.shop.name }}</td><td>{{ r.product.name }} × {{ r.qty }}</td><td>{{ r.get_reason_display }}</td></tr>{% endfor %}
     </table></div>
   </section>
   {% endif %}
   <section class="box">
-    <h2>Табель <a href="{% url 'admin:core_workday_add' %}?worker={{ worker.pk }}">+ отметить день</a></h2>
+    <h2>{% translate "Табель" %} <a href="{% url 'admin:core_workday_add' %}?worker={{ worker.pk }}">+ {% translate "отметить день" %}</a></h2>
     {% if workdays %}
     <div class="scroll"><table>
       {% for d in workdays %}<tr><td>{{ d.date|date:"d.m.Y" }}</td><td><span class="tag {% if d.status == 'worked' %}green{% elif d.status == 'absent' %}red{% endif %}">{{ d.get_status_display }}</span></td><td class="muted">{{ d.note }}</td></tr>{% endfor %}
     </table></div>
-    {% else %}<p class="empty">Отметок нет. Дни, когда он что-то вносил, считаются рабочими сами.</p>{% endif %}
+    {% else %}<p class="empty">{% translate "Отметок нет. Дни, когда он что-то вносил, считаются рабочими сами." %}</p>{% endif %}
   </section>
   {% if shop_list %}
   <section class="box">
-    <h2>Его магазины</h2>
+    <h2>{% translate "Его магазины" %}</h2>
     <div class="pad">{% for s in shop_list %}<a href="{% url 'shop_detail' s.pk %}">{{ s.name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</div>
   </section>
   {% endif %}

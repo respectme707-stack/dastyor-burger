@@ -1,55 +1,55 @@
-{% extends "core/base.html" %}{% load fmt %}
-{% block title %}Склад{% endblock %}
+{% extends "core/base.html" %}{% load fmt i18n %}
+{% block title %}{% translate "Склад" %}{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>Склад</h1><div class="sub">Что есть сейчас: сырьё, готовые товары в цеху и у агентов.</div></div>
+  <div><h1>{% translate "Склад" %}</h1><div class="sub">{% translate "Что есть сейчас: сырьё, готовые товары в цеху и у агентов." %}</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn primary" href="{% url 'admin:core_purchase_add' %}">+ Приход сырья</a>
-    <a class="btn" href="{% url 'admin:core_materialbatch_add' %}">Испекли булочки</a>
-    <a class="btn" href="{% url 'admin:core_materialwriteoff_add' %}">Списать сырьё</a>
+    <a class="btn primary" href="{% url 'admin:core_purchase_add' %}">+ {% translate "Приход сырья" %}</a>
+    <a class="btn" href="{% url 'admin:core_materialbatch_add' %}">{% translate "Испекли булочки" %}</a>
+    <a class="btn" href="{% url 'admin:core_materialwriteoff_add' %}">{% translate "Списать сырьё" %}</a>
   </div>
 </div>
 
 {% if low_materials %}
-<div class="flash warn" role="status">Заканчивается: {% for x in low_materials %}{{ x.material.name }}{% if not forloop.last %}, {% endif %}{% endfor %}. Пора закупить.</div>
+<div class="flash warn" role="status">{% translate "Заканчивается" %}: {% for x in low_materials %}{{ x.material.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% translate ". Пора закупить." %}</div>
 {% endif %}
 
 <section class="box">
-  <h2>Сырьё <a href="{% url 'admin:core_rawmaterial_changelist' %}">все →</a></h2>
+  <h2>{% translate "Сырьё" %} <a href="{% url 'admin:core_rawmaterial_changelist' %}">{% translate "все →" %}</a></h2>
   <div class="scroll"><table>
-    <thead><tr><th>Сырьё</th><th>Категория</th><th class="num">Остаток</th><th class="num">Мин.</th><th class="num">Средняя цена</th><th class="num">На сумму</th></tr></thead>
+    <thead><tr><th>{% translate "Сырьё" %}</th><th>{% translate "Категория" %}</th><th class="num">{% translate "Остаток" %}</th><th class="num">{% translate "Мин." %}</th><th class="num">{% translate "Средняя цена" %}</th><th class="num">{% translate "На сумму" %}</th></tr></thead>
     <tbody>
     {% for x in materials %}
     <tr class="{% if x.low %}warn{% endif %}">
-      <td>{{ x.material.name }}{% if x.material.homemade %} <span class="tag green">делаем сами</span>{% endif %}</td>
+      <td>{{ x.material.name }}{% if x.material.homemade %} <span class="tag green">{% translate "делаем сами" %}</span>{% endif %}</td>
       <td class="muted">{{ x.material.category|default:"" }}</td>
       <td class="num {% if x.low %}bad{% endif %}">{{ x.stock|qty }} {{ x.material.unit }}</td>
       <td class="num">{{ x.material.min_stock|qty }}</td>
       <td class="num">{{ x.price|money }}</td>
       <td class="num">{{ x.value|money }}</td>
     </tr>
-    {% empty %}<tr><td colspan="6" class="empty">Сырья нет. <a href="{% url 'admin:core_rawmaterial_add' %}">Добавить</a></td></tr>{% endfor %}
+    {% empty %}<tr><td colspan="6" class="empty">{% translate "Сырья нет." %} <a href="{% url 'admin:core_rawmaterial_add' %}">{% translate "Добавить" %}</a></td></tr>{% endfor %}
     </tbody>
-    {% if materials %}<tr class="total"><td>Всего сырья на сумму</td><td></td><td></td><td></td><td></td><td class="num">{{ materials_value|money }}</td></tr>{% endif %}
+    {% if materials %}<tr class="total"><td>{% translate "Всего сырья на сумму" %}</td><td></td><td></td><td></td><td></td><td class="num">{{ materials_value|money }}</td></tr>{% endif %}
   </table></div>
 </section>
 
 <div class="grid2">
   <section class="box">
-    <h2>Готовые товары</h2>
+    <h2>{% translate "Готовые товары" %}</h2>
     <div class="scroll"><table>
-      <thead><tr><th>Товар</th><th class="num">В цеху</th><th class="num">У агентов</th></tr></thead>
+      <thead><tr><th>{% translate "Товар" %}</th><th class="num">{% translate "В цеху" %}</th><th class="num">{% translate "У агентов" %}</th></tr></thead>
       {% for p in products %}<tr><td><a href="{% url 'product_detail' p.product.pk %}">{{ p.product.name }}</a></td><td class="num">{{ p.stock|money }}</td><td class="num">{{ p.in_vans|money }}</td></tr>
-      {% empty %}<tr><td colspan="3" class="empty">Товаров нет.</td></tr>{% endfor %}
+      {% empty %}<tr><td colspan="3" class="empty">{% translate "Товаров нет." %}</td></tr>{% endfor %}
     </table></div>
   </section>
   <section class="box">
-    <h2>У агентов на руках <a href="{% url 'admin:core_vanload_add' %}">+ Передать</a></h2>
+    <h2>{% translate "У агентов на руках" %} <a href="{% url 'admin:core_vanload_add' %}">+ {% translate "Передать" %}</a></h2>
     {% if agents %}
     <div class="scroll"><table>
-      {% for a in agents %}<tr><td><a href="{% url 'staff_detail' a.worker.pk %}">{{ a.worker.name }}</a></td><td class="wrap">{{ a.stock|default:"пусто" }}</td></tr>{% endfor %}
+      {% for a in agents %}<tr><td><a href="{% url 'staff_detail' a.worker.pk %}">{{ a.worker.name }}</a></td><td class="wrap">{% if a.stock %}{{ a.stock }}{% else %}{% translate "пусто" %}{% endif %}</td></tr>{% endfor %}
     </table></div>
-    {% else %}<p class="empty">Агентов нет.</p>{% endif %}
+    {% else %}<p class="empty">{% translate "Агентов нет." %}</p>{% endif %}
   </section>
 </div>
 {% endblock %}

@@ -1,15 +1,17 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+from django.utils.translation import gettext_lazy as _
 
 from core import views
 
-admin.site.site_header = "Dastyor Burger — учёт"
-admin.site.site_title = "Dastyor Burger"
-admin.site.index_title = "Все таблицы"
+admin.site.site_header = "DASTYOR"
+admin.site.site_title = "DASTYOR"
+admin.site.index_title = _("Все таблицы")
 admin.site.site_url = "/"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("i18n/", include("django.conf.urls.i18n")),
     path("", views.dashboard, name="dashboard"),
     path("money/", views.money, name="money"),
     path("shops/", views.shops, name="shops"),

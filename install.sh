@@ -10,13 +10,16 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 # В образах Ubuntu от Oracle входящие порты закрыты iptables, открываем 80.
-if sudo iptables -C INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null; then
-  :
-elif sudo iptables -L INPUT -n | grep -q REJECT; then
-  echo "== Открываю порт 80"
-  sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
-  sudo netfilter-persistent save >/dev/null 2>&1 || true
-fi
+# 443 нужен для https, когда подключён свой домен (set_domain.sh).
+for PORT in 80 443; do
+  if sudo iptables -C INPUT -p tcp --dport "$PORT" -j ACCEPT 2>/dev/null; then
+    :
+  elif sudo iptables -L INPUT -n | grep -q REJECT; then
+    echo "== Открываю порт $PORT"
+    sudo iptables -I INPUT 1 -p tcp --dport "$PORT" -j ACCEPT
+    sudo netfilter-persistent save >/dev/null 2>&1 || true
+  fi
+done
 
 IP=$(curl -fsS https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
 FIRST_RUN=0

@@ -1,5 +1,6 @@
 {% extends "admin/base.html" %}{% load static %}
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block extrahead %}{{ block.super }}<script src="{% static 'core/i18n.js' %}"></script>{% endblock %}
 {% block dark-mode-vars %}
 <link rel="stylesheet" href="{% static 'core/theme.css' %}">
 <link rel="stylesheet" href="{% static 'core/admin-dark.css' %}">

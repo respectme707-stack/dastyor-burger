@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
       cell.className = "dastyor-line dastyor-sum";
       price.closest("td").appendChild(cell);
     }
-    cell.textContent = total ? "= " + fmt(total) + " сум" : "";
+    cell.textContent = total ? "= " + fmt(total) + t(" сум") : "";
     stockHint(row, num(qty.value));
     return total;
   }
@@ -50,21 +50,21 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (!u) { hint.textContent = ""; return; }
     const size = u.pack_size;
-    const packs = u.pack + " по " + (size || 0).toLocaleString("ru-RU") + " " + u.unit;
-    qtyInput.placeholder = size ? "сколько упаковок" : "сколько " + u.unit;
-    priceInput.placeholder = size ? "цена за 1 упаковку" : "цена за 1 " + u.unit;
+    const packs = [u.pack, t("по"), (size || 0).toLocaleString("ru-RU"), u.unit].filter(Boolean).join(" ");
+    qtyInput.placeholder = size ? t("сколько упаковок") : t("сколько") + " " + u.unit;
+    priceInput.placeholder = size ? t("цена за 1 упаковку") : t("цена за 1") + " " + u.unit;
     hint.textContent = size
-      ? packs + (qty ? " → на склад " + (qty * size).toLocaleString("ru-RU") + " " + u.unit : "")
-      : "в " + u.unit;
+      ? packs + (qty ? " " + t("→ на склад") + " " + (qty * size).toLocaleString("ru-RU") + " " + u.unit : "")
+      : (t("в") + " " + u.unit).trim();
   }
 
   function update() {
     let sum = 0;
     group.querySelectorAll("tr.form-row:not(.empty-form)").forEach((row) => { sum += rowTotal(row) || 0; });
     const p = paid ? num(paid.value) : 0;
-    box.innerHTML = "<span>Итого: <b>" + fmt(sum) + " сум</b></span>" +
-      (paid ? "<span>Оплачено сразу: <b>" + fmt(p) + "</b></span><span>В долг: <b class=\"" +
-        (sum - p > 0 ? "debt" : "") + "\">" + fmt(Math.max(sum - p, 0)) + " сум</b></span>" : "");
+    box.innerHTML = "<span>" + t("Итого:") + " <b>" + fmt(sum) + t(" сум") + "</b></span>" +
+      (paid ? "<span>" + t("Оплачено сразу:") + " <b>" + fmt(p) + "</b></span><span>" + t("В долг:") + " <b class=\"" +
+        (sum - p > 0 ? "debt" : "") + "\">" + fmt(Math.max(sum - p, 0)) + t(" сум") + "</b></span>" : "");
   }
 
   document.addEventListener("input", update);

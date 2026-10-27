@@ -1,81 +1,81 @@
-{% extends "core/base.html" %}{% load fmt %}
-{% block title %}Внести данные{% endblock %}
+{% extends "core/base.html" %}{% load fmt i18n %}
+{% block title %}{% translate "Внести данные" %}{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>Внести данные</h1><div class="sub">Выберите, что записать. Откроется форма, после сохранения запись сразу попадёт в отчёты.</div></div>
+  <div><h1>{% translate "Внести данные" %}</h1><div class="sub">{% translate "Выберите, что записать. Откроется форма, после сохранения запись сразу попадёт в отчёты." %}</div></div>
 </div>
 
-<h2 class="section-title">Цех</h2>
+<h2 class="section-title">{% translate "Цех" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_purchase_add' %}"><span class="ic">📥</span><span><b>Приход сырья</b><small>Купили у поставщика</small></span></a>
-  <a class="action" href="{% url 'admin:core_materialbatch_add' %}"><span class="ic">🥖</span><span><b>Испекли булочки</b><small>Свои полуфабрикаты: списывает муку и т.д.</small></span></a>
-  <a class="action" href="{% url 'admin:core_production_add' %}"><span class="ic">🍔</span><span><b>Производство</b><small>Сколько хот-догов, бургеров сделали</small></span></a>
-  <a class="action" href="{% url 'admin:core_vanload_add' %}"><span class="ic">🚚</span><span><b>Передать агенту</b><small>Товар из цеха агенту</small></span></a>
-  <a class="action" href="{% url 'admin:core_materialwriteoff_add' %}"><span class="ic">🗑️</span><span><b>Списать сырьё</b><small>Испортилось, пропало</small></span></a>
+  <a class="action" href="{% url 'admin:core_purchase_add' %}"><span class="ic">📥</span><span><b>{% translate "Приход сырья" %}</b><small>{% translate "Купили у поставщика" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_materialbatch_add' %}"><span class="ic">🥖</span><span><b>{% translate "Испекли булочки" %}</b><small>{% translate "Свои полуфабрикаты: списывает муку и т.д." %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_production_add' %}"><span class="ic">🍔</span><span><b>{% translate "Производство" %}</b><small>{% translate "Сколько хот-догов, бургеров сделали" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_vanload_add' %}"><span class="ic">🚚</span><span><b>{% translate "Передать агенту" %}</b><small>{% translate "Товар из цеха агенту" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_materialwriteoff_add' %}"><span class="ic">🗑️</span><span><b>{% translate "Списать сырьё" %}</b><small>{% translate "Испортилось, пропало" %}</small></span></a>
 </div>
 
-<h2 class="section-title">Закупки и рецепты</h2>
+<h2 class="section-title">{% translate "Закупки и рецепты" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_purchase_changelist' %}"><span class="ic">🧺</span><span><b>Все закупки</b><small>Что купили, у кого, по какой цене</small></span></a>
-  <a class="action" href="{% url 'recipes' %}"><span class="ic">📖</span><span><b>Рецепты</b><small>Все рецепты товаров и булочек</small></span></a>
-  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">➕</span><span><b>Новый рецепт товара</b><small>Хот-дог, бургер: из чего 1 шт</small></span></a>
-  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}?homemade=1"><span class="ic">🥯</span><span><b>Новый полуфабрикат</b><small>Булочка и т.п.: из чего 1 шт</small></span></a>
+  <a class="action" href="{% url 'admin:core_purchase_changelist' %}"><span class="ic">🧺</span><span><b>{% translate "Все закупки" %}</b><small>{% translate "Что купили, у кого, по какой цене" %}</small></span></a>
+  <a class="action" href="{% url 'recipes' %}"><span class="ic">📖</span><span><b>{% translate "Рецепты" %}</b><small>{% translate "Все рецепты товаров и булочек" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">➕</span><span><b>{% translate "Новый рецепт товара" %}</b><small>{% translate "Хот-дог, бургер: из чего 1 шт" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}?homemade=1"><span class="ic">🥯</span><span><b>{% translate "Новый полуфабрикат" %}</b><small>{% translate "Булочка и т.п.: из чего 1 шт" %}</small></span></a>
 </div>
 
-<h2 class="section-title">Магазины</h2>
+<h2 class="section-title">{% translate "Магазины" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_shipment_add' %}"><span class="ic">📦</span><span><b>Отгрузка</b><small>Привезли товар в магазин</small></span></a>
-  <a class="action" href="{% url 'admin:core_return_add' %}"><span class="ic">↩️</span><span><b>Возврат</b><small>Магазин вернул товар</small></span></a>
-  <a class="action" href="{% url 'admin:core_payment_add' %}"><span class="ic">💵</span><span><b>Оплата долга</b><small>Магазин заплатил или мы поставщику</small></span></a>
-  <a class="action" href="{% url 'admin:core_order_changelist' %}"><span class="ic">🛒</span><span><b>Заказы из бота</b><small>Подтвердить и отгрузить</small></span></a>
+  <a class="action" href="{% url 'admin:core_shipment_add' %}"><span class="ic">📦</span><span><b>{% translate "Отгрузка" %}</b><small>{% translate "Привезли товар в магазин" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_return_add' %}"><span class="ic">↩️</span><span><b>{% translate "Возврат" %}</b><small>{% translate "Магазин вернул товар" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_payment_add' %}"><span class="ic">💵</span><span><b>{% translate "Оплата долга" %}</b><small>{% translate "Магазин заплатил или мы поставщику" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_order_changelist' %}"><span class="ic">🛒</span><span><b>{% translate "Заказы из бота" %}</b><small>{% translate "Подтвердить и отгрузить" %}</small></span></a>
 </div>
 
-<h2 class="section-title">Расходы</h2>
+<h2 class="section-title">{% translate "Расходы" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_expense_add' %}"><span class="ic">🧾</span><span><b>Расход</b><small>Бензин, зарплата, аренда, такси…</small></span></a>
-  <a class="action" href="{% url 'admin:core_expense_add' %}?category=salary"><span class="ic">👷</span><span><b>Зарплата</b><small>Выдали сотруднику</small></span></a>
-  <a class="action" href="{% url 'admin:core_expense_add' %}?category=fuel"><span class="ic">⛽</span><span><b>Бензин</b><small>Заправка машины</small></span></a>
+  <a class="action" href="{% url 'admin:core_expense_add' %}"><span class="ic">🧾</span><span><b>{% translate "Расход" %}</b><small>{% translate "Бензин, зарплата, аренда, такси…" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_expense_add' %}?category=salary"><span class="ic">👷</span><span><b>{% translate "Зарплата" %}</b><small>{% translate "Выдали сотруднику" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_expense_add' %}?category=fuel"><span class="ic">⛽</span><span><b>{% translate "Бензин" %}</b><small>{% translate "Заправка машины" %}</small></span></a>
 </div>
 
-<h2 class="section-title">Сотрудники</h2>
+<h2 class="section-title">{% translate "Сотрудники" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_workday_add' %}"><span class="ic">📅</span><span><b>Табель</b><small>Вышел на работу, выходной, болел</small></span></a>
+  <a class="action" href="{% url 'admin:core_workday_add' %}"><span class="ic">📅</span><span><b>{% translate "Табель" %}</b><small>{% translate "Вышел на работу, выходной, болел" %}</small></span></a>
 </div>
 
-<h2 class="section-title">Добавить в справочник</h2>
+<h2 class="section-title">{% translate "Добавить в справочник" %}</h2>
 <div class="actions">
-  <a class="action" href="{% url 'admin:core_shop_add' %}"><span class="ic">🏪</span><span><b>Новый магазин</b></span></a>
-  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">🌭</span><span><b>Новый товар</b><small>Цена и рецепт</small></span></a>
-  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}"><span class="ic">🥫</span><span><b>Новое сырьё</b></span></a>
-  <a class="action" href="{% url 'admin:core_supplier_add' %}"><span class="ic">🏭</span><span><b>Новый поставщик</b></span></a>
-  <a class="action" href="{% url 'admin:core_worker_add' %}"><span class="ic">🧑</span><span><b>Новый сотрудник</b></span></a>
+  <a class="action" href="{% url 'admin:core_shop_add' %}"><span class="ic">🏪</span><span><b>{% translate "Новый магазин" %}</b></span></a>
+  <a class="action" href="{% url 'admin:core_product_add' %}"><span class="ic">🌭</span><span><b>{% translate "Новый товар" %}</b><small>{% translate "Цена и рецепт" %}</small></span></a>
+  <a class="action" href="{% url 'admin:core_rawmaterial_add' %}"><span class="ic">🥫</span><span><b>{% translate "Новое сырьё" %}</b></span></a>
+  <a class="action" href="{% url 'admin:core_supplier_add' %}"><span class="ic">🏭</span><span><b>{% translate "Новый поставщик" %}</b></span></a>
+  <a class="action" href="{% url 'admin:core_worker_add' %}"><span class="ic">🧑</span><span><b>{% translate "Новый сотрудник" %}</b></span></a>
 </div>
 
 <section class="box">
-  <h2>Что купили <a href="{% url 'admin:core_purchase_changelist' %}">все закупки →</a></h2>
+  <h2>{% translate "Что купили" %} <a href="{% url 'admin:core_purchase_changelist' %}">{% translate "все закупки →" %}</a></h2>
   {% if purchases %}
   <div class="scroll"><table>
-    <thead><tr><th>Дата</th><th>Сырьё</th><th>Поставщик</th><th class="num">Сколько</th><th class="num">Цена</th><th class="num">Сумма</th><th></th></tr></thead>
+    <thead><tr><th>{% translate "Дата" %}</th><th>{% translate "Сырьё" %}</th><th>{% translate "Поставщик" %}</th><th class="num">{% translate "Сколько" %}</th><th class="num">{% translate "Цена" %}</th><th class="num">{% translate "Сумма" %}</th><th></th></tr></thead>
     {% for p in purchases %}<tr>
       <td>{{ p.purchase.date|date:"d.m.Y" }}</td>
-      <td>{{ p.material.name }}{% if p.old %} <span class="tag warn" title="Записано до упаковок: откройте закупку и нажмите «Сохранить»">проверить</span>{% endif %}</td>
+      <td>{{ p.material.name }}{% if p.old %} <span class="tag warn" title="{% translate "Записано до упаковок: откройте закупку и нажмите «Сохранить»" %}">{% translate "проверить" %}</span>{% endif %}</td>
       <td>{{ p.purchase.supplier }}</td>
       <td class="num">{% if p.old %}{{ p.packs|qty }} {{ p.material.pack_word }}{% elif p.material.pack_size %}{{ p.packs|qty }} {{ p.material.pack_word }} <span class="muted">({{ p.item.qty|qty }} {{ p.material.unit }})</span>{% else %}{{ p.item.qty|qty }} {{ p.material.unit }}{% endif %}</td>
       <td class="num">{{ p.pack_price|money }}</td>
       <td class="num">{{ p.sum|money }}</td>
-      <td><a href="{% url 'admin:core_purchase_change' p.purchase.pk %}">открыть</a></td>
+      <td><a href="{% url 'admin:core_purchase_change' p.purchase.pk %}">{% translate "открыть" %}</a></td>
     </tr>{% endfor %}
   </table></div>
-  {% else %}<p class="empty">Закупок пока нет.</p>{% endif %}
+  {% else %}<p class="empty">{% translate "Закупок пока нет." %}</p>{% endif %}
 </section>
 
 <section class="box">
-  <h2>Последние записи</h2>
+  <h2>{% translate "Последние записи" %}</h2>
   {% if recent %}
   <div class="scroll"><table>
-    <thead><tr><th>Дата</th><th>Что</th><th>Подробно</th><th class="num">Сумма</th><th></th></tr></thead>
-    {% for r in recent %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.kind }}</td><td class="wrap">{{ r.text }}</td><td class="num">{% if r.amount is not None %}{{ r.amount|money }}{% endif %}</td><td><a href="{% url r.url r.id %}">открыть</a></td></tr>{% endfor %}
+    <thead><tr><th>{% translate "Дата" %}</th><th>{% translate "Что" %}</th><th>{% translate "Подробно" %}</th><th class="num">{% translate "Сумма" %}</th><th></th></tr></thead>
+    {% for r in recent %}<tr><td>{{ r.date|date:"d.m.Y" }}</td><td>{{ r.kind }}</td><td class="wrap">{{ r.text }}</td><td class="num">{% if r.amount is not None %}{{ r.amount|money }}{% endif %}</td><td><a href="{% url r.url r.id %}">{% translate "открыть" %}</a></td></tr>{% endfor %}
   </table></div>
-  {% else %}<p class="empty">Пока ничего не внесено. Начните с «Приход сырья».</p>{% endif %}
+  {% else %}<p class="empty">{% translate "Пока ничего не внесено. Начните с «Приход сырья»." %}</p>{% endif %}
 </section>
 {% endblock %}

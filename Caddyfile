@@ -1,0 +1,5 @@
+# Веб-сервер перед сайтом. Если в .env задан DOMAIN, Caddy сам получает и продлевает https-сертификат.
+{$SITE_ADDRESS::80} {
+	encode gzip
+	reverse_proxy web:8000
+}

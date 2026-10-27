@@ -9,6 +9,12 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-key")
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
+# Свой домен (DOMAIN=dastyor.uz в .env): сайт работает по https через Caddy.
+DOMAIN = os.environ.get("DOMAIN", "").strip()
+if DOMAIN:
+    CSRF_TRUSTED_ORIGINS += [f"https://{DOMAIN}", f"https://www.{DOMAIN}"]
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,6 +49,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
@@ -55,8 +62,16 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE_URL=postgres://user:pass@host:5432/db in production, SQLite locally.
 DATABASES = {
     "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600, conn_health_checks=True
     )
+}
+
+# Ошибки сайта пишем в журнал контейнера: `docker compose logs web`.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django": {"handlers": ["console"], "level": "ERROR"}},
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -64,6 +79,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ru"
+LANGUAGES = [("ru", "Русский"), ("uz", "Oʻzbekcha")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 TIME_ZONE = "Asia/Tashkent"
 USE_I18N = True
 USE_TZ = True

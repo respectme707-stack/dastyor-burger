@@ -11,7 +11,7 @@
     const el = document.getElementById(canvasId);
     if (!window.Chart || !el) return;
     opts = opts || {};
-    const unit = opts.unit === undefined ? " сум" : opts.unit;
+    const unit = opts.unit === undefined ? window.t(" сум") : opts.unit;
     const horizontal = !!opts.horizontal;
     const valueAxis = { beginAtZero: true, ticks: { callback: fmt, precision: 0 } };
     new Chart(el, {
