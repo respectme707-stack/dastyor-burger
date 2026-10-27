@@ -4,7 +4,7 @@ import os
 import re
 from datetime import timedelta
 
-from aiogram import Bot, Dispatcher, F, Router
+from aiogram import BaseMiddleware, Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -12,27 +12,53 @@ from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButto
                            KeyboardButton, Message, ReplyKeyboardMarkup)
 from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand, CommandError
-from django.utils import timezone
+from django.utils import timezone, translation
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 
 from core import botlogic as logic
 from core import bot_staff
 from core.backup import make_backup
+from core.bot_staff import is_button, tell
 from core.models import Order
+from core.templatetags.fmt import money
 
 router = Router()
 
-ORDER, DEBT, HISTORY = "Сделать заказ", "Мой долг", "Мои заказы"
+ORDER, DEBT, HISTORY = gettext_noop("Сделать заказ"), gettext_noop("Мой долг"), gettext_noop("Мои заказы")
+bot_staff.BUTTON_KEYS.update({ORDER, DEBT, HISTORY})
 
-shop_menu = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text=ORDER)], [KeyboardButton(text=DEBT), KeyboardButton(text=HISTORY)]],
-    resize_keyboard=True,
-)
 
-cart_buttons = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="Добавить ещё", callback_data="add")],
-    [InlineKeyboardButton(text="Отправить заказ", callback_data="send"),
-     InlineKeyboardButton(text="Очистить", callback_data="clear")],
-])
+def shop_menu():
+    return ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton(text=_(ORDER))],
+        [KeyboardButton(text=_(DEBT)), KeyboardButton(text=_(HISTORY))],
+        [KeyboardButton(text=_(bot_staff.LANG))],
+    ], resize_keyboard=True)
+
+
+def cart_buttons():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=_("Добавить ещё"), callback_data="add")],
+        [InlineKeyboardButton(text=_("Отправить заказ"), callback_data="send"),
+         InlineKeyboardButton(text=_("Очистить"), callback_data="clear")],
+    ])
+
+
+LANGUAGE_BUTTONS = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
+    InlineKeyboardButton(text="🇺🇿 Oʻzbekcha", callback_data="lang:uz"),
+]])
+
+
+class LanguageMiddleware(BaseMiddleware):
+    """Каждое сообщение и нажатие обрабатываем на языке, который человек выбрал."""
+
+    async def __call__(self, handler, event, data):
+        user = data.get("event_from_user")
+        language = await sync_to_async(logic.language_of)(user.id) if user else None
+        with translation.override(language or "ru"):
+            return await handler(event, data)
 
 
 class Ordering(StatesGroup):
@@ -64,7 +90,7 @@ def _cart(data):
 
 
 async def product_keyboard():
-    rows = [[InlineKeyboardButton(text=f"{p.name} · {int(p.price):,} сум".replace(",", " "),
+    rows = [[InlineKeyboardButton(text=_("%(name)s · %(price)s сум") % {"name": p.name, "price": money(p.price)},
                                   callback_data=f"p:{p.pk}")] for p in await products()]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -72,38 +98,64 @@ async def product_keyboard():
 @router.message(CommandStart())
 async def start(message: Message, command: CommandObject, state: FSMContext):
     await state.clear()
-    uid = message.from_user.id
     code = (command.args or "").strip()
+    if not await sync_to_async(logic.language_of)(message.from_user.id):
+        # Новый человек: сначала язык, потом подключение по ссылке.
+        await state.update_data(start_code=code)
+        await message.answer("Tilni tanlang / Выберите язык:", reply_markup=LANGUAGE_BUTTONS)
+        return
+    await greet(message, message.from_user.id, code)
+
+
+@router.message(Command("lang"))
+@router.message(is_button(bot_staff.LANG))
+async def language_ask(message: Message):
+    await message.answer("Tilni tanlang / Выберите язык:", reply_markup=LANGUAGE_BUTTONS)
+
+
+@router.callback_query(F.data.in_({"lang:ru", "lang:uz"}))
+async def language_set(callback: CallbackQuery, state: FSMContext):
+    uid = callback.from_user.id
+    await sync_to_async(logic.set_language)(uid, callback.data[5:])
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=None)
+    code = (await state.get_data()).get("start_code", "")
+    await state.clear()
+    with translation.override(callback.data[5:]):
+        await greet(callback.message, uid, code)
+
+
+async def greet(message: Message, uid, code=""):
+    """Подключение по ссылке (код сотрудника или магазина) и приветствие с меню нужной роли."""
     if code.startswith("w"):
         worker = await link_worker(code, uid)
         if not worker:
-            await message.answer("Код не подошёл. Попросите у начальника новую ссылку.")
+            await message.answer(_("Код не подошёл. Попросите у начальника новую ссылку."))
             return
     elif code:
         shop = await link_shop(code, uid)
         if shop:
-            await message.answer(f"Готово! Этот аккаунт подключён к магазину «{shop.name}». "
-                                 "Теперь можно заказывать.", reply_markup=shop_menu)
+            await message.answer(_("Готово! Этот аккаунт подключён к магазину «%(name)s». Теперь можно заказывать.") % {"name": shop.name}, reply_markup=shop_menu())
         else:
-            await message.answer("Код не подошёл. Попросите у поставщика новую ссылку.")
+            await message.answer(_("Код не подошёл. Попросите у поставщика новую ссылку."))
         return
     role, worker = await role_of(uid)
     if role:
         name = f", {worker.name}" if worker else ""
         hint = {
-            "boss": "Вам доступны все кнопки. «Сводка» — деньги и остатки, «Сотрудники» — табель каждого. "
-                    "Каждый вечер пришлю итоги дня.",
-            "seller": "Ваши кнопки: отгрузка в магазин, возврат, оплата долга, ваш остаток и расходы.",
-            "workshop": "Ваши кнопки: приход сырья, производство, передача товара агентам и расходы.",
+            "boss": _("Вам доступны все кнопки. «Сводка» — деньги и остатки, «Сотрудники» — табель каждого. "
+                    "Каждый вечер пришлю итоги дня."),
+            "seller": _("Ваши кнопки: отгрузка в магазин, возврат, оплата долга, ваш остаток и расходы."),
+            "workshop": _("Ваши кнопки: приход сырья, производство, передача товара агентам и расходы."),
         }[role]
-        await message.answer(f"Здравствуйте{name}! {hint}", reply_markup=bot_staff.menu_for(role))
+        await message.answer(_("Здравствуйте%(name)s! %(hint)s") % {"name": name, "hint": hint}, reply_markup=bot_staff.menu_for(role))
         return
     shop = await shop_for(uid)
     if shop:
-        await message.answer(f"Здравствуйте, «{shop.name}»! Что хотите заказать?", reply_markup=shop_menu)
+        await message.answer(_("Здравствуйте, «%(name)s»! Что хотите заказать?") % {"name": shop.name}, reply_markup=shop_menu())
     else:
-        await message.answer("Этот бот для магазинов-партнёров DASTYOR. "
-                             "Попросите у поставщика ссылку для подключения.")
+        await message.answer(_("Этот бот для магазинов-партнёров DASTYOR. "
+                             "Попросите у поставщика ссылку для подключения."))
 
 
 @router.message(Command("backup"))
@@ -113,20 +165,20 @@ async def backup_now(message: Message, bot: Bot):
         return
     name, data = await sync_to_async(make_backup)()
     await bot.send_document(message.chat.id, BufferedInputFile(data, filename=name),
-                            caption="Резервная копия базы DASTYOR. Сохраните этот файл.")
+                            caption=backup_caption())
 
 
-@router.message(F.text == ORDER)
+@router.message(is_button(ORDER))
 async def order_start(message: Message, state: FSMContext):
     if not await shop_for(message.from_user.id):
         return
     await state.set_state(None)
-    await message.answer("Выберите продукт:", reply_markup=await product_keyboard())
+    await message.answer(_("Выберите продукт:"), reply_markup=await product_keyboard())
 
 
 @router.callback_query(F.data == "add")
 async def order_add(callback: CallbackQuery):
-    await callback.message.answer("Выберите продукт:", reply_markup=await product_keyboard())
+    await callback.message.answer(_("Выберите продукт:"), reply_markup=await product_keyboard())
     await callback.answer()
 
 
@@ -134,11 +186,11 @@ async def order_add(callback: CallbackQuery):
 async def order_pick(callback: CallbackQuery, state: FSMContext):
     product = await get_product(int(callback.data[2:]))
     if not product:
-        await callback.answer("Этот продукт больше не продаётся.", show_alert=True)
+        await callback.answer(_("Этот продукт больше не продаётся."), show_alert=True)
         return
     await state.set_state(Ordering.qty)
     await state.update_data(product=product.pk)
-    await callback.message.answer(f"{product.name}: сколько штук? Напишите число.")
+    await callback.message.answer(_("%(name)s: сколько штук? Напишите число.") % {"name": product.name})
     await callback.answer()
 
 
@@ -146,20 +198,20 @@ async def order_pick(callback: CallbackQuery, state: FSMContext):
 async def order_qty(message: Message, state: FSMContext):
     text = (message.text or "").strip()
     if not text.isdigit() or not 0 < int(text) <= 10000:
-        await message.answer("Напишите количество числом, например 40.")
+        await message.answer(_("Напишите количество числом, например 40."))
         return
     data = await state.get_data()
     cart = _cart(data)
     cart[data["product"]] = cart.get(data["product"], 0) + int(text)
     await state.set_state(None)
     await state.update_data(cart={str(k): v for k, v in cart.items()})
-    await message.answer("Ваш заказ:\n" + await cart_text(cart), reply_markup=cart_buttons)
+    await message.answer(_("Ваш заказ:\n") + await cart_text(cart), reply_markup=cart_buttons())
 
 
 @router.callback_query(F.data == "clear")
 async def order_clear(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.edit_text("Корзина очищена.")
+    await callback.message.edit_text(_("Корзина очищена."))
     await callback.answer()
 
 
@@ -168,22 +220,22 @@ async def order_send(callback: CallbackQuery, state: FSMContext, bot: Bot):
     shop = await shop_for(callback.from_user.id)
     cart = _cart(await state.get_data())
     if not shop or not cart:
-        await callback.answer("Корзина пуста.", show_alert=True)
+        await callback.answer(_("Корзина пуста."), show_alert=True)
         return
     order = await create_order(shop, cart)
     await state.clear()
-    text = await order_text(order)
-    await callback.message.edit_text(f"Заказ №{order.pk} отправлен. Мы сообщим, когда его подтвердят.")
+    await callback.message.edit_text(_("Заказ №%(pk)s отправлен. Мы сообщим, когда его подтвердят.") % {"pk": order.pk})
     await callback.answer()
-    buttons = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="Подтвердить", callback_data=f"ok:{order.pk}"),
-        InlineKeyboardButton(text="Отклонить", callback_data=f"no:{order.pk}"),
-    ]])
+
+    def buttons():
+        return InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text=_("Подтвердить"), callback_data=f"ok:{order.pk}"),
+            InlineKeyboardButton(text=_("Отклонить"), callback_data=f"no:{order.pk}"),
+        ]])
+
     for owner in await boss_ids():
-        try:
-            await bot.send_message(owner, "Новый заказ!\n" + text, reply_markup=buttons)
-        except Exception:
-            logging.exception("Не удалось отправить заказ владельцу %s", owner)
+        markup = await sync_to_async(logic.in_language)(owner, buttons)
+        await tell(bot, owner, lambda: _("Новый заказ!\n") + logic.order_text(order), reply_markup=markup)
 
 
 @router.callback_query(F.data.regexp(r"^(ok|no):\d+$"))
@@ -195,23 +247,25 @@ async def order_decide(callback: CallbackQuery, bot: Bot):
     status = Order.Status.CONFIRMED if action == "ok" else Order.Status.REJECTED
     order = await set_status(int(order_id), status)
     if not order:
-        await callback.answer("Этот заказ уже обработан.", show_alert=True)
+        await callback.answer(_("Этот заказ уже обработан."), show_alert=True)
         return
     await callback.message.edit_text(await order_text(order))
     await callback.answer()
-    if order.shop.telegram_id:
-        verdict = "подтверждён" if action == "ok" else "отклонён, свяжитесь с нами"
-        await bot.send_message(order.shop.telegram_id, f"Ваш заказ №{order.pk} {verdict}.")
+    if action == "ok":
+        await tell(bot, order.shop.telegram_id, lambda: _("Ваш заказ №%(pk)s подтверждён.") % {"pk": order.pk})
+    else:
+        await tell(bot, order.shop.telegram_id,
+                   lambda: _("Ваш заказ №%(pk)s отклонён, свяжитесь с нами.") % {"pk": order.pk})
 
 
-@router.message(F.text == DEBT)
+@router.message(is_button(DEBT))
 async def debt(message: Message):
     shop = await shop_for(message.from_user.id)
     if shop:
         await message.answer(await debt_text(shop))
 
 
-@router.message(F.text == HISTORY)
+@router.message(is_button(HISTORY))
 async def history(message: Message):
     shop = await shop_for(message.from_user.id)
     if shop:
@@ -231,6 +285,7 @@ class Command(BaseCommand):
     async def run(self, token):
         bot = Bot(token)
         dp = Dispatcher()
+        dp.update.outer_middleware(LanguageMiddleware())
         dp.include_router(router)
         dp.include_router(bot_staff.router)
         tasks = [asyncio.create_task(reminder_loop(bot)), asyncio.create_task(daily_report_loop(bot)),
@@ -296,7 +351,11 @@ async def send_backup(bot):
     extra = {int(x) for x in re.findall(r"\d+", os.environ.get("BACKUP_TELEGRAM_IDS", ""))}
     for chat_id in logic.owner_ids() | extra:
         try:
-            await bot.send_document(chat_id, BufferedInputFile(data, filename=name),
-                                    caption="Резервная копия базы DASTYOR. Сохраните этот файл.")
+            caption = await sync_to_async(logic.in_language)(chat_id, backup_caption)
+            await bot.send_document(chat_id, BufferedInputFile(data, filename=name), caption=caption)
         except Exception:
             logging.exception("Не удалось отправить копию %s", chat_id)
+
+
+def backup_caption():
+    return _("Резервная копия базы DASTYOR. Сохраните этот файл.")

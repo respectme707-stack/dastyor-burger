@@ -751,3 +751,53 @@ class ExcelExportTests(TestCase):
         self.assertEqual(wb["Расходы"]["C2"].value, 1000000)
         self.assertIn("Азиз", [c.value for c in wb["Сотрудники"]["A"]])
         self.assertContains(self.client.get("/money/"), "/export.xlsx?period=month")
+
+
+class BotLanguageTests(TestCase):
+    def setUp(self):
+        from . import botlogic
+        botlogic._languages.clear()
+        self.logic = botlogic
+
+    def test_language_is_remembered_and_used_for_texts(self):
+        self.assertIsNone(self.logic.language_of(555))
+        self.logic.set_language(555, "uz")
+        self.logic._languages.clear()
+        self.assertEqual(self.logic.language_of(555), "uz")
+        self.assertIn("Sotuv", self.logic.in_language(555, self.logic.summary_text))
+        self.assertIn("Продажи", self.logic.in_language(777, self.logic.summary_text))
+
+    def test_buttons_work_in_both_languages(self):
+        from django.utils import translation
+
+        from . import bot_staff
+        self.assertEqual(bot_staff.button_key("Отгрузка в магазин"), bot_staff.SHIP)
+        self.assertEqual(bot_staff.button_key("Doʻkonga yetkazish"), bot_staff.SHIP)
+        self.assertEqual(bot_staff.button_key("🌐 Til"), bot_staff.LANG)
+        self.assertIsNone(bot_staff.button_key("Привет"))
+        with translation.override("uz"):
+            texts = [b.text for row in bot_staff.menu_for("seller").keyboard for b in row]
+        self.assertIn("Doʻkonga yetkazish", texts)
+        self.assertIn("🌐 Til", texts)
+
+    def test_middleware_language_reaches_database_thread(self):
+        import asyncio
+
+        from asgiref.sync import sync_to_async
+        from django.utils.translation import gettext
+
+        from .management.commands.run_bot import LanguageMiddleware
+
+        self.logic._languages[42] = "uz"
+        user = type("User", (), {"id": 42})()
+
+        async def handler(event, data):
+            return await sync_to_async(gettext)("Отмена")
+
+        result = asyncio.run(LanguageMiddleware()(handler, None, {"event_from_user": user}))
+        self.assertEqual(result, "Bekor qilish")
+
+    def test_choice_buttons_accept_translated_labels(self):
+        from . import bot_staff
+        markup = bot_staff.kb([[(label, value)] for value, label in m.Expense.Category.choices])
+        self.assertEqual(markup.inline_keyboard[0][0].text, "Зарплата")

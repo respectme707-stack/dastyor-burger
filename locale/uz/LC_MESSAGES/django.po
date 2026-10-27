@@ -2229,3 +2229,893 @@ msgstr "berilishi kerak"
 
 msgid "выдать"
 msgstr "berish"
+
+msgid "Отгрузка в магазин"
+msgstr "Doʻkonga yetkazish"
+
+msgid "Мой остаток"
+msgstr "Mening qoldigʻim"
+
+msgid "Остаток в цеху"
+msgstr "Sexdagi qoldiq"
+
+msgid "Сводка"
+msgstr "Hisobot"
+
+msgid "Пропустить"
+msgstr "Oʻtkazib yuborish"
+
+msgid "🌐 Язык"
+msgstr "🌐 Til"
+
+msgid "Отмена"
+msgstr "Bekor qilish"
+
+msgid "Отменено."
+msgstr "Bekor qilindi."
+
+msgid "Эта кнопка не для вашей роли."
+msgstr "Bu tugma sizning rolingiz uchun emas."
+
+msgid "Новый магазин. Как называется магазин?"
+msgstr "Yangi doʻkon. Doʻkon nomi nima?"
+
+msgid "Фирма (юридическое название)?"
+msgstr "Firma (yuridik nomi)?"
+
+msgid "Район? Выберите или напишите новый."
+msgstr "Tuman? Tanlang yoki yangisini yozing."
+
+msgid "Район? Напишите название."
+msgstr "Tuman? Nomini yozing."
+
+msgid "Адрес или ориентир?"
+msgstr "Manzil yoki moʻljal?"
+
+msgid "📍 Отправить локацию"
+msgstr "📍 Joylashuvni yuborish"
+
+msgid ""
+"Локация магазина.\n"
+"• С телефона: нажмите «📍 Отправить локацию» (если вы в магазине) или 📎 → Геопозиция.\n"
+"• С компьютера: найдите магазин в Google Картах, нажмите «Поделиться», скопируйте ссылку и вставьте сюда.\n"
+"• Или нажмите «Пропустить»."
+msgstr ""
+"Doʻkon joylashuvi.\n"
+"• Telefondan: «📍 Joylashuvni yuborish» tugmasini bosing (agar doʻkonda boʻlsangiz) yoki 📎 → Geopozitsiya.\n"
+"• Kompyuterdan: doʻkonni Google Xaritada toping, «Ulashish»ni bosing, havolani nusxalab shu yerga joylang.\n"
+"• Yoki «Oʻtkazib yuborish»ni bosing."
+
+msgid "Локацию записал."
+msgstr "Joylashuv yozildi."
+
+msgid "Без локации. Её можно добавить потом на сайте."
+msgstr "Joylashuvsiz. Uni keyin saytda qoʻshish mumkin."
+
+msgid "В этом сообщении не нашёл координат, сохраняю без локации. Добавить можно потом на сайте."
+msgstr "Bu xabarda koordinatalar topilmadi, joylashuvsiz saqlayman. Keyin saytda qoʻshish mumkin."
+
+msgid "Телефон магазина?"
+msgstr "Doʻkon telefoni?"
+
+#, python-format
+msgid ""
+"Готово!\n"
+"%(card)s\n"
+"\n"
+"Ссылка для магазина, отправьте её им:\n"
+"%(link)s"
+msgstr ""
+"Tayyor!\n"
+"%(card)s\n"
+"\n"
+"Doʻkon uchun havola, ularga yuboring:\n"
+"%(link)s"
+
+#, python-format
+msgid ""
+"Добавлен магазин (%(x)s).\n"
+"%(card)s"
+msgstr ""
+"Doʻkon qoʻshildi (%(x)s).\n"
+"%(card)s"
+
+msgid "начальник"
+msgstr "boshliq"
+
+msgid "➕ Новый поставщик"
+msgstr "➕ Yangi taʼminotchi"
+
+msgid "Приход сырья. От какого поставщика?"
+msgstr "Xomashyo kirimi. Qaysi taʼminotchidan?"
+
+msgid "Название поставщика (фирмы)?"
+msgstr "Taʼminotchi (firma) nomi?"
+
+msgid "Без категории"
+msgstr "Kategoriyasiz"
+
+msgid "Какая категория?"
+msgstr "Qaysi kategoriya?"
+
+msgid "➕ Новое сырьё"
+msgstr "➕ Yangi xomashyo"
+
+msgid "Какое сырьё пришло?"
+msgstr "Qanday xomashyo keldi?"
+
+msgid "Название сырья?"
+msgstr "Xomashyo nomi?"
+
+msgid "➕ Другая единица"
+msgstr "➕ Boshqa birlik"
+
+msgid "В чём считаем?"
+msgstr "Nimada hisoblaymiz?"
+
+#, python-format
+msgid "%(name)s (%(pack_label)s): сколько %(unit)s? Напишите число."
+msgstr "%(name)s (%(pack_label)s): necha %(unit)s? Raqam yozing."
+
+msgid "Напишите единицу, например «гр», «пачка», «ящик»."
+msgstr "Birlikni yozing, masalan «gr», «pachka», «yashik»."
+
+msgid "Напишите количество числом, например 50 или 2,5."
+msgstr "Miqdorni raqam bilan yozing, masalan 50 yoki 2,5."
+
+#, python-format
+msgid "Цена за 1 %(x)s, сум?"
+msgstr "1 %(x)s narxi, soʻm?"
+
+msgid "Напишите цену числом, например 3500."
+msgstr "Narxni raqam bilan yozing, masalan 3500."
+
+msgid "Приход:\n"
+msgstr "Kirim:\n"
+
+msgid "Добавить ещё"
+msgstr "Yana qoʻshish"
+
+msgid "Готово"
+msgstr "Tayyor"
+
+#, python-format
+msgid "Итого %(x)s сум. Сколько оплатили сразу? Напишите сумму."
+msgstr "Jami %(x)s soʻm. Darhol qancha toʻlandi? Summani yozing."
+
+msgid "Всё оплачено"
+msgstr "Hammasi toʻlandi"
+
+msgid "Всё в долг"
+msgstr "Hammasi qarzga"
+
+#, python-format
+msgid "Внёс в боте: %(worker)s"
+msgstr "Botda kiritdi: %(worker)s"
+
+msgid "Внесено в боте"
+msgstr "Botda kiritildi"
+
+msgid "Сохранено.\n"
+msgstr "Saqlandi.\n"
+
+#, python-format
+msgid "Новый приход сырья (%(x)s).\n"
+msgstr "Yangi xomashyo kirimi (%(x)s).\n"
+
+msgid "Напишите сумму числом, например 500000, или 0, если всё в долг."
+msgstr "Summani raqam bilan yozing, masalan 500000, yoki hammasi qarzga boʻlsa 0."
+
+msgid "Продуктов пока нет. Добавьте их на сайте: «Продукты» → «Добавить», с ценой и рецептом."
+msgstr "Hozircha mahsulotlar yoʻq. Ularni saytda qoʻshing: «Mahsulotlar» → «Qoʻshish», narxi va retsepti bilan."
+
+msgid "Что сделали?"
+msgstr "Nima tayyorlandi?"
+
+#, python-format
+msgid "%(name)s: сколько штук сделали?"
+msgstr "%(name)s: necha dona tayyorlandi?"
+
+msgid "Напишите количество целым числом, например 200."
+msgstr "Miqdorni butun son bilan yozing, masalan 200."
+
+msgid ""
+"\n"
+"Рецепт и сырьё можно поправить на сайте."
+msgstr ""
+"\n"
+"Retsept va xomashyoni saytda tuzatish mumkin."
+
+#, python-format
+msgid ""
+"Производство (%(x)s).\n"
+"%(text)s"
+msgstr ""
+"Ishlab chiqarish (%(x)s).\n"
+"%(text)s"
+
+msgid "Агентов пока нет. Добавьте их на сайте или через «Сотрудники»."
+msgstr "Hozircha agentlar yoʻq. Ularni saytda yoki «Xodimlar» orqali qoʻshing."
+
+msgid "Кому передаём товар?"
+msgstr "Tovarni kimga beramiz?"
+
+msgid "Магазинов пока нет. Добавьте через «Новый магазин»."
+msgstr "Hozircha doʻkonlar yoʻq. «Yangi doʻkon» orqali qoʻshing."
+
+msgid "Район?"
+msgstr "Tuman?"
+
+#, python-format
+msgid "%(name)s · долг %(x)s"
+msgstr "%(name)s · qarz %(x)s"
+
+#, python-format
+msgid "Магазин (%(district)s)?"
+msgstr "Doʻkon (%(district)s)?"
+
+#, python-format
+msgid "Весь долг %(x)s"
+msgstr "Butun qarz %(x)s"
+
+msgid "Сколько магазин заплатил? Напишите сумму."
+msgstr "Doʻkon qancha toʻladi? Summani yozing."
+
+#, python-format
+msgid ""
+"У магазина есть заказ:\n"
+"%(text)s"
+msgstr ""
+"Doʻkonda buyurtma bor:\n"
+"%(text)s"
+
+#, python-format
+msgid "Отгрузить по заказу №%(pk)s"
+msgstr "№%(pk)s buyurtma boʻyicha yetkazish"
+
+msgid "Без заказа"
+msgstr "Buyurtmasiz"
+
+msgid "у вас"
+msgstr "sizda"
+
+msgid "в цеху"
+msgstr "sexda"
+
+msgid "Что вернули?"
+msgstr "Nima qaytarildi?"
+
+msgid "Что отдаём магазину?"
+msgstr "Doʻkonga nima beramiz?"
+
+msgid "Что передаём агенту?"
+msgstr "Agentga nima beramiz?"
+
+msgid "У вас нет товара. Попросите цех сделать «Передача агенту»."
+msgstr "Sizda tovar yoʻq. Sexdan «Agentga berish»ni soʻrang."
+
+msgid "В цеху нет готового товара. Сначала «Производство»."
+msgstr "Sexda tayyor tovar yoʻq. Avval «Ishlab chiqarish»."
+
+#, python-format
+msgid "%(name)s: сколько штук?"
+msgstr "%(name)s: necha dona?"
+
+msgid "Напишите количество целым числом, например 40."
+msgstr "Miqdorni butun son bilan yozing, masalan 40."
+
+msgid "Причина возврата?"
+msgstr "Qaytarish sababi?"
+
+#, python-format
+msgid "Сумма %(x)s сум. Как магазин платит?"
+msgstr "Summa %(x)s soʻm. Doʻkon qanday toʻlaydi?"
+
+msgid ""
+"\n"
+"Исправьте количество или нажмите «Отмена»."
+msgstr ""
+"\n"
+"Miqdorni tuzating yoki «Bekor qilish»ni bosing."
+
+#, python-format
+msgid ""
+"Передано агенту %(name)s:\n"
+"%(items)s"
+msgstr ""
+"Agent %(name)s ga berildi:\n"
+"%(items)s"
+
+#, python-format
+msgid ""
+"Вам передали товар из цеха (%(x)s):\n"
+"%(items)s\n"
+"\n"
+msgstr ""
+"Sizga sexdan tovar berildi (%(x)s):\n"
+"%(items)s\n"
+"\n"
+
+#, python-format
+msgid ""
+"Передача агенту %(name)s (%(x)s):\n"
+"%(items)s"
+msgstr ""
+"Agent %(name)s ga berish (%(x)s):\n"
+"%(items)s"
+
+#, python-format
+msgid "Отгрузка (%(x)s).\n"
+msgstr "Yetkazish (%(x)s).\n"
+
+msgid "из цеха"
+msgstr "sexdan"
+
+msgid "Вы получили товар. Спасибо!\n"
+msgstr "Siz tovarni oldingiz. Rahmat!\n"
+
+msgid "Сколько заплатили сейчас? Если часть, напишите сумму, остальное уйдёт в долг."
+msgstr "Hozir qancha toʻlandi? Agar bir qismi boʻlsa, summani yozing, qolgani qarzga yoziladi."
+
+#, python-format
+msgid "Всё, %(x)s"
+msgstr "Hammasi, %(x)s"
+
+msgid "Напишите сумму числом, например 200000, или 0, если всё в долг."
+msgstr "Summani raqam bilan yozing, masalan 200000, yoki hammasi qarzga boʻlsa 0."
+
+#, python-format
+msgid ""
+"Возврат записан: %(product)s × %(qty)s = %(sum)s сум (%(reason)s).\n"
+"Долг магазина теперь: %(debt)s сум"
+msgstr ""
+"Qaytarish yozildi: %(product)s × %(qty)s = %(sum)s soʻm (%(reason)s).\n"
+"Doʻkon qarzi endi: %(debt)s soʻm"
+
+msgid "Ещё возврат от этого магазина"
+msgstr "Shu doʻkondan yana qaytarish"
+
+#, python-format
+msgid ""
+"Возврат от «%(name)s» (%(x)s).\n"
+"%(text)s"
+msgstr ""
+"«%(name)s» dan qaytarish (%(x)s).\n"
+"%(text)s"
+
+#, python-format
+msgid "%(x)s сум. Как заплатили?"
+msgstr "%(x)s soʻm. Qanday toʻlandi?"
+
+#, python-format
+msgid "Оплата от «%(name)s»: %(sum)s сум (%(method)s). Долг теперь: %(debt)s сум"
+msgstr "«%(name)s» dan toʻlov: %(sum)s soʻm (%(method)s). Qarz endi: %(debt)s soʻm"
+
+#, python-format
+msgid "%(text)s (принял %(x)s)"
+msgstr "%(text)s (qabul qildi %(x)s)"
+
+#, python-format
+msgid "Получили вашу оплату %(x)s сум. Спасибо!\n"
+msgstr "%(x)s soʻm toʻlovingizni oldik. Rahmat!\n"
+
+msgid "Напишите сумму числом, например 150000."
+msgstr "Summani raqam bilan yozing, masalan 150000."
+
+msgid "Сдать остаток в цех"
+msgstr "Qoldiqni sexga topshirish"
+
+msgid "В цеху готового товара:"
+msgstr "Sexda tayyor tovar:"
+
+#, python-format
+msgid "%(name)s: %(n)s шт"
+msgstr "%(name)s: %(n)s dona"
+
+#, python-format
+msgid ""
+"\n"
+"У %(name)s: "
+msgstr ""
+"\n"
+"%(name)s da: "
+
+msgid "У вас уже ничего нет на руках."
+msgstr "Sizda hech narsa qolmagan."
+
+#, python-format
+msgid ""
+"Сдано в цех:\n"
+"%(items)s"
+msgstr ""
+"Sexga topshirildi:\n"
+"%(items)s"
+
+#, python-format
+msgid ""
+"%(name)s сдал остаток в цех:\n"
+"%(items)s"
+msgstr ""
+"%(name)s qoldiqni sexga topshirdi:\n"
+"%(items)s"
+
+msgid "Какой расход?"
+msgstr "Qanday xarajat?"
+
+msgid "Сколько, сум?"
+msgstr "Qancha, soʻm?"
+
+msgid "Напишите сумму числом, например 30000."
+msgstr "Summani raqam bilan yozing, masalan 30000."
+
+msgid "Комментарий? Например «такси до Чиланзара»."
+msgstr "Izoh? Masalan «Chilonzorgacha taksi»."
+
+#, python-format
+msgid "Расход: %(category)s %(sum)s сум"
+msgstr "Xarajat: %(category)s %(sum)s soʻm"
+
+msgid "Сохранено. "
+msgstr "Saqlandi. "
+
+msgid "➕ Новый сотрудник"
+msgstr "➕ Yangi xodim"
+
+msgid ""
+"Сотрудники. Нажмите, чтобы увидеть табель за месяц.\n"
+"Роли, районы и магазины меняются на сайте."
+msgstr ""
+"Xodimlar. Oylik tabelni koʻrish uchun bosing.\n"
+"Rollar, tumanlar va doʻkonlar saytda oʻzgartiriladi."
+
+msgid "Этот месяц"
+msgstr "Shu oy"
+
+msgid "Прошлый месяц"
+msgstr "Oʻtgan oy"
+
+#, python-format
+msgid ""
+"\n"
+"Ссылка для бота: %(x)s"
+msgstr ""
+"\n"
+"Bot uchun havola: %(x)s"
+
+msgid "Имя сотрудника?"
+msgstr "Xodimning ismi?"
+
+msgid "Роль?"
+msgstr "Roli?"
+
+msgid ""
+"\n"
+"\n"
+"На сайте в «Сотрудники» укажите его районы и магазины."
+msgstr ""
+"\n"
+"\n"
+"Saytda «Xodimlar» boʻlimida uning tumanlari va doʻkonlarini belgilang."
+
+#, python-format
+msgid ""
+"Добавлен: %(name)s · %(get_role_display)s.\n"
+"Отправьте ему эту ссылку, пусть откроет её в Telegram:\n"
+"%(x)s%(extra)s"
+msgstr ""
+"Qoʻshildi: %(name)s · %(get_role_display)s.\n"
+"Unga shu havolani yuboring, Telegramda ochsin:\n"
+"%(x)s%(extra)s"
+
+msgid "Месяц"
+msgstr "Oy"
+
+msgid "В архив"
+msgstr "Arxivga"
+
+#, python-format
+msgid "📦 В архиве (%(name)s). Напоминаний не будет, пока магазин не закажет или не получит товар."
+msgstr "📦 Arxivda (%(name)s). Doʻkon buyurtma bermaguncha yoki tovar olmaguncha eslatmalar boʻlmaydi."
+
+#, python-format
+msgid "Пропущено (%(name)s). До следующей поставки напоминаний не будет."
+msgstr "Oʻtkazib yuborildi (%(name)s). Keyingi yetkazishgacha eslatmalar boʻlmaydi."
+
+msgid "Корзина пуста."
+msgstr "Savat boʻsh."
+
+#, python-format
+msgid "Итого: %(x)s сум"
+msgstr "Jami: %(x)s soʻm"
+
+#, python-format
+msgid "Заказ №%(pk)s · %(shop)s"
+msgstr "Buyurtma №%(pk)s · %(shop)s"
+
+#, python-format
+msgid "Комментарий: %(note)s"
+msgstr "Izoh: %(note)s"
+
+#, python-format
+msgid "Статус: %(get_status_display)s"
+msgstr "Holati: %(get_status_display)s"
+
+#, python-format
+msgid "Ваш долг: %(x)s сум."
+msgstr "Qarzingiz: %(x)s soʻm."
+
+#, python-format
+msgid "У вас переплата: %(x)s сум."
+msgstr "Sizda ortiqcha toʻlov: %(x)s soʻm."
+
+msgid "Долгов нет. Спасибо!"
+msgstr "Qarz yoʻq. Rahmat!"
+
+msgid "Заказов пока нет."
+msgstr "Hozircha buyurtmalar yoʻq."
+
+#, python-format
+msgid "за %(start)s"
+msgstr "%(start)s uchun"
+
+#, python-format
+msgid "Сводка %(period)s"
+msgstr "Hisobot %(period)s"
+
+#, python-format
+msgid "💰 Продажи: %(x)s сум"
+msgstr "💰 Sotuv: %(x)s soʻm"
+
+#, python-format
+msgid "💵 Получено денег: %(x)s"
+msgstr "💵 Olingan pul: %(x)s"
+
+#, python-format
+msgid " (из них картой %(x)s)"
+msgstr " (shundan karta orqali %(x)s)"
+
+#, python-format
+msgid "📦 Приход сырья: %(x)s"
+msgstr "📦 Xomashyo kirimi: %(x)s"
+
+#, python-format
+msgid "🧾 Прочие расходы: %(x)s"
+msgstr "🧾 Boshqa xarajatlar: %(x)s"
+
+#, python-format
+msgid "↩️ Возвраты: %(x)s"
+msgstr "↩️ Qaytarishlar: %(x)s"
+
+#, python-format
+msgid "📈 Прибыль: %(x)s"
+msgstr "📈 Foyda: %(x)s"
+
+#, python-format
+msgid "Нам должны: %(x)s · Мы должны: %(x2)s"
+msgstr "Bizdan qarzdorlar: %(x)s · Bizning qarzimiz: %(x2)s"
+
+#, python-format
+msgid "На консигнации за период: %(x)s"
+msgstr "Davr ichida konsignatsiyada: %(x)s"
+
+msgid "Изделия, шт:"
+msgstr "Mahsulotlar, dona:"
+
+#, python-format
+msgid "сделано %(x)s · продано %(x2)s · возврат %(x3)s"
+msgstr "tayyorlandi %(x)s · sotildi %(x2)s · qaytdi %(x3)s"
+
+#, python-format
+msgid "в цеху %(x)s · у агентов %(x2)s"
+msgstr "sexda %(x)s · agentlarda %(x2)s"
+
+#, python-format
+msgid ""
+"\n"
+"Заказы из бота: новых %(new)s, ждут отгрузки %(confirmed)s"
+msgstr ""
+"\n"
+"Botdan buyurtmalar: yangi %(new)s, yetkazishni kutmoqda %(confirmed)s"
+
+msgid "Заканчивается: "
+msgstr "Tugayapti: "
+
+#, python-format
+msgid "Итоги дня %(day)s"
+msgstr "%(day)s kun yakunlari"
+
+#, python-format
+msgid "• %(name)s: продал на %(x)s, получил %(x2)s"
+msgstr "• %(name)s: %(x)s ga sotdi, %(x2)s oldi"
+
+msgid ""
+"\n"
+"\n"
+"Агенты:\n"
+msgstr ""
+"\n"
+"\n"
+"Agentlar:\n"
+
+#, python-format
+msgid "Телефон: %(phone)s"
+msgstr "Telefon: %(phone)s"
+
+#, python-format
+msgid "Районы: %(districts)s"
+msgstr "Tumanlar: %(districts)s"
+
+#, python-format
+msgid "Бот: %(x)s"
+msgstr "Bot: %(x)s"
+
+#, python-format
+msgid ""
+"\n"
+"С %(start)s по %(end)s:"
+msgstr ""
+"\n"
+"%(start)s dan %(end)s gacha:"
+
+#, python-format
+msgid "Получил из цеха: %(x)s шт"
+msgstr "Sexdan oldi: %(x)s dona"
+
+#, python-format
+msgid "Продал: %(x)s шт на %(x2)s сум"
+msgstr "Sotdi: %(x)s dona, %(x2)s soʻmga"
+
+#, python-format
+msgid "Отгрузок: %(count)s, магазинов: %(x)s"
+msgstr "Yetkazishlar: %(count)s, doʻkonlar: %(x)s"
+
+#, python-format
+msgid "Получил денег: %(x)s"
+msgstr "Pul oldi: %(x)s"
+
+#, python-format
+msgid "Отдал в долг: %(x)s"
+msgstr "Qarzga berdi: %(x)s"
+
+#, python-format
+msgid "Возвраты в его магазинах: %(x)s шт на %(x2)s"
+msgstr "Uning doʻkonlaridagi qaytarishlar: %(x)s dona, %(x2)s ga"
+
+msgid "Сейчас на руках: "
+msgstr "Hozir qoʻlida: "
+
+msgid "ничего"
+msgstr "hech narsa"
+
+#, python-format
+msgid "Сделал: %(made)s шт"
+msgstr "Tayyorladi: %(made)s dona"
+
+#, python-format
+msgid "Передал агентам: %(gave)s шт"
+msgstr "Agentlarga berdi: %(gave)s dona"
+
+#, python-format
+msgid "Расходы: %(x)s сум"
+msgstr "Xarajatlar: %(x)s soʻm"
+
+#, python-format
+msgid "код %(code)s"
+msgstr "kod %(code)s"
+
+#, python-format
+msgid "Магазин «%(name)s»"
+msgstr "«%(name)s» doʻkoni"
+
+#, python-format
+msgid "Фирма: %(firm)s"
+msgstr "Firma: %(firm)s"
+
+#, python-format
+msgid "Район: %(district)s"
+msgstr "Tuman: %(district)s"
+
+#, python-format
+msgid "Адрес: %(address)s"
+msgstr "Manzil: %(address)s"
+
+#, python-format
+msgid "Карта: %(map_url)s"
+msgstr "Xarita: %(map_url)s"
+
+#, python-format
+msgid "Долг: %(x)s сум"
+msgstr "Qarz: %(x)s soʻm"
+
+#, python-format
+msgid "Приход №%(pk)s · %(supplier)s"
+msgstr "Kirim №%(pk)s · %(supplier)s"
+
+#, python-format
+msgid "Сумма: %(x)s сум, оплачено %(x2)s, в долг %(x3)s"
+msgstr "Summa: %(x)s soʻm, toʻlandi %(x2)s, qarzga %(x3)s"
+
+#, python-format
+msgid "Всего должны поставщику: %(x)s сум"
+msgstr "Taʼminotchidan jami qarzimiz: %(x)s soʻm"
+
+#, python-format
+msgid "Записано: %(name)s × %(qty)s"
+msgstr "Yozildi: %(name)s × %(qty)s"
+
+#, python-format
+msgid "Себестоимость 1 шт: %(x)s сум"
+msgstr "1 dona tannarxi: %(x)s soʻm"
+
+#, python-format
+msgid "В цеху теперь: %(stock)s шт"
+msgstr "Sexda endi: %(stock)s dona"
+
+msgid "Не хватает. "
+msgstr "Yetmaydi. "
+
+msgid "у агента"
+msgstr "agentda"
+
+#, python-format
+msgid "У %(name)s на руках:"
+msgstr "%(name)s qoʻlida:"
+
+msgid "ничего."
+msgstr "hech narsa."
+
+#, python-format
+msgid "Получено денег сегодня: %(x)s сум"
+msgstr "Bugun olingan pul: %(x)s soʻm"
+
+#, python-format
+msgid "По заказу №%(pk)s из бота. %(note)s"
+msgstr "Botdagi №%(pk)s buyurtma boʻyicha. %(note)s"
+
+#, python-format
+msgid "Отгрузка №%(pk)s · %(shop)s"
+msgstr "Yetkazish №%(pk)s · %(shop)s"
+
+#, python-format
+msgid "Оплата: %(x)s. Сумма: %(x2)s сум, оплачено %(x3)s, в долг %(x4)s"
+msgstr "Toʻlov: %(x)s. Summa: %(x2)s soʻm, toʻlandi %(x3)s, qarzga %(x4)s"
+
+#, python-format
+msgid "Общий долг магазина: %(x)s сум"
+msgstr "Doʻkonning umumiy qarzi: %(x)s soʻm"
+
+#, python-format
+msgid "Принял: %(worker)s"
+msgstr "Qabul qildi: %(worker)s"
+
+#, python-format
+msgid "Магазин «%(name)s» (%(district)s)"
+msgstr "«%(name)s» doʻkoni (%(district)s)"
+
+#, python-format
+msgid "товар привезли %(x)s"
+msgstr "tovar %(x)s da keltirilgan"
+
+#, python-format
+msgid "⏰ %(head)s: %(delivered)s, годен до %(x)s, осталось %(left)s дн. Заказа пока нет."
+msgstr "⏰ %(head)s: %(delivered)s, %(x)s gacha yaroqli, %(left)s kun qoldi. Hozircha buyurtma yoʻq."
+
+#, python-format
+msgid "⏰ %(head)s: %(delivered)s, сегодня последний день срока. Заказа пока нет."
+msgstr "⏰ %(head)s: %(delivered)s, bugun muddatning oxirgi kuni. Hozircha buyurtma yoʻq."
+
+#, python-format
+msgid "⚠️ %(head)s: срок товара от %(x)s истёк %(x2)s (%(x3)s дн. назад). Проверьте, чтобы просрочку не продали покупателям. Заказа нет."
+msgstr "⚠️ %(head)s: %(x)s dagi tovar muddati %(x2)s da tugagan (%(x3)s kun oldin). Muddati oʻtgan tovar xaridorlarga sotilmasligini tekshiring. Buyurtma yoʻq."
+
+#, python-format
+msgid ""
+"\n"
+"Телефон: %(phone)s"
+msgstr ""
+"\n"
+"Telefon: %(phone)s"
+
+msgid "Сделать заказ"
+msgstr "Buyurtma berish"
+
+msgid "Мой долг"
+msgstr "Mening qarzim"
+
+msgid "Мои заказы"
+msgstr "Mening buyurtmalarim"
+
+msgid "Отправить заказ"
+msgstr "Buyurtmani yuborish"
+
+msgid "Очистить"
+msgstr "Tozalash"
+
+#, python-format
+msgid "%(name)s · %(price)s сум"
+msgstr "%(name)s · %(price)s soʻm"
+
+msgid "Код не подошёл. Попросите у начальника новую ссылку."
+msgstr "Kod mos kelmadi. Boshliqdan yangi havola soʻrang."
+
+#, python-format
+msgid "Готово! Этот аккаунт подключён к магазину «%(name)s». Теперь можно заказывать."
+msgstr "Tayyor! Bu akkaunt «%(name)s» doʻkoniga ulandi. Endi buyurtma berish mumkin."
+
+msgid "Код не подошёл. Попросите у поставщика новую ссылку."
+msgstr "Kod mos kelmadi. Taʼminotchidan yangi havola soʻrang."
+
+msgid "Вам доступны все кнопки. «Сводка» — деньги и остатки, «Сотрудники» — табель каждого. Каждый вечер пришлю итоги дня."
+msgstr "Sizga barcha tugmalar ochiq. «Hisobot» — pul va qoldiqlar, «Xodimlar» — har birining tabeli. Har kuni kechqurun kun yakunlarini yuboraman."
+
+msgid "Ваши кнопки: отгрузка в магазин, возврат, оплата долга, ваш остаток и расходы."
+msgstr "Sizning tugmalaringiz: doʻkonga yetkazish, qaytarish, qarz toʻlovi, qoldigʻingiz va xarajatlar."
+
+msgid "Ваши кнопки: приход сырья, производство, передача товара агентам и расходы."
+msgstr "Sizning tugmalaringiz: xomashyo kirimi, ishlab chiqarish, agentlarga tovar berish va xarajatlar."
+
+#, python-format
+msgid "Здравствуйте%(name)s! %(hint)s"
+msgstr "Assalomu alaykum%(name)s! %(hint)s"
+
+#, python-format
+msgid "Здравствуйте, «%(name)s»! Что хотите заказать?"
+msgstr "Assalomu alaykum, «%(name)s»! Nima buyurtma qilasiz?"
+
+msgid "Этот бот для магазинов-партнёров DASTYOR. Попросите у поставщика ссылку для подключения."
+msgstr "Bu bot DASTYOR hamkor doʻkonlari uchun. Ulanish uchun taʼminotchidan havola soʻrang."
+
+msgid "Выберите продукт:"
+msgstr "Mahsulotni tanlang:"
+
+msgid "Этот продукт больше не продаётся."
+msgstr "Bu mahsulot endi sotilmaydi."
+
+#, python-format
+msgid "%(name)s: сколько штук? Напишите число."
+msgstr "%(name)s: necha dona? Raqam yozing."
+
+msgid "Напишите количество числом, например 40."
+msgstr "Miqdorni raqam bilan yozing, masalan 40."
+
+msgid "Ваш заказ:\n"
+msgstr "Buyurtmangiz:\n"
+
+msgid "Корзина очищена."
+msgstr "Savat tozalandi."
+
+#, python-format
+msgid "Заказ №%(pk)s отправлен. Мы сообщим, когда его подтвердят."
+msgstr "Buyurtma №%(pk)s yuborildi. Tasdiqlanganda xabar beramiz."
+
+msgid "Подтвердить"
+msgstr "Tasdiqlash"
+
+msgid "Отклонить"
+msgstr "Rad etish"
+
+msgid "Новый заказ!\n"
+msgstr "Yangi buyurtma!\n"
+
+msgid "Этот заказ уже обработан."
+msgstr "Bu buyurtma allaqachon koʻrib chiqilgan."
+
+#, python-format
+msgid "Ваш заказ №%(pk)s подтверждён."
+msgstr "Buyurtmangiz №%(pk)s tasdiqlandi."
+
+#, python-format
+msgid "Ваш заказ №%(pk)s отклонён, свяжитесь с нами."
+msgstr "Buyurtmangiz №%(pk)s rad etildi, biz bilan bogʻlaning."
+
+msgid "Резервная копия базы DASTYOR. Сохраните этот файл."
+msgstr "DASTYOR bazasining zaxira nusxasi. Bu faylni saqlab qoʻying."
+
+msgid "Язык"
+msgstr "Til"
+
+msgid "Язык в боте"
+msgstr "Botdagi til"
+
+msgid "Языки в боте"
+msgstr "Botdagi tillar"

@@ -878,3 +878,21 @@ class WorkDay(models.Model):
 
     def __str__(self):
         return f"{self.worker} {self.date:%d.%m}: {self.get_status_display()}"
+
+
+class BotUser(models.Model):
+    """Язык, который человек выбрал в боте. Один на Telegram-аккаунт: владелец, сотрудник или магазин."""
+
+    class Language(models.TextChoices):
+        RU = "ru", "Русский"
+        UZ = "uz", "Oʻzbekcha"
+
+    telegram_id = models.BigIntegerField(unique=True)
+    language = models.CharField(_("Язык"), max_length=2, choices=Language.choices, default=Language.RU)
+
+    class Meta:
+        verbose_name = _("Язык в боте")
+        verbose_name_plural = _("Языки в боте")
+
+    def __str__(self):
+        return f"{self.telegram_id}: {self.language}"
