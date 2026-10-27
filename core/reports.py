@@ -389,6 +389,8 @@ def staff(period, query="", role="", show_inactive=False):
             "loss": returns[w.pk][1] if w.pk in returns else m.ZERO,
             "days": len(days.get(w.pk, ())),
             "absent": absent.get(w.pk, 0),
+            "salary": w.salary,
+            "salary_paid": w.salary_paid(),
         })
     return {"rows": rows, "ratings": _ratings(rows)}
 
@@ -416,8 +418,12 @@ def staff_detail(worker, period):
     productions = _since(worker.productions.select_related("product"), "date", start)
     loads = _since(worker.loads.prefetch_related("items__product"), "date", start)
     by_product = items.values("product__name").annotate(q=Sum("qty"), s=_money(F("qty") * F("price"))).order_by("-s")
+    salary_paid = worker.salary_paid()
     return {
         "worker": worker,
+        "salary_paid": salary_paid,
+        "salary_left": max(worker.salary - salary_paid, m.ZERO),
+        "month": timezone.localdate(),
         "sales": items.aggregate(s=_money(F("qty") * F("price")))["s"] or m.ZERO,
         "qty": items.aggregate(s=Sum("qty"))["s"] or 0,
         "cash": (shipments.aggregate(s=Sum("paid"))["s"] or m.ZERO) + (payments.aggregate(s=Sum("amount"))["s"]

@@ -690,3 +690,64 @@ class LanguageTests(TestCase):
         self.assertIn("Saqlash", self.client.get("/admin/core/purchase/add/").content.decode())
         self.client.post("/i18n/setlang/", {"language": "ru", "next": "/"})
         self.assertIn("Внести данные", self.client.get("/entry/").content.decode())
+
+
+class BackupAndSalaryTests(TestCase):
+    def test_backup_restores_everything(self):
+        import gzip
+        import tempfile
+
+        from django.core.management import call_command
+
+        from .backup import make_backup
+
+        supplier = m.Supplier.objects.create(name="Бозор")
+        worker = m.Worker.objects.create(name="Азиз", salary=3000000)
+        m.Expense.objects.create(category=m.Expense.Category.SALARY, amount=1000000, worker=worker)
+        name, data = make_backup()
+        self.assertTrue(name.startswith("dastyor-") and name.endswith(".json.gz"))
+        self.assertIn("Бозор", gzip.decompress(data).decode())
+        m.Expense.objects.all().delete()
+        m.Worker.objects.all().delete()
+        supplier.delete()
+        with tempfile.NamedTemporaryFile(suffix=".json.gz") as f:
+            f.write(data)
+            f.flush()
+            call_command("loaddata", f.name, verbosity=0)
+        self.assertEqual(m.Supplier.objects.get().name, "Бозор")
+        self.assertEqual(m.Worker.objects.get().salary_paid(), 1000000)
+
+    def test_salary_on_staff_pages(self):
+        from django.contrib.auth.models import User
+
+        self.client.force_login(User.objects.create_superuser("owner", password="x"))
+        worker = m.Worker.objects.create(name="Азиз", salary=3000000)
+        m.Expense.objects.create(category=m.Expense.Category.SALARY, amount=1000000, worker=worker)
+        m.Expense.objects.create(category=m.Expense.Category.FUEL, amount=50000, worker=worker)
+        page = self.client.get(f"/staff/{worker.pk}/").content.decode()
+        self.assertIn("1\xa0000\xa0000", page)
+        self.assertIn("осталось выдать 2\xa0000\xa0000", page)
+        self.assertContains(self.client.get("/staff/"), "3\xa0000\xa0000")
+        form = self.client.get("/admin/core/worker/add/").content.decode()
+        self.assertNotIn('value="van"', form)
+        self.assertNotIn("field-vehicle", form)
+
+
+class ExcelExportTests(TestCase):
+    def test_excel_has_all_sheets(self):
+        import io
+
+        from django.contrib.auth.models import User
+        from openpyxl import load_workbook
+
+        self.client.force_login(User.objects.create_superuser("owner", password="x"))
+        worker = m.Worker.objects.create(name="Азиз", salary=3000000)
+        m.Expense.objects.create(category=m.Expense.Category.SALARY, amount=1000000, worker=worker)
+        response = self.client.get("/export.xlsx?period=month")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"])
+        wb = load_workbook(io.BytesIO(response.content))
+        self.assertEqual(wb.sheetnames, ["Итоги", "Магазины", "Продукты", "Сотрудники", "Закупки", "Расходы", "Долги"])
+        self.assertEqual(wb["Расходы"]["C2"].value, 1000000)
+        self.assertIn("Азиз", [c.value for c in wb["Сотрудники"]["A"]])
+        self.assertContains(self.client.get("/money/"), "/export.xlsx?period=month")

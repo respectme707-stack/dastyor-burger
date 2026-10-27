@@ -6,6 +6,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; display: flex
 .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .head h1 { font-size: 20px; margin: 0; font-weight: 600; }
 .head .sub { color: var(--gh-muted); font-size: 13px; }
+.head-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .crumbs { color: var(--gh-muted); font-size: 13px; }
 .periods { display: inline-flex; border: 1px solid var(--gh-line); border-radius: 6px; overflow: hidden; }
 .periods a { padding: 5px 14px; color: var(--gh-fg); font-size: 13px; border-left: 1px solid var(--gh-line); background: var(--gh-card); }

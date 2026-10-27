@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const role = document.getElementById("id_role");
   if (!role) return;
   const sellers = ["agent", "van"];
-  const rows = [".field-districts", ".field-shops", ".field-vehicle"]
+  const rows = [".field-districts", ".field-shops"]
     .map((sel) => document.querySelector(sel)).filter(Boolean);
   const sync = () => {
     const show = sellers.includes(role.value);

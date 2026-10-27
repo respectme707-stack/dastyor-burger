@@ -1,13 +1,14 @@
 import asyncio
 import logging
 import os
+import re
 from datetime import timedelta
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import CommandObject, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import (CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
+from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, Message, ReplyKeyboardMarkup)
 from asgiref.sync import sync_to_async
 from django.core.management.base import BaseCommand, CommandError
@@ -15,6 +16,7 @@ from django.utils import timezone
 
 from core import botlogic as logic
 from core import bot_staff
+from core.backup import make_backup
 from core.models import Order
 
 router = Router()
@@ -102,6 +104,16 @@ async def start(message: Message, command: CommandObject, state: FSMContext):
     else:
         await message.answer("Этот бот для магазинов-партнёров DASTYOR. "
                              "Попросите у поставщика ссылку для подключения.")
+
+
+@router.message(Command("backup"))
+async def backup_now(message: Message, bot: Bot):
+    """Владелец пишет /backup — бот сразу присылает копию базы."""
+    if not logic.is_owner(message.from_user.id):
+        return
+    name, data = await sync_to_async(make_backup)()
+    await bot.send_document(message.chat.id, BufferedInputFile(data, filename=name),
+                            caption="Резервная копия базы DASTYOR. Сохраните этот файл.")
 
 
 @router.message(F.text == ORDER)
@@ -221,7 +233,8 @@ class Command(BaseCommand):
         dp = Dispatcher()
         dp.include_router(router)
         dp.include_router(bot_staff.router)
-        tasks = [asyncio.create_task(reminder_loop(bot)), asyncio.create_task(daily_report_loop(bot))]
+        tasks = [asyncio.create_task(reminder_loop(bot)), asyncio.create_task(daily_report_loop(bot)),
+                 asyncio.create_task(backup_loop(bot))]
         try:
             await dp.start_polling(bot)
         finally:
@@ -258,3 +271,32 @@ async def daily_report_loop(bot):
             await bot_staff.send_daily_report(bot)
         except Exception:
             logging.exception("Ошибка при отправке итогов дня")
+
+
+async def backup_loop(bot):
+    """Каждую ночь в BACKUP_HOUR (по умолчанию 3:00) присылает владельцам файл с копией базы.
+
+    Кому: OWNER_TELEGRAM_IDS и, если задано, BACKUP_TELEGRAM_IDS (через запятую).
+    """
+    hour = int(os.environ.get("BACKUP_HOUR", "3"))
+    while True:
+        now = timezone.localtime()
+        run_at = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if now >= run_at:
+            run_at += timedelta(days=1)
+        await asyncio.sleep((run_at - timezone.localtime()).total_seconds())
+        try:
+            await send_backup(bot)
+        except Exception:
+            logging.exception("Ошибка при отправке резервной копии")
+
+
+async def send_backup(bot):
+    name, data = await sync_to_async(make_backup)()
+    extra = {int(x) for x in re.findall(r"\d+", os.environ.get("BACKUP_TELEGRAM_IDS", ""))}
+    for chat_id in logic.owner_ids() | extra:
+        try:
+            await bot.send_document(chat_id, BufferedInputFile(data, filename=name),
+                                    caption="Резервная копия базы DASTYOR. Сохраните этот файл.")
+        except Exception:
+            logging.exception("Не удалось отправить копию %s", chat_id)

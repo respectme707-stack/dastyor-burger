@@ -3,7 +3,7 @@
 {% block content %}
 <div class="head">
   <div><h1>{% translate "Обзор" %}</h1><div class="sub">{% translate "Главные цифры за период. Подробности во вкладках выше." %}</div></div>
-  {% include "core/_periods.html" %}
+  <div class="head-tools">{% include "core/_periods.html" %}<a class="btn" href="{% url 'export_excel' %}?period={{ period }}">⬇ {% translate "Excel" %}</a></div>
 </div>
 
 {% if low_materials %}

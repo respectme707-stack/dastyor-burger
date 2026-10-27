@@ -2154,3 +2154,78 @@ msgstr "%(ct_id)s kontent turining %(obj_id)s obyekti mavjud emas"
 
 msgid "%(ct_name)s objects don’t have a get_absolute_url() method"
 msgstr "%(ct_name)s obyektlarida get_absolute_url() metodi yoʻq"
+
+msgid "Итоги"
+msgstr "Yakunlar"
+
+msgid "Показатель"
+msgstr "Koʻrsatkich"
+
+msgid "Себестоимость проданного"
+msgstr "Sotilgan mahsulot tannarxi"
+
+msgid "Пришло денег"
+msgstr "Kelgan pul"
+
+msgid "Из них картой"
+msgstr "Shundan karta orqali"
+
+msgid "Закуплено сырья"
+msgstr "Sotib olingan xomashyo"
+
+msgid "Возвращено, шт"
+msgstr "Qaytarildi, dona"
+
+msgid "Возвраты, шт"
+msgstr "Qaytarishlar, dona"
+
+msgid "Возврат, %"
+msgstr "Qaytarish, %"
+
+msgid "На складе"
+msgstr "Omborda"
+
+msgid "Произвёл, шт"
+msgstr "Ishlab chiqardi, dona"
+
+msgid "Дней"
+msgstr "Kunlar"
+
+msgid "Оклад"
+msgstr "Oylik maosh"
+
+msgid "Выдано за месяц"
+msgstr "Oy davomida berildi"
+
+msgid "Ед."
+msgstr "Birl."
+
+msgid "Долги"
+msgstr "Qarzlar"
+
+msgid "Тип"
+msgstr "Turi"
+
+msgid "Магазин должен нам"
+msgstr "Doʻkon bizdan qarzdor"
+
+msgid "Мы должны поставщику"
+msgstr "Taʼminotchidan qarzimiz"
+
+msgid "Оклад в месяц"
+msgstr "Oylik maosh"
+
+msgid "Фиксированная зарплата. Выдачу вносите в «Расход» → «Зарплата»"
+msgstr "Belgilangan ish haqi. Berilganini «Xarajat» → «Ish haqi» boʻlimiga kiriting"
+
+msgid "Excel"
+msgstr "Excel"
+
+msgid "Зарплата за"
+msgstr "Ish haqi:"
+
+msgid "осталось выдать"
+msgstr "berilishi kerak"
+
+msgid "выдать"
+msgstr "berish"

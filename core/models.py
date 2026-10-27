@@ -755,6 +755,8 @@ class Worker(models.Model):
     name = models.CharField(_("Имя"), max_length=200)
     role = models.CharField(_("Роль"), max_length=10, choices=Role.choices, default=Role.AGENT)
     phone = models.CharField(_("Телефон"), max_length=50, blank=True)
+    salary = models.DecimalField(_("Оклад в месяц"), default=0, **MONEY,
+                                 help_text=_("Фиксированная зарплата. Выдачу вносите в «Расход» → «Зарплата»"))
     districts = models.CharField(_("Районы"), max_length=300, blank=True,
                                  help_text=_("Для агентов. Через запятую. Его магазины и напоминания по ним"))
     shops = models.ManyToManyField("Shop", blank=True, related_name="agents", verbose_name=_("Магазины"),
@@ -783,6 +785,13 @@ class Worker(models.Model):
 
     def is_workshop(self):
         return self.role in self.WORKSHOP_ROLES
+
+    def salary_paid(self, month=None):
+        """Сколько зарплаты выдали за месяц (по умолчанию за текущий)."""
+        month = month or timezone.localdate().replace(day=1)
+        nxt = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
+        paid = self.expenses.filter(category=Expense.Category.SALARY, date__gte=month, date__lt=nxt)
+        return paid.aggregate(s=Sum("amount"))["s"] or ZERO
 
     def stock(self):
         """{product: qty} — что сейчас на руках у агента."""
