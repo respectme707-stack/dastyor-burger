@@ -85,6 +85,19 @@ def staff_detail(request, pk):
 @staff_member_required
 def stock(request):
     data = reports.build("all")
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "")
+    shown = data["materials"]
+    if query:
+        shown = [x for x in shown if reports._match(query, x["material"].name)]
+        data["products"] = [p for p in data["products"] if reports._match(query, p["product"].name)]
+    if category == "none":
+        shown = [x for x in shown if not x["material"].category_id]
+    elif category.isdigit():
+        shown = [x for x in shown if x["material"].category_id == int(category)]
+    data.update(materials=shown, shown_value=sum((x["value"] for x in shown), m.ZERO), q=query,
+                category=category, categories=m.MaterialCategory.objects.all(),
+                filtered=bool(query or category))
     return _render(request, "core/stock.html", "stock", data)
 
 

@@ -4,11 +4,22 @@
 <div class="head">
   <div><h1>{% translate "Склад" %}</h1><div class="sub">{% translate "Что есть сейчас: сырьё, готовые товары в цеху и у агентов." %}</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn primary" href="{% url 'admin:core_purchase_add' %}">+ {% translate "Приход сырья" %}</a>
-    <a class="btn" href="{% url 'admin:core_materialbatch_add' %}">{% translate "Испекли булочки" %}</a>
-    <a class="btn" href="{% url 'admin:core_materialwriteoff_add' %}">{% translate "Списать сырьё" %}</a>
+    <a class="btn primary" href="{% url 'admin:core_purchase_add' %}">+ {% translate "Закупка" %}</a>
+    <a class="btn" href="{% url 'admin:core_production_add' %}">{% translate "Производство" %}</a>
+    <a class="btn" href="{% url 'admin:core_materialwriteoff_add' %}" title="{% translate "Испортилось, просрочилось, выбросили: убрать со склада" %}">{% translate "Списать сырьё" %}</a>
   </div>
 </div>
+
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="{% translate "Поиск по названию" %}" aria-label="{% translate "Поиск" %}">
+  <select name="category" aria-label="{% translate "Категория" %}" onchange="this.form.submit()">
+    <option value="">{% translate "Все категории" %}</option>
+    {% for c in categories %}<option value="{{ c.pk }}" {% if category == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    <option value="none" {% if category == "none" %}selected{% endif %}>{% translate "Без категории" %}</option>
+  </select>
+  <button class="btn" type="submit">{% translate "Найти" %}</button>
+  {% if filtered %}<a href="?">{% translate "сбросить" %}</a>{% endif %}
+</form>
 
 {% if low_materials %}
 <div class="flash warn" role="status">{% translate "Заканчивается" %}: {% for x in low_materials %}{{ x.material.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% translate ". Пора закупить." %}</div>
@@ -28,10 +39,11 @@
       <td class="num">{{ x.price|money }}</td>
       <td class="num">{{ x.value|money }}</td>
     </tr>
-    {% empty %}<tr><td colspan="6" class="empty">{% translate "Сырья нет." %} <a href="{% url 'admin:core_rawmaterial_add' %}">{% translate "Добавить" %}</a></td></tr>{% endfor %}
+    {% empty %}<tr><td colspan="6" class="empty">{% if filtered %}{% translate "Ничего не найдено." %}{% else %}{% translate "Сырья нет." %} <a href="{% url 'admin:core_rawmaterial_add' %}">{% translate "Добавить" %}</a>{% endif %}</td></tr>{% endfor %}
     </tbody>
-    {% if materials %}<tr class="total"><td>{% translate "Всего сырья на сумму" %}</td><td></td><td></td><td></td><td></td><td class="num">{{ materials_value|money }}</td></tr>{% endif %}
+    {% if materials %}<tr class="total"><td>{% if filtered %}{% translate "Итого по найденному" %}{% else %}{% translate "Всего сырья на сумму" %}{% endif %}</td><td></td><td></td><td></td><td></td><td class="num">{{ shown_value|money }}</td></tr>{% endif %}
   </table></div>
+  <p class="muted" style="margin:10px 0 0;font-size:13px">{% translate "«Мин.» — порог для напоминания: когда остаток меньше, строка станет красной и сайт напишет «пора закупить». «Списать сырьё» — если что-то испортилось, просрочилось или выбросили: так склад совпадёт с тем, что есть на самом деле." %}</p>
 </section>
 
 <div class="grid2">
@@ -39,7 +51,7 @@
     <h2>{% translate "Готовые товары" %}</h2>
     <div class="scroll"><table>
       <thead><tr><th>{% translate "Товар" %}</th><th class="num">{% translate "В цеху" %}</th><th class="num">{% translate "У агентов" %}</th></tr></thead>
-      {% for p in products %}<tr><td><a href="{% url 'product_detail' p.product.pk %}">{{ p.product.name }}</a></td><td class="num">{{ p.stock|money }}</td><td class="num">{{ p.in_vans|money }}</td></tr>
+      {% for p in products %}<tr><td><a href="{% url 'product_detail' p.product.pk %}">{{ p.product.name }}</a>{% if p.product.material_id %} <span class="tag green" title="{% translate "Тот же остаток, что в таблице сырья" %}">{% translate "полуфабрикат" %}</span>{% endif %}</td><td class="num">{{ p.stock|money }}</td><td class="num">{{ p.in_vans|money }}</td></tr>
       {% empty %}<tr><td colspan="3" class="empty">{% translate "Товаров нет." %}</td></tr>{% endfor %}
     </table></div>
   </section>

@@ -657,7 +657,7 @@ async def _stock_for(data):
 async def _product_picker(message, state):
     data = await state.get_data()
     if data["flow"] == "ret":
-        rows = [[(p.name, f"g:{p.pk}")] for p in await db(logic.products)]
+        rows = [[(p.name, f"g:{p.pk}")] for p in await db(logic.sale_products)]
         title = _("Что вернули?")
     else:
         stock, where = await _stock_for(data)

@@ -63,3 +63,9 @@ input:focus, select:focus, textarea:focus { border-color: #1f6feb; outline: 1px 
 .dastyor-totals { display: flex; flex-wrap: wrap; gap: 24px; margin: -10px 0 20px; padding: 12px 16px; background: #151b23; border: 1px solid #3d444d; border-radius: 6px; font-size: 15px; }
 .dastyor-totals b.debt { color: #f85149; }
 .dastyor-line { color: #9198a1; font-size: 12px; margin-top: 4px; }
+.dastyor-recipe { padding: 10px 16px 14px; border-bottom: 1px solid #3d444d; }
+.dastyor-recipe p { margin: 0 0 8px; font-size: 14px; }
+.dastyor-recipe table { width: auto; min-width: 420px; }
+.dastyor-recipe td, .dastyor-recipe th { padding: 4px 12px 4px 0; }
+.dastyor-recipe .num { text-align: right; }
+.dastyor-recipe .bad, .dastyor-recipe tr.bad td { color: #f85149; }

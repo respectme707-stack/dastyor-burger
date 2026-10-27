@@ -68,6 +68,11 @@ def products():
     return list(m.Product.objects.filter(active=True))
 
 
+def sale_products():
+    """Что магазин может заказать: без цены (котлеты для своих бургеров) не предлагаем."""
+    return list(m.Product.objects.filter(active=True, price__gt=0))
+
+
 def get_product(product_id):
     return m.Product.objects.filter(pk=product_id, active=True).first()
 
@@ -88,7 +93,7 @@ def cart_text(cart):
 @transaction.atomic
 def create_order(shop, cart, note=""):
     order = m.Order.objects.create(shop=shop, note=note)
-    for product in m.Product.objects.filter(pk__in=cart, active=True):
+    for product in m.Product.objects.filter(pk__in=cart, active=True, price__gt=0):
         if cart[product.pk] > 0:
             m.OrderItem.objects.create(order=order, product=product, qty=cart[product.pk],
                                        price=product.price)

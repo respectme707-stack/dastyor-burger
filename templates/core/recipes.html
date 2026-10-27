@@ -2,26 +2,23 @@
 {% block title %}{% translate "Рецепты" %}{% endblock %}
 {% block content %}
 <div class="head">
-  <div><h1>{% translate "Рецепты" %}</h1><div class="sub">{% translate "Из чего делаем товары и свои полуфабрикаты. Себестоимость по текущим ценам сырья." %}</div></div>
+  <div><h1>{% translate "Рецепты" %}</h1><div class="sub">{% translate "Из чего делаем 1 шт: бургеры, хот-доги и свои полуфабрикаты (котлеты, булочки). Себестоимость по текущим ценам сырья." %}</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn" href="{% url 'admin:core_rawmaterial_add' %}?homemade=1">+ {% translate "Полуфабрикат" %}</a>
-    <a class="btn primary" href="{% url 'admin:core_product_add' %}">+ {% translate "Товар с рецептом" %}</a>
+    <a class="btn primary" href="{% url 'admin:core_product_add' %}">+ {% translate "Новый рецепт" %}</a>
   </div>
 </div>
 
-<h2 class="section-title">{% translate "Товары" %}</h2>
+{% if no_recipe %}
+<div class="flash warn" role="status">{% translate "Отмечено «делаем сами», но рецепта нет:" %}
+  {% for x in no_recipe %}<a href="{% url 'admin:core_product_add' %}?name={{ x.name|urlencode }}&amp;material={{ x.pk }}">{{ x.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+  {% translate "Нажмите, чтобы заполнить." %}</div>
+{% endif %}
+
 {% for r in products %}
 <section class="box">
-  <h2><a href="{% url 'admin:core_product_change' r.obj.pk %}">{{ r.obj.name }}</a><span class="muted">{% translate "себест." %} {{ r.cost|money }} · {% translate "цена" %} {{ r.obj.price|money }}{% if not r.obj.active %} · {% translate "не продаётся" %}{% endif %}</span></h2>
+  <h2><a href="{% url 'admin:core_product_change' r.obj.pk %}">{{ r.obj.name }}</a>{% if r.obj.material_id %} <span class="tag green">{% translate "полуфабрикат" %}</span>{% endif %}<span class="muted">{% translate "себест." %} {{ r.cost|money }} · {% if r.obj.price %}{% translate "цена" %} {{ r.obj.price|money }}{% else %}{% translate "не продаём" %}{% endif %}{% if not r.obj.active %} · {% translate "не продаётся" %}{% endif %}</span></h2>
   {% include "core/_recipe_lines.html" with lines=r.lines edit=r.obj.pk kind="product" %}
 </section>
 {% empty %}<p class="empty">{% translate "Товаров ещё нет." %} <a href="{% url 'admin:core_product_add' %}">{% translate "Добавить" %}</a></p>{% endfor %}
 
-<h2 class="section-title">{% translate "Свои полуфабрикаты" %}</h2>
-{% for r in homemade %}
-<section class="box">
-  <h2><a href="{% url 'admin:core_rawmaterial_change' r.obj.pk %}">{{ r.obj.name }}</a><span class="muted">{% translate "себест. 1" %} {{ r.obj.unit }}: {{ r.cost|money }}</span></h2>
-  {% include "core/_recipe_lines.html" with lines=r.lines edit=r.obj.pk kind="material" %}
-</section>
-{% empty %}<p class="empty">{% translate "Своих полуфабрикатов (например, булочки) пока нет." %} <a href="{% url 'admin:core_rawmaterial_add' %}?homemade=1">{% translate "Добавить" %}</a></p>{% endfor %}
 {% endblock %}

@@ -230,7 +230,7 @@ def build(period):
         left, price = x.stock(), x.avg_price()
         materials.append({"material": x, "stock": left, "low": left < x.min_stock, "price": price,
                           "value": left * price if left > 0 else m.ZERO})
-    materials.sort(key=lambda x: (not x["low"], x["material"].name))
+    materials.sort(key=lambda x: (not x["low"], x["material"].name.casefold()))
 
     suppliers = [(s, s.debt()) for s in m.Supplier.objects.all()]
     suppliers = [(s, d) for s, d in suppliers if d]
@@ -577,12 +577,9 @@ def recipes():
     for p in m.Product.objects.prefetch_related("recipe__material__unit"):
         rows = [{"material": r.material, "qty": r.qty, "cost": r.qty * r.material.avg_price()} for r in p.recipe.all()]
         products.append({"obj": p, "lines": rows, "cost": sum((x["cost"] for x in rows), m.ZERO)})
-    homemade = []
-    for mat in m.RawMaterial.objects.filter(homemade=True).prefetch_related("ingredients__ingredient__unit"):
-        rows = [{"material": r.ingredient, "qty": r.qty, "cost": r.qty * r.ingredient.avg_price()}
-                for r in mat.ingredients.all()]
-        homemade.append({"obj": mat, "lines": rows, "cost": sum((x["cost"] for x in rows), m.ZERO)})
-    return {"products": products, "homemade": homemade}
+    # «Делаем сами», а рецепта (продукта) ещё нет: подскажем создать.
+    no_recipe = m.RawMaterial.objects.filter(homemade=True, product=None)
+    return {"products": products, "no_recipe": no_recipe}
 
 
 def purchases(limit=15):
